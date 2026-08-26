@@ -78,6 +78,6 @@ Verificación realizada: el 26/08/2026 se ejecutó el pg_dump sobre bd2_trabajo 
 Antes de ejecutar cualquier script generado por IA:
 
 1. Confirmar contra qué base está apuntando la sesión (`SELECT current_database();`).
-2. Leer el script completo, línea por línea. Si una línea no se entiende, no se ejecuta hasta entenderla.Es la condición para poder defender oralmente cualquier línea
+2. Leer el script completo, línea por línea. Si una línea no se entiende, no se ejecuta hasta entenderla. Es la condición para poder defender oralmente cualquier línea
 3. Verificar que todo UPDATE y DELETE tenga WHERE, y que ese WHERE sea el correcto. Un UPDATE funcion SET activa = FALSE; sin WHERE da de baja todas las filas de la tabla, no solo las que la consigna pedía.
-4. No confiar en el reporte del propio agente sobre lo que hizo: verificar en el motor. Lo que el agente dice que hizo no es evidencia de lo que efectivamente hizo: se verifica en el motor.
+4. No confiar en el reporte del propio agente sobre lo que hizo. Lo que el agente dice que hizo no es evidencia de que efectivamente lo hizo: se verifica en el motor.
