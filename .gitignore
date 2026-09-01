@@ -1,3 +1,12 @@
-respaldos/
+# Secretos — nunca se versionan
+.env
+
+# Respaldos de base de datos (binarios, se regeneran)
+db/backups/*.dump
+db/backups/*.backup
 *.dump
 *.backup
+
+# Dependencias y logs
+node_modules/
+*.log
