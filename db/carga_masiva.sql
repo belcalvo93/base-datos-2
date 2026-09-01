@@ -52,6 +52,13 @@
 --         rechaza productos inactivos; todos los generados aquí
 --         están activos.
 -- id_categoria: selección aleatoria de las categorías existentes.
+--   Sin referencia al nivel externo, el subquery no es correlacionado:
+--   el planificador lo arma como InitPlan (loops=1) y las 10.000 filas
+--   repiten la misma categoría (verificado: count(DISTINCT id_categoria)=1).
+--   El "+ s.i * 0" no altera el orden (sumar 0 no cambia random()), pero
+--   correlaciona el subquery con la fila externa: pasa a ser un SubPlan
+--   que se evalúa por fila (loops=10000 en EXPLAIN ANALYZE). Mismo
+--   mecanismo que el ya corregido bloque 4.
 -- ============================================================
 INSERT INTO producto (nombre, descripcion, precio, stock, activo, id_categoria)
 SELECT
@@ -60,8 +67,8 @@ SELECT
     ROUND((random() * 990 + 10)::NUMERIC, 2),
     (random() * 150 + 50)::INTEGER,
     TRUE,
-    (SELECT id_categoria FROM categoria ORDER BY random() LIMIT 1)
-FROM generate_series(1, 500) AS s(i);
+    (SELECT id_categoria FROM categoria ORDER BY random() + s.i * 0 LIMIT 1)
+FROM generate_series(1, 5000) AS s(i);
 
 
 -- ============================================================
@@ -77,7 +84,7 @@ SELECT
     'Apellido' || i,
     'cliente' || i || '@mail.com',
     NULL
-FROM generate_series(1, 200) AS s(i);
+FROM generate_series(1, 2000) AS s(i);
 
 
 -- ============================================================
@@ -89,14 +96,18 @@ FROM generate_series(1, 200) AS s(i);
 -- forma_pago: selección aleatoria entre las tres constantes del
 --             ENUM forma_pago_enum. Array + floor(random()*3+1)
 --             es idéntico al script de cátedra.
--- id_cliente: selección aleatoria de los recién insertados.
+-- id_cliente: selección aleatoria de los recién insertados. Igual que en
+--   producto: sin correlación el subquery es InitPlan y los 10.000 pedidos
+--   repiten el mismo cliente (verificado). El "+ s.i * 0" lo vuelve un
+--   SubPlan por fila sin alterar el orden. Alternativa escalable (variante
+--   B, se aparta del estilo de la cátedra) en db/carga_masiva_bloque3_B.sql.
 -- ============================================================
 INSERT INTO pedido (fecha, forma_pago, id_cliente)
 SELECT
     now() - (random() * INTERVAL '2 years'),
-    (ARRAY['EFECTIVO', 'TARJETA', 'TRANSFERENCIA'])[floor(random() * 3 + 1)],
-    (SELECT id_cliente FROM cliente ORDER BY random() LIMIT 1)
-FROM generate_series(1, 500) AS s(i);
+    (ARRAY['EFECTIVO', 'TARJETA', 'TRANSFERENCIA']::forma_pago_enum[])[floor(random() * 3 + 1)],
+    (SELECT id_cliente FROM cliente ORDER BY random() + s.i * 0 LIMIT 1)
+FROM generate_series(1, 5000) AS s(i);
 
 
 -- ============================================================
@@ -105,8 +116,10 @@ FROM generate_series(1, 500) AS s(i);
 -- Cada pedido recibe entre 1 y 4 líneas. La mecánica es:
 --
 --   a) CTE lineas_por_pedido: asigna n_lineas = (random()*3+1)::INTEGER
---      a cada pedido. Se reutiliza tanto para el campo cantidad
---      como para el filtro WHERE, evitando recalcular random().
+--      a cada pedido. Se usa solo para el filtro WHERE. La cantidad
+--      de unidades de cada línea es independiente: cuántos productos
+--      distintos tiene un pedido y cuántas unidades se piden de cada
+--      uno son dos cosas separadas.
 --
 --   b) CROSS JOIN LATERAL con subquery anidada:
 --      - Nivel interno: ORDER BY random() LIMIT 4 sobre producto.
@@ -137,7 +150,7 @@ lineas_por_pedido AS (
 )
 INSERT INTO detalle_pedido (cantidad, precio_unitario, id_pedido, id_producto)
 SELECT
-    lpp.n_lineas,
+    (random() * 3 + 1)::INTEGER,
     p.precio,
     lpp.id_pedido,
     p.id_producto
@@ -148,7 +161,21 @@ CROSS JOIN LATERAL (
     FROM (
         SELECT id_producto, precio
         FROM producto
-        ORDER BY random()
+        -- Solo productos vendibles: sin este filtro el sorteo puede
+        -- elegir productos preexistentes con activo = FALSE o stock < 4
+        -- y los triggers del TP2 abortan la carga (verificado: id 10
+        -- inactivo, id 2 con stock = 3).
+        WHERE activo = TRUE
+          AND stock >= 4
+        -- El "+ lpp.id_pedido * 0" no altera el orden (multiplicar
+        -- por cero no cambia el valor): correlaciona el subquery con
+        -- la fila externa. Sin esa referencia, PostgreSQL detecta que
+        -- el subquery no depende de lpp, inserta un nodo Materialize
+        -- y lo evalúa UNA sola vez, repartiendo los mismos 4 productos
+        -- entre todos los pedidos. Verificado con EXPLAIN ANALYZE:
+        -- loops=1 bajo Materialize, y solo 13 productos distintos en
+        -- 12.511 detalles.
+        ORDER BY random() + lpp.id_pedido * 0
         LIMIT 4
     ) sub
 ) p

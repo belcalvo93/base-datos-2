@@ -301,3 +301,76 @@ Ejecutada dentro de `BEGIN` / `COMMIT`, sin errores, y con los conteos:
    en `pedido`.
 4. No existe ningún `precio_unitario` NULL ni negativo en `detalle_pedido`.
 5. Todos los productos generados tienen `activo = TRUE` y `stock >= 50`.
+
+## Mediciones — corrida de 5.000 (01/09/2026)
+
+Base `bd2_tp3`, recreada desde `bd2_trabajo`. Todo dentro de
+`BEGIN` / `ROLLBACK`, medido con `EXPLAIN ANALYZE` por bloque en pgAdmin.
+
+### Antes de corregir el LATERAL
+
+| Bloque | Filas | Tiempo |
+|---|---|---|
+| 1 — producto | 5.000 | 91,4 ms |
+| 2 — cliente | 2.000 | 32,1 ms |
+| 3 — pedido | 5.000 | 83,1 ms |
+| 4 — detalle_pedido | 12.511 | 704,9 ms |
+| **Total** | | **911,5 ms** |
+
+Segunda corrida de los mismos bloques: 76,1 / 22,1 / 60,0 ms. La variación
+entre corridas idénticas ronda el 15%, así que solo se consideran
+significativas las diferencias muy superiores a ese margen.
+
+### Hallazgo — nodo Materialize en el bloque 4
+
+El plan mostró `Materialize (rows=4 loops=5005)` sobre un hijo con `loops=1`:
+el subquery del `CROSS JOIN LATERAL` se evaluaba **una sola vez** y los 12.511
+detalles se repartían entre los mismos 4 productos. Causa: el subquery no
+referenciaba ninguna columna de `lpp`, así que el planificador lo trató como
+independiente de la fila externa. `random()` no lo impide, porque la decisión
+de materializar se toma antes de ejecutar.
+
+Verificación empírica: `count(DISTINCT id_producto)` sobre `detalle_pedido`
+daba **13**.
+
+### Corrección aplicada
+
+1. `ORDER BY random() + lpp.id_pedido * 0` — la referencia a `lpp` correlaciona
+   el subquery y fuerza la reejecución por fila. `* 0` no altera el orden.
+2. `WHERE activo = TRUE AND stock >= 4` — sin este filtro el sorteo alcanza
+   productos preexistentes de `bd2_trabajo` que violan los triggers del TP2.
+   Dos fallas reales durante la prueba: producto id 2 (`stock = 3`) contra
+   `trg_verificar_stock_suficiente`, y producto id 10 (`activo = FALSE`) contra
+   `trg_verificar_producto_activo`. El umbral 4 está atado a la cantidad máxima
+   por línea (D2): si cambia una, cambia el otro.
+
+### Después de corregir
+
+| Métrica | Antes | Después |
+|---|---|---|
+| Bloque 4 | 704,9 ms | 9.891,1 ms |
+| Productos distintos en detalle | 13 | 4.590 |
+| Total de detalles | 12.511 | 12.493 |
+
+Plan posterior: desaparece `Materialize`; `Seq Scan on producto` pasa a
+`loops=5005`. `Filter: (activo AND (stock >= 4))` con
+`Rows Removed by Filter: 3` — los tres productos preexistentes no vendibles.
+
+El costo de obtener datos distribuidos es 14x en tiempo de carga. Se acepta:
+con 13 productos distintos, `detalle_pedido.id_producto` no tendría
+selectividad y la Parte 2 mediría un artefacto de la carga en lugar del
+comportamiento real de un índice.
+
+### Reparto del tiempo del bloque 4 (corrida de 5.000, corregida)
+
+| Concepto | Tiempo |
+|---|---|
+| FK a pedido | 137,0 ms |
+| FK a producto | 119,0 ms |
+| `trg_verificar_producto_activo` | 201,4 ms |
+| `trg_verificar_stock_suficiente` | 97,1 ms |
+| Plan (Nested Loop + inserción) | resto |
+
+En la corrida previa (sin corregir) los triggers eran el 74% del total. Tras la
+corrección pasan a ser una fracción menor: el peso se desplaza al `Seq Scan`
+repetido, que ahora sí se ejecuta por pedido.
