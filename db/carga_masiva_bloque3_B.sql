@@ -3,6 +3,18 @@
 -- A/B para decidir con mediciones contra la opción A de
 -- db/carga_masiva.sql (bloque 3).
 -- ============================================================
+-- ESTADO: VARIANTE DESCARTADA (medida el 2026-09-01)
+--   Medición A vs B a igual volumen (10.000 pedidos / 4.000
+--   clientes, bloque 2 cargado): B = 6.778 ms vs A = 9.676 ms →
+--   1,4x más rápido, NO la mejora estructural esperada. El EXPLAIN
+--   lo explicó: el Hash Join quedó ADENTRO del Nested Loop y el CTE
+--   se escanea una vez por pedido (CTE Scan on dominio_clientes:
+--   rows=4005 loops=10000) → el barrido por fila no se eliminó,
+--   solo se abarató. Se conserva este archivo como evidencia
+--   documentada de un diseño probado con su medición, NO como
+--   código a ejecutar. El bloque 3 activo es la opción A de
+--   db/carga_masiva.sql.
+-- ============================================================
 -- APARTAMIENTO EXPLÍCITO DEL ESTILO DE LA CÁTEDRA:
 --   El Genera_registros.sql original resuelve las FK con un subquery
 --   (SELECT ... ORDER BY random() LIMIT 1) evaluado por fila (opción A,
@@ -54,9 +66,10 @@
 --   SELECT count(DISTINCT id_cliente) FROM
 --     (SELECT id_cliente FROM pedido ORDER BY id_pedido DESC LIMIT 10000) t;
 -- ============================================================
--- ATENCIÓN: el generate_series(1, 10000) de abajo debe moverse JUNTO
--- con el del bloque 3 de carga_masiva.sql. Si cambiás un volumen,
--- cambiá el otro; un desfasaje invalida la comparación A vs B.
+-- VOLUMEN CONGELADO: el generate_series(1, 10000) de abajo se deja
+-- en 10.000 porque es el volumen al que se hizo la medición A vs B.
+-- No debe moverse: la variante está descartada y el archivo es
+-- evidencia, no código ejecutable.
 -- ============================================================
 
 WITH

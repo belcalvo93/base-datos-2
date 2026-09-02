@@ -29,12 +29,12 @@
 -- clientes como dominio de selección daría una estimación de
 -- tiempo no representativa.
 --
--- Prueba reducida:
---   generate_series(1, 500)   → producto
---   generate_series(1, 200)   → cliente
---   generate_series(1, 500)   → pedido
+-- Escenarios:
+--   Prueba chica:     5.000 /  2.000 /   5.000  → producto/cliente/pedido
+--   Prueba mediana:  10.000 /  4.000 /  10.000  → producto/cliente/pedido
+--   Producción:      50.000 / 20.000 / 200.000  → producto/cliente/pedido
 --
--- Producción:
+-- Configuración ACTIVA (Producción):
 --   generate_series(1, 50000)  → producto
 --   generate_series(1, 20000)  → cliente
 --   generate_series(1, 200000) → pedido
@@ -68,7 +68,7 @@ SELECT
     (random() * 150 + 50)::INTEGER,
     TRUE,
     (SELECT id_categoria FROM categoria ORDER BY random() + s.i * 0 LIMIT 1)
-FROM generate_series(1, 5000) AS s(i);
+FROM generate_series(1, 50000) AS s(i);
 
 
 -- ============================================================
@@ -84,7 +84,7 @@ SELECT
     'Apellido' || i,
     'cliente' || i || '@mail.com',
     NULL
-FROM generate_series(1, 2000) AS s(i);
+FROM generate_series(1, 20000) AS s(i);
 
 
 -- ============================================================
@@ -107,7 +107,7 @@ SELECT
     now() - (random() * INTERVAL '2 years'),
     (ARRAY['EFECTIVO', 'TARJETA', 'TRANSFERENCIA']::forma_pago_enum[])[floor(random() * 3 + 1)],
     (SELECT id_cliente FROM cliente ORDER BY random() + s.i * 0 LIMIT 1)
-FROM generate_series(1, 5000) AS s(i);
+FROM generate_series(1, 200000) AS s(i);
 
 
 -- ============================================================
