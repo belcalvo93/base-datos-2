@@ -188,35 +188,43 @@ comentarios marcado con `-- CONFIG` que indica los valores de `generate_series`
 para cada escenario:
 
 ```sql
--- CONFIG: ajustar los tres generate_series para la prueba reducida.
+-- CONFIG: ajustar los tres generate_series para cada escenario.
 -- En la prueba se reducen LOS TRES contadores, no solo el de pedidos.
 -- El cuello de botella de ORDER BY random() depende del tamaño de la
 -- tabla barrida: mantener 50.000 productos y 20.000 clientes como dominio
 -- de selección daría una estimación de tiempo no representativa.
 --
--- Prueba reducida:
---   generate_series(1, 500)   → producto
---   generate_series(1, 200)   → cliente
---   generate_series(1, 500)   → pedido
+-- Escenarios:
+--   Prueba chica:     5.000 /  2.000 /   5.000  → producto/cliente/pedido
+--   Prueba mediana:  10.000 /  4.000 /  10.000  → producto/cliente/pedido
+--   Producción:      50.000 / 20.000 / 200.000  → producto/cliente/pedido
 --
--- Producción:
+-- Configuración ACTIVA (Producción):
 --   generate_series(1, 50000)  → producto
 --   generate_series(1, 20000)  → cliente
 --   generate_series(1, 200000) → pedido
+-- ============================================================
 ```
 
-El operador edita únicamente esos tres números antes de ejecutar. No hay lógica
-condicional dentro del script: la parametrización es manual y explícita, igual
-que en el script de cátedra.
+El operador edita únicamente esos tres números antes de ejecutar, según el
+escenario elegido. No hay lógica condicional dentro del script: la
+parametrización es manual y explícita, igual que en el script de cátedra.
+
+> **Nota sobre la herramienta de ejecución.** Durante el TP2 y parte del TP3,
+> `psql` estuvo bloqueado por Smart App Control de Windows y el trabajo se
+> hizo con pgAdmin (las corridas de 5.000 y 10.000 se midieron por bloque con
+> `EXPLAIN ANALYZE` en pgAdmin). Desde el 01/09/2026 `psql` volvió a funcionar
+> y la corrida de producción se ejecutó con `psql` desde Git Bash.
 
 **Procedimiento:**
 
 1. Abrir `db/carga_masiva.sql` y ajustar los tres límites de `generate_series`
-   a los valores de prueba reducida.
+   al escenario activo del CONFIG (chica, mediana o producción).
 2. Verificar `SELECT current_database();` → debe devolver `bd2_tp3`.
 3. Ejecutar dentro de `BEGIN` / `ROLLBACK` y anotar el tiempo que reporta el
-   cliente (`psql` muestra `Time:` al final de cada sentencia).
-4. Si el tiempo es aceptable y no hay errores, restaurar los valores de
+   cliente (`Time:` al final de cada sentencia en `psql`; «Execution time» del
+   plan en pgAdmin).
+4. Si el tiempo es aceptable y no hay errores, pasar al escenario de
    producción y ejecutar con `BEGIN` / `COMMIT`.
 
 ---
@@ -275,18 +283,27 @@ fila insertada y el script las respeta:
 ## 11. Criterios de aceptación
 
 El script se considera correcto cuando cumple todos los criterios comunes y los
-específicos del escenario ejecutado.
+específicos del escenario ejecutado (los tres escenarios del CONFIG, sección 7).
 
-### 11.1 Prueba reducida (500 productos, 200 clientes, 500 pedidos)
+### 11.1 Prueba chica (5.000 productos, 2.000 clientes, 5.000 pedidos)
 
 Ejecutada dentro de `BEGIN` / `ROLLBACK`, sin errores, y con los conteos:
 
-- `SELECT COUNT(*) FROM producto` → valor anterior + 500
-- `SELECT COUNT(*) FROM cliente` → valor anterior + 200
-- `SELECT COUNT(*) FROM pedido` → valor anterior + 500
-- `SELECT COUNT(*) FROM detalle_pedido` → entre 500 y 2.000
+- `SELECT COUNT(*) FROM producto` → valor anterior + 5.000
+- `SELECT COUNT(*) FROM cliente` → valor anterior + 2.000
+- `SELECT COUNT(*) FROM pedido` → valor anterior + 5.000
+- `SELECT COUNT(*) FROM detalle_pedido` → entre 5.000 y 20.000
 
-### 11.2 Producción (50.000 productos, 20.000 clientes, 200.000 pedidos)
+### 11.2 Prueba mediana (10.000 productos, 4.000 clientes, 10.000 pedidos)
+
+Ejecutada dentro de `BEGIN` / `ROLLBACK`, sin errores, y con los conteos:
+
+- `SELECT COUNT(*) FROM producto` → valor anterior + 10.000
+- `SELECT COUNT(*) FROM cliente` → valor anterior + 4.000
+- `SELECT COUNT(*) FROM pedido` → valor anterior + 10.000
+- `SELECT COUNT(*) FROM detalle_pedido` → entre 10.000 y 40.000
+
+### 11.3 Producción (50.000 productos, 20.000 clientes, 200.000 pedidos)
 
 Ejecutada dentro de `BEGIN` / `COMMIT`, sin errores, y con los conteos:
 
@@ -295,12 +312,35 @@ Ejecutada dentro de `BEGIN` / `COMMIT`, sin errores, y con los conteos:
 - `SELECT COUNT(*) FROM pedido` → valor anterior + 200.000
 - `SELECT COUNT(*) FROM detalle_pedido` → entre 200.000 y 800.000
 
-### 11.3 Criterios comunes (ambos escenarios)
+### 11.4 Criterios comunes (los tres escenarios)
 
-3. No existe ningún `id_pedido` en `detalle_pedido` sin su correspondiente fila
+1. No existe ningún `id_pedido` en `detalle_pedido` sin su correspondiente fila
    en `pedido`.
-4. No existe ningún `precio_unitario` NULL ni negativo en `detalle_pedido`.
-5. Todos los productos generados tienen `activo = TRUE` y `stock >= 50`.
+2. No existe ningún `precio_unitario` NULL ni negativo en `detalle_pedido`.
+3. Todos los productos generados tienen `activo = TRUE` y `stock >= 50`.
+
+### 11.5 Verificación de la distribución
+
+Los conteos de 11.1–11.3 demuestran volumen, no distribución. La distribución
+se verifica con consultas restringidas a las filas recién insertadas: cada
+bloque del script inserta las filas más nuevas, así que el corte se hace con
+`ORDER BY <pk> DESC LIMIT <n>` con `<n>` igual a la cantidad insertada (las
+consultas quedaron armadas en `db/verificacion_carga_masiva.sql`).
+
+`count(DISTINCT ...)` no sirve sobre columnas con pocos valores: con 5
+categorías, `count(DISTINCT id_categoria)` da 5 esté la distribución rota o no.
+
+- **`producto.id_categoria`** — agrupar por categoría las últimas `<n>` filas
+  de `producto`. Correcto: repartido entre las 5 categorías. Roto: una sola
+  categoría concentra todas las filas (el subquery no correlacionado se
+  evalúa como InitPlan, una sola vez). En producción quedó repartido entre
+  las 5.
+- **`pedido.id_cliente`** — `count(DISTINCT id_cliente)` sobre las últimas
+  `<n>` filas de `pedido`. En producción: **20.004** de 20.005 clientes.
+- **`detalle_pedido.id_producto`** — `count(DISTINCT id_producto)` sobre las
+  filas de detalle de los últimos pedidos. En producción: **50.008** de
+  50.011 productos (los 3 faltantes son los preexistentes que el filtro
+  `activo = TRUE AND stock >= 4` excluye).
 
 ## Mediciones — corrida de 5.000 (01/09/2026)
 
@@ -374,3 +414,66 @@ comportamiento real de un índice.
 En la corrida previa (sin corregir) los triggers eran el 74% del total. Tras la
 corrección pasan a ser una fracción menor: el peso se desplaza al `Seq Scan`
 repetido, que ahora sí se ejecuta por pedido.
+
+## Mediciones — corrida de 10.000 (prueba mediana, con las tres correcciones)
+
+Medido por bloque con `EXPLAIN ANALYZE` en pgAdmin (psql bloqueado por Smart
+App Control; ver §7). Escenario de prueba mediana: 10.000 productos, 4.000
+clientes, 10.000 pedidos, con las tres correcciones ya aplicadas. Esta corrida
+es la misma que se usó para comparar la variante A contra la B del bloque 3
+(variante A: bloque 3 = 9.676 ms; ver DUIA, uso 9).
+
+| Bloque | Tiempo |
+|---|---|
+| 1 — producto | 276 ms |
+| 2 — cliente | 39 ms |
+| 3 — pedido | 9.676 ms |
+| 4 — detalle_pedido | 38.193 ms |
+
+## Mediciones — corrida de producción (01/09/2026, psql)
+
+Ejecución completa de los cuatro bloques con `BEGIN` / `COMMIT` desde `psql`
+en Git Bash sobre `bd2_tp3`. Desde esta fecha `psql` volvió a estar operativo
+(ver §7). Escenario de producción: 50.000 productos, 20.000 clientes, 200.000
+pedidos.
+
+| Bloque | Tiempo | Filas insertadas |
+|---|---|---|
+| 1 — producto | 1,13 s | 50.000 |
+| 2 — cliente | 0,27 s | 20.000 |
+| 3 — pedido | 12:31,9 | 200.000 |
+| 4 — detalle_pedido | 47:35,3 | 499.254 |
+| **Total (suma bloques 1–4)** | **1:00:08** | |
+
+El Total (1:00:08) es la **suma aritmética** de los cuatro tiempos por
+sentencia que reportó `psql`; no es un tiempo medido de la transacción
+completa (no se registró el transcurrido total del BEGIN / COMMIT). El bloque
+4 concentra **~79%** del total (2855,3 s de 3608,6 s): es el costo del
+`ORDER BY random()` reejecutado por pedido, el mismo peso que ya se documentó
+en la corrida de 5.000.
+
+Conteos finales tras el COMMIT (la carga es aditiva sobre los datos de
+`datos.sql`):
+
+| Tabla | Conteo final | Incremento |
+|---|---|---|
+| categoria | 5 | — |
+| cliente | 20.005 | +20.000 |
+| producto | 50.011 | +50.000 |
+| pedido | 200.005 | +200.000 |
+| detalle_pedido | 499.263 | +499.254 |
+
+Distribución verificada tras el COMMIT:
+
+- **`pedido.id_cliente`** — 20.004 clientes distintos con pedidos, de los
+  20.005 existentes.
+- **`detalle_pedido.id_producto`** — 50.008 productos distintos vendidos, de
+  los 50.011. Los 3 que faltan son los preexistentes que el filtro
+  `activo = TRUE AND stock >= 4` excluye (los mismos 3 que el `Filter` del
+  bloque 4 descarta: `Rows Removed by Filter: 3` en la corrida de 5.000).
+- **`producto.id_categoria`** — repartido entre las 5 categorías.
+
+Operaciones posteriores a la carga:
+
+- `ANALYZE` sobre las cinco tablas, después del COMMIT.
+- Respaldo: `db/backups/bd2_tp3_poblada.dump` (9 MB).
