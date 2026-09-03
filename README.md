@@ -30,6 +30,13 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 │   ├── spec_carga_masiva.md
 │   ├── informe_concurrencia.md
 │   ├── ejercicio_lectura_critica.md
+│   ├── informe_parte2_indices.md
+│   ├── planes_parte2_antes.txt
+│   ├── planes_parte2_despues.txt
+│   ├── explicacion_ia_plan_c2.md
+│   ├── informe_parte3_lectura_critica.md
+│   ├── spec_consultas_parte4.md
+│   ├── informe_parte4_consultas.md
 │   └── duia/
 │       ├── duia_parte1.md
 │       ├── duia_parte2.md
@@ -60,6 +67,13 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 | `docs/spec_carga_masiva.md` | Especificación de la carga masiva |
 | `docs/informe_concurrencia.md` | Informe de ejercicios de concurrencia |
 | `docs/ejercicio_lectura_critica.md` | Ejercicio de lectura crítica |
+| `docs/informe_parte2_indices.md` | Informe de la Parte 2: mediciones de índices antes y después |
+| `docs/planes_parte2_antes.txt` | Planes de EXPLAIN ANALYZE sin índices |
+| `docs/planes_parte2_despues.txt` | Planes de EXPLAIN ANALYZE con los índices del TP1 |
+| `docs/explicacion_ia_plan_c2.md` | Explicación de un plan generada por IA, sin editar (insumo de la Parte 3) |
+| `docs/informe_parte3_lectura_critica.md` | Auditoría de esa explicación contra el plan real |
+| `docs/spec_consultas_parte4.md` | Specs de las dos consultas de la Parte 4 |
+| `docs/informe_parte4_consultas.md` | Informe de la Parte 4 con la verificación de equivalencia |
 | `docs/duia/` | Documentación de uso de IA por unidad |
 | `.kiro/steering/database.md` | Referencia del esquema con diseño justificado |
 
@@ -85,7 +99,7 @@ Diagrama ER completo en `docs/Diagrama ER.png`.
 |--------|---------|----------|
 | Unidad 1 | Semana 1 | Modelo ER, normalización a 3FN/BCNF, `db/schema.sql` |
 | Unidad 1 | Semana 2 | `protocolo_seguridad.md`, `docs/spec_restricciones.md`, `db/restricciones.sql`, `db/pruebas_restricciones.sql`, `docs/informe_concurrencia.md`, `docs/ejercicio_lectura_critica.md`, tres DUIA |
-| Unidad 2 | Sem. 3–4 | `db/carga_masiva.sql`, `docs/spec_carga_masiva.md`, `db/verificacion_carga_masiva.sql`, `db/carga_masiva_bloque3_B.sql` (variante descartada), `docs/duia/duia_parte4.md`. Optimización con EXPLAIN/índices en curso. |
+| Unidad 2 | Sem. 3–4 | **Parte 1 (carga masiva):** `db/carga_masiva.sql`, `docs/spec_carga_masiva.md`, `db/verificacion_carga_masiva.sql`, `db/carga_masiva_bloque3_B.sql` (variante descartada), `docs/duia/duia_parte4.md`. **Parte 2 (índices):** `docs/informe_parte2_indices.md`, `docs/planes_parte2_antes.txt`, `docs/planes_parte2_despues.txt`. **Parte 3 (lectura crítica):** `docs/explicacion_ia_plan_c2.md`, `docs/informe_parte3_lectura_critica.md`. **Parte 4 (consultas bajo spec):** `docs/spec_consultas_parte4.md`, `docs/informe_parte4_consultas.md`. **Parte 5 (competencia entre equipos): pendiente** de que la cátedra entregue la consulta común. |
 
 ---
 
