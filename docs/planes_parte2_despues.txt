@@ -1,0 +1,63 @@
+                                       consulta                                        
+---------------------------------------------------------------------------------------
+ === C1 - productos vigentes de la categoria 5 (CON idx_producto_categoria_activo) ===
+(1 fila)
+
+                                                                      QUERY PLAN                                                                      
+------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1428.06..1453.19 rows=10052 width=32) (actual time=6.962..8.267 rows=10047 loops=1)
+   Sort Key: precio DESC
+   Sort Method: quicksort  Memory: 932kB
+   ->  Bitmap Heap Scan on producto p  (cost=118.19..759.84 rows=10052 width=32) (actual time=0.372..3.545 rows=10047 loops=1)
+         Recheck Cond: ((id_categoria = 5) AND activo)
+         Heap Blocks: exact=516
+         ->  Bitmap Index Scan on idx_producto_categoria_activo  (cost=0.00..115.68 rows=10052 width=0) (actual time=0.304..0.305 rows=10047 loops=1)
+               Index Cond: (id_categoria = 5)
+ Planning Time: 0.456 ms
+ Execution Time: 8.816 ms
+(10 filas)
+
+                                    consulta                                     
+---------------------------------------------------------------------------------
+ === C2 - historial de pedidos del cliente 20155 (CON idx_pedido_id_cliente) ===
+(1 fila)
+
+                                                                 QUERY PLAN                                                                 
+--------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=50.60..50.62 rows=10 width=44) (actual time=0.114..0.116 rows=24 loops=1)
+   Sort Key: p.fecha DESC
+   Sort Method: quicksort  Memory: 26kB
+   ->  Nested Loop  (cost=4.66..50.43 rows=10 width=44) (actual time=0.055..0.093 rows=24 loops=1)
+         ->  Index Scan using cliente_pkey on cliente c  (cost=0.29..8.30 rows=1 width=32) (actual time=0.017..0.017 rows=1 loops=1)
+               Index Cond: (id_cliente = 20155)
+         ->  Bitmap Heap Scan on pedido p  (cost=4.37..42.02 rows=10 width=28) (actual time=0.035..0.069 rows=24 loops=1)
+               Recheck Cond: (id_cliente = 20155)
+               Heap Blocks: exact=23
+               ->  Bitmap Index Scan on idx_pedido_id_cliente  (cost=0.00..4.37 rows=10 width=0) (actual time=0.026..0.026 rows=24 loops=1)
+                     Index Cond: (id_cliente = 20155)
+ Planning Time: 0.513 ms
+ Execution Time: 0.147 ms
+(13 filas)
+
+                                  consulta                                   
+-----------------------------------------------------------------------------
+ === C3 - ventas del producto 49112 (CON idx_detalle_pedido_id_producto) ===
+(1 fila)
+
+                                                                     QUERY PLAN                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=139.95..139.98 rows=11 width=26) (actual time=0.357..0.360 rows=27 loops=1)
+   Sort Key: ped.fecha DESC
+   Sort Method: quicksort  Memory: 26kB
+   ->  Nested Loop  (cost=4.93..139.76 rows=11 width=26) (actual time=0.092..0.337 rows=27 loops=1)
+         ->  Bitmap Heap Scan on detalle_pedido dp  (cost=4.51..46.95 rows=11 width=26) (actual time=0.077..0.133 rows=27 loops=1)
+               Recheck Cond: (id_producto = 49112)
+               Heap Blocks: exact=27
+               ->  Bitmap Index Scan on idx_detalle_pedido_id_producto  (cost=0.00..4.50 rows=11 width=0) (actual time=0.062..0.062 rows=27 loops=1)
+                     Index Cond: (id_producto = 49112)
+         ->  Index Scan using pedido_pkey on pedido ped  (cost=0.42..8.44 rows=1 width=16) (actual time=0.007..0.007 rows=1 loops=27)
+               Index Cond: (id_pedido = dp.id_pedido)
+ Planning Time: 1.035 ms
+ Execution Time: 0.407 ms
+(13 filas)
+

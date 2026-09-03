@@ -1,0 +1,67 @@
+                            consulta                            
+----------------------------------------------------------------
+ === C1 - productos vigentes de la categoria 5 (SIN indice) ===
+(1 fila)
+
+                                                      QUERY PLAN                                                      
+----------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1809.35..1834.48 rows=10052 width=32) (actual time=6.817..7.243 rows=10047 loops=1)
+   Sort Key: precio DESC
+   Sort Method: quicksort  Memory: 932kB
+   ->  Seq Scan on producto p  (cost=0.00..1141.14 rows=10052 width=32) (actual time=0.019..4.197 rows=10047 loops=1)
+         Filter: (activo AND (id_categoria = 5))
+         Rows Removed by Filter: 39964
+ Planning Time: 0.104 ms
+ Execution Time: 7.630 ms
+(8 filas)
+
+                             consulta                             
+------------------------------------------------------------------
+ === C2 - historial de pedidos del cliente 20155 (SIN indice) ===
+(1 fila)
+
+                                                             QUERY PLAN                                                              
+-------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=3942.00..3951.29 rows=10 width=44) (actual time=34.834..38.966 rows=24 loops=1)
+   ->  Gather Merge  (cost=3941.71..3942.85 rows=10 width=28) (actual time=34.797..38.910 rows=24 loops=1)
+         Workers Planned: 1
+         Workers Launched: 1
+         ->  Sort  (cost=2941.70..2941.72 rows=6 width=28) (actual time=4.801..4.803 rows=12 loops=2)
+               Sort Key: p.fecha DESC
+               Sort Method: quicksort  Memory: 26kB
+               Worker 0:  Sort Method: quicksort  Memory: 25kB
+               ->  Parallel Seq Scan on pedido p  (cost=0.00..2941.62 rows=6 width=28) (actual time=0.597..4.741 rows=12 loops=2)
+                     Filter: (id_cliente = 20155)
+                     Rows Removed by Filter: 99990
+   ->  Materialize  (cost=0.29..8.31 rows=1 width=32) (actual time=0.001..0.002 rows=1 loops=24)
+         ->  Index Scan using cliente_pkey on cliente c  (cost=0.29..8.30 rows=1 width=32) (actual time=0.022..0.023 rows=1 loops=1)
+               Index Cond: (id_cliente = 20155)
+ Planning Time: 0.158 ms
+ Execution Time: 39.008 ms
+(16 filas)
+
+                      consulta                       
+-----------------------------------------------------
+ === C3 - ventas del producto 49112 (SIN indice) ===
+(1 fila)
+
+                                                                 QUERY PLAN                                                                 
+--------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Merge  (cost=7803.60..7804.76 rows=10 width=26) (actual time=39.783..43.810 rows=27 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   ->  Sort  (cost=6803.57..6803.59 rows=5 width=26) (actual time=10.473..10.475 rows=9 loops=3)
+         Sort Key: ped.fecha DESC
+         Sort Method: quicksort  Memory: 26kB
+         Worker 0:  Sort Method: quicksort  Memory: 25kB
+         Worker 1:  Sort Method: quicksort  Memory: 25kB
+         ->  Nested Loop  (cost=0.42..6803.52 rows=5 width=26) (actual time=0.111..10.448 rows=9 loops=3)
+               ->  Parallel Seq Scan on detalle_pedido dp  (cost=0.00..6761.33 rows=5 width=26) (actual time=0.107..10.394 rows=9 loops=3)
+                     Filter: (id_producto = 49112)
+                     Rows Removed by Filter: 166412
+               ->  Index Scan using pedido_pkey on pedido ped  (cost=0.42..8.44 rows=1 width=16) (actual time=0.005..0.005 rows=1 loops=27)
+                     Index Cond: (id_pedido = dp.id_pedido)
+ Planning Time: 0.264 ms
+ Execution Time: 43.847 ms
+(16 filas)
+
