@@ -83,3 +83,38 @@ WHERE p.activo = TRUE AND c.activo = TRUE;
 -- EXCEPT
 -- SELECT id_producto, nombre, precio, stock, nombre_categoria
 -- FROM vista_productos_vigentes;
+
+-- vista_detalle_pedido_producto
+-- Propósito: mostrar cada línea de detalle_pedido junto con el nombre del
+-- producto vendido, para reconstruir el contenido de un pedido sin hacer
+-- el JOIN contra producto por separado. Sin filtro de vigencia: reconstruye
+-- hechos pasados; precio_unitario es histórico congelado (R4), independiente
+-- del precio de lista. La baja lógica protege contra ventas futuras, no
+-- contra la consulta de ventas pasadas.
+-- INNER JOIN: detalle_pedido.id_producto es NOT NULL (FK con ON DELETE RESTRICT).
+-- Idempotente: CREATE OR REPLACE VIEW.
+
+CREATE OR REPLACE VIEW vista_detalle_pedido_producto AS
+SELECT dp.id_detalle, dp.id_pedido, pr.nombre AS nombre_producto,
+       dp.cantidad, dp.precio_unitario
+FROM detalle_pedido dp
+JOIN producto pr ON pr.id_producto = dp.id_producto;
+
+-- Verificación (criterio de aceptación de la spec): no ejecutar en cada corrida.
+-- Ambas direcciones del EXCEPT deben devolver exactamente 0 filas:
+--
+-- SELECT id_detalle, id_pedido, nombre_producto, cantidad, precio_unitario
+-- FROM vista_detalle_pedido_producto
+-- EXCEPT
+-- SELECT dp.id_detalle, dp.id_pedido, pr.nombre,
+--        dp.cantidad, dp.precio_unitario
+-- FROM detalle_pedido dp
+-- JOIN producto pr ON pr.id_producto = dp.id_producto;
+--
+-- SELECT dp.id_detalle, dp.id_pedido, pr.nombre,
+--        dp.cantidad, dp.precio_unitario
+-- FROM detalle_pedido dp
+-- JOIN producto pr ON pr.id_producto = dp.id_producto
+-- EXCEPT
+-- SELECT id_detalle, id_pedido, nombre_producto, cantidad, precio_unitario
+-- FROM vista_detalle_pedido_producto;

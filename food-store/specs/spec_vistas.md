@@ -227,3 +227,92 @@ FROM vista_productos_vigentes;
 ```
 
 Ambas consultas deben devolver `(0 rows)`.
+
+---
+
+## Vista 4 — `vista_detalle_pedido_producto`
+
+### Propósito
+
+Mostrar cada línea de `detalle_pedido` junto con el nombre del producto
+vendido, para que quien consulte pueda reconstruir el contenido de un
+pedido sin necesidad de hacer el JOIN contra `producto` por separado.
+
+No aplica filtro de vigencia sobre `producto.activo`. Esta vista
+reconstruye hechos pasados: `precio_unitario` es un dato histórico
+congelado en el momento de la venta (R4), independiente del precio de
+lista vigente, y el nombre del producto es igualmente un dato legible
+del registro histórico. Excluir líneas cuyo producto fue dado de baja
+después de la venta haría que ciertos `id_pedido` aparecieran con menos
+líneas que las realmente registradas, rompiendo cualquier reconstrucción
+de pedido. La baja lógica en `producto` protege contra ventas futuras
+(vía los triggers `trg_verificar_producto_activo` del TP2), no contra
+la consulta de ventas pasadas. El filtro de vigencia lo aplica
+`vista_productos_vigentes`, que tiene un propósito distinto.
+
+### Consulta base
+
+```sql
+SELECT dp.id_detalle,
+       dp.id_pedido,
+       pr.nombre AS nombre_producto,
+       dp.cantidad,
+       dp.precio_unitario
+FROM detalle_pedido dp
+JOIN producto pr ON pr.id_producto = dp.id_producto;
+```
+
+El JOIN es `INNER JOIN`: `detalle_pedido.id_producto` es `NOT NULL` (FK
+con `ON DELETE RESTRICT`), por lo que todo detalle tiene exactamente un
+producto. La política `RESTRICT` garantiza además que ningún producto
+referenciado en `detalle_pedido` puede borrarse físicamente, así que el
+JOIN nunca pierde filas.
+
+### Columnas de la vista
+
+| Columna | Tabla origen | Tipo origen | Notas |
+|---|---|---|---|
+| `id_detalle` | `detalle_pedido` | `BIGINT` | PK de `detalle_pedido` |
+| `id_pedido` | `detalle_pedido` | `BIGINT NOT NULL` | FK → `pedido`; permite filtrar por pedido |
+| `nombre_producto` | `producto` | `VARCHAR(120) NOT NULL` | Alias de `producto.nombre` |
+| `cantidad` | `detalle_pedido` | `INTEGER NOT NULL` | Unidades vendidas en esta línea |
+| `precio_unitario` | `detalle_pedido` | `NUMERIC(10,2) NOT NULL` | Precio histórico congelado (R4) |
+
+No se incluye `id_producto`, `descripcion`, `activo`, `stock`, `precio`
+(vigente) ni `created_at`. No se agrega ninguna columna derivada ni
+calculada; en particular, `subtotal` no se almacena (se recalcula como
+`cantidad * precio_unitario` según la decisión de normalización del TP1).
+
+### Restricciones de implementación
+
+- Las columnas se listan explícitamente; no se usa `SELECT *`.
+- El alias `nombre_producto` se declara en la consulta de la vista.
+- Vista de solo lectura: sin `WITH CHECK OPTION`, sin trigger `INSTEAD OF`.
+- Idempotente: `CREATE OR REPLACE VIEW vista_detalle_pedido_producto AS ...`
+
+### Criterio de aceptación
+
+La vista es correcta cuando ambas direcciones del `EXCEPT` devuelven
+exactamente 0 filas:
+
+```sql
+-- Dirección 1: filas en la vista que no están en la consulta base
+SELECT id_detalle, id_pedido, nombre_producto, cantidad, precio_unitario
+FROM vista_detalle_pedido_producto
+EXCEPT
+SELECT dp.id_detalle, dp.id_pedido, pr.nombre,
+       dp.cantidad, dp.precio_unitario
+FROM detalle_pedido dp
+JOIN producto pr ON pr.id_producto = dp.id_producto;
+
+-- Dirección 2: filas en la consulta base que no están en la vista
+SELECT dp.id_detalle, dp.id_pedido, pr.nombre,
+       dp.cantidad, dp.precio_unitario
+FROM detalle_pedido dp
+JOIN producto pr ON pr.id_producto = dp.id_producto
+EXCEPT
+SELECT id_detalle, id_pedido, nombre_producto, cantidad, precio_unitario
+FROM vista_detalle_pedido_producto;
+```
+
+Ambas consultas deben devolver `(0 rows)`.
