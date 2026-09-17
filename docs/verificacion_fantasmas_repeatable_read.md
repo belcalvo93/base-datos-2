@@ -3,9 +3,8 @@
 ## 1. Por qué se hace esta prueba
 
 El informe de concurrencia del TP2 dejó un punto abierto: se documentó que en PostgreSQL el nivel
-Repeatable Read debería evitar también las lecturas fantasma, pero no se verificó contra el motor. La
-devolución del docente sobre esa entrega señaló exactamente eso como lo único que faltaba, y pidió cerrarlo
-con una prueba adicional en lugar de dejarlo afirmado sin comprobar.
+Repeatable Read debería evitar también las lecturas fantasma, pero eso no se verificó contra el motor.
+Quedó como una afirmación tomada de la documentación, no como un resultado medido.
 
 Este documento cierra ese punto.
 
