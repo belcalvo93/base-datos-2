@@ -27,7 +27,7 @@ createdb -U postgres -T bd2_proyecto bd2_trabajo
 
 **Every script** that writes to the DB must follow this order:
 
-1. **Backup** before structural changes: `pg_dump -U postgres -F c -f "respaldos/bd2_trabajo_YYYYMMDD.dump" bd2_trabajo`
+1. **Backup** before structural changes: `pg_dump -U postgres -F c -f "db/backups/bd2_trabajo_YYYYMMDD.dump" bd2_trabajo`
 2. **Transaction with ROLLBACK** first — inspect output, then repeat with COMMIT
 3. **Check `SELECT current_database();`** before any execution
 4. **Read every line** of generated scripts before running — if you can't explain it, don't run it
@@ -50,10 +50,10 @@ Full protocol: `protocolo_seguridad.md`
 ## File layout
 
 ```
-sql/schema.sql     — table definitions (idempotent)
-sql/datos.sql      — seed data (uses subqueries for FKs, no hardcoded IDs)
-sql/restricciones.sql — triggers for integrity rules (Regla 1, Regla 2)
-spec_restricciones.md — integrity constraint specs (read before writing triggers)
+db/schema.sql      — table definitions (idempotent)
+db/datos.sql       — seed data (uses subqueries for FKs, no hardcoded IDs)
+db/restricciones.sql — triggers for integrity rules (Regla 1, Regla 2)
+docs/spec_restricciones.md — integrity constraint specs (read before writing triggers)
 protocolo_seguridad.md — safety protocol (MANDATORY reading)
 .kiro/steering/database.md — full schema reference with design rationale
 ```

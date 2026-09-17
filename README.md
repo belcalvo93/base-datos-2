@@ -37,6 +37,7 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 │   ├── informe_parte3_lectura_critica.md
 │   ├── spec_consultas_parte4.md
 │   ├── informe_parte4_consultas.md
+│   ├── informe_tp4_semana4.md
 │   └── duia/
 │       ├── duia_parte1.md
 │       ├── duia_parte2.md
@@ -74,6 +75,7 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 | `docs/informe_parte3_lectura_critica.md` | Auditoría de esa explicación contra el plan real |
 | `docs/spec_consultas_parte4.md` | Specs de las dos consultas de la Parte 4 |
 | `docs/informe_parte4_consultas.md` | Informe de la Parte 4 con la verificación de equivalencia |
+| `docs/informe_tp4_semana4.md` | Informe TP4: mediciones, lectura crítica, ranking y consultas bajo especificación |
 | `docs/duia/` | Documentación de uso de IA por unidad |
 | `.kiro/steering/database.md` | Referencia del esquema con diseño justificado |
 
@@ -99,7 +101,7 @@ Diagrama ER completo en `docs/Diagrama ER.png`.
 |--------|---------|----------|
 | Unidad 1 | Semana 1 | Modelo ER, normalización a 3FN/BCNF, `db/schema.sql` |
 | Unidad 1 | Semana 2 | `protocolo_seguridad.md`, `docs/spec_restricciones.md`, `db/restricciones.sql`, `db/pruebas_restricciones.sql`, `docs/informe_concurrencia.md`, `docs/ejercicio_lectura_critica.md`, tres DUIA |
-| Unidad 2 | Sem. 3–4 | **Parte 1 (carga masiva):** `db/carga_masiva.sql`, `docs/spec_carga_masiva.md`, `db/verificacion_carga_masiva.sql`, `db/carga_masiva_bloque3_B.sql` (variante descartada), `docs/duia/duia_parte4.md`. **Parte 2 (índices):** `docs/informe_parte2_indices.md`, `docs/planes_parte2_antes.txt`, `docs/planes_parte2_despues.txt`. **Parte 3 (lectura crítica):** `docs/explicacion_ia_plan_c2.md`, `docs/informe_parte3_lectura_critica.md`. **Parte 4 (consultas bajo spec):** `docs/spec_consultas_parte4.md`, `docs/informe_parte4_consultas.md`. **Parte 5 (competencia entre equipos): pendiente** de que la cátedra entregue la consulta común. |
+| Unidad 2 | Sem. 3–4 | **Parte 1 (carga masiva):** `db/carga_masiva.sql`, `docs/spec_carga_masiva.md`, `db/verificacion_carga_masiva.sql`, `db/carga_masiva_bloque3_B.sql` (variante descartada), `docs/duia/duia_parte4.md`. **Parte 2 (índices):** `docs/informe_parte2_indices.md`, `docs/planes_parte2_antes.txt`, `docs/planes_parte2_despues.txt`. **Parte 3 (lectura crítica):** `docs/explicacion_ia_plan_c2.md`, `docs/informe_parte3_lectura_critica.md`. **Parte 4 (consultas bajo spec):** `docs/spec_consultas_parte4.md`, `docs/informe_parte4_consultas.md`. **Informe TP4:** `docs/informe_tp4_semana4.md`. **Parte 5 (competencia entre equipos): pendiente** de que la cátedra entregue la consulta común. |
 
 ---
 
