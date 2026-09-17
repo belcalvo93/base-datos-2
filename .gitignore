@@ -2,8 +2,8 @@
 .env
 
 # Respaldos de base de datos (binarios, se regeneran)
-db/backups/*.dump
-db/backups/*.backup
+food-store/backups/*.dump
+food-store/backups/*.backup
 *.dump
 *.backup
 

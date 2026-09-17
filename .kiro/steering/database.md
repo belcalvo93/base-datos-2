@@ -3,7 +3,7 @@
 ## Motor y entorno
 
 - **PostgreSQL** (versión compatible con `GENERATED ALWAYS AS IDENTITY` y `TIMESTAMPTZ`).
-- El esquema se ejecuta desde `db/schema.sql`; los datos de carga inicial desde `db/datos.sql`.
+- El esquema se ejecuta desde `food-store/schema.sql`; los datos de carga inicial desde `food-store/data.sql`.
 - Los scripts son idempotentes: `schema.sql` elimina con `DROP … IF EXISTS … CASCADE` antes de recrear.
 
 ---

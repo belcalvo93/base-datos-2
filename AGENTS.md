@@ -27,7 +27,7 @@ createdb -U postgres -T bd2_proyecto bd2_trabajo
 
 **Every script** that writes to the DB must follow this order:
 
-1. **Backup** before structural changes: `pg_dump -U postgres -F c -f "db/backups/bd2_trabajo_YYYYMMDD.dump" bd2_trabajo`
+1. **Backup** before structural changes: `pg_dump -U postgres -F c -f "food-store/backups/bd2_trabajo_YYYYMMDD.dump" bd2_trabajo`
 2. **Transaction with ROLLBACK** first — inspect output, then repeat with COMMIT
 3. **Check `SELECT current_database();`** before any execution
 4. **Read every line** of generated scripts before running — if you can't explain it, don't run it
@@ -50,9 +50,9 @@ Full protocol: `protocolo_seguridad.md`
 ## File layout
 
 ```
-db/schema.sql      — table definitions (idempotent)
-db/datos.sql       — seed data (uses subqueries for FKs, no hardcoded IDs)
-db/restricciones.sql — triggers for integrity rules (Regla 1, Regla 2)
+food-store/schema.sql      — table definitions (idempotent)
+food-store/data.sql        — seed data (uses subqueries for FKs, no hardcoded IDs)
+food-store/restricciones.sql — triggers for integrity rules (Regla 1, Regla 2)
 docs/spec_restricciones.md — integrity constraint specs (read before writing triggers)
 protocolo_seguridad.md — safety protocol (MANDATORY reading)
 .kiro/steering/database.md — full schema reference with design rationale
@@ -64,4 +64,4 @@ protocolo_seguridad.md — safety protocol (MANDATORY reading)
 - `UPDATE`/`DELETE` without `WHERE` affects all rows — verify WHERE clauses before running
 - DBeaver connection must be closed before `createdb -T` (template locking)
 - `respuesta/` and `*.dump`/`*.backup` are gitignored — don't commit them
-- `concurrencia/` and `duia/` directories are empty placeholders for future work
+- SQL scripts live under `food-store/`; `concurrencia/` is an empty placeholder for future work
