@@ -146,3 +146,84 @@ FROM vista_pedidos_cliente;
 ```
 
 Ambas consultas deben devolver `(0 rows)`.
+
+---
+
+## Vista 3 — `vista_productos_vigentes`
+
+### Propósito
+
+Mostrar cada producto activo junto con el nombre de su categoría,
+aplicando el filtro de vigencia en ambas tablas. La vista expone
+únicamente productos y categorías con `activo = TRUE`: un producto
+cuya categoría esté dada de baja no aparece, aunque el producto en sí
+esté activo. Este comportamiento es correcto por diseño: una categoría
+inactiva implica que ese segmento ya no está operativo.
+
+### Consulta base
+
+```sql
+SELECT p.id_producto,
+       p.nombre,
+       p.precio,
+       p.stock,
+       c.nombre AS nombre_categoria
+FROM producto p
+JOIN categoria c ON c.id_categoria = p.id_categoria
+WHERE p.activo = TRUE
+  AND c.activo = TRUE;
+```
+
+El JOIN es `INNER JOIN`: `producto.id_categoria` es `NOT NULL` (FK con
+participación total), por lo que todo producto tiene exactamente una
+categoría. El doble filtro `WHERE p.activo = TRUE AND c.activo = TRUE`
+aplica la baja lógica de ambas tablas.
+
+### Columnas de la vista
+
+| Columna | Tabla origen | Tipo origen | Notas |
+|---|---|---|---|
+| `id_producto` | `producto` | `BIGINT` | PK de `producto` |
+| `nombre` | `producto` | `VARCHAR(120) NOT NULL` | Nombre del producto |
+| `precio` | `producto` | `NUMERIC(10,2) NOT NULL` | Precio de lista vigente |
+| `stock` | `producto` | `INTEGER NOT NULL` | Stock actual |
+| `nombre_categoria` | `categoria` | `VARCHAR(80) NOT NULL` | Alias de `categoria.nombre`; evita ambigüedad con `producto.nombre` |
+
+No se incluye `descripcion`, `activo`, `id_categoria` ni `created_at`
+de ninguna de las dos tablas. No se agrega ninguna columna derivada ni
+calculada.
+
+### Restricciones de implementación
+
+- Las columnas se listan explícitamente; no se usa `SELECT *`.
+- El alias `nombre_categoria` se declara en la consulta de la vista, no
+  como alias de columna en la cabecera `CREATE VIEW`.
+- Vista de solo lectura: sin `WITH CHECK OPTION`, sin trigger `INSTEAD OF`.
+- Idempotente: `CREATE OR REPLACE VIEW vista_productos_vigentes AS ...`
+
+### Criterio de aceptación
+
+La vista es correcta cuando ambas direcciones del `EXCEPT` devuelven
+exactamente 0 filas:
+
+```sql
+-- Dirección 1: filas en la vista que no están en la consulta base
+SELECT id_producto, nombre, precio, stock, nombre_categoria
+FROM vista_productos_vigentes
+EXCEPT
+SELECT p.id_producto, p.nombre, p.precio, p.stock, c.nombre
+FROM producto p
+JOIN categoria c ON c.id_categoria = p.id_categoria
+WHERE p.activo = TRUE AND c.activo = TRUE;
+
+-- Dirección 2: filas en la consulta base que no están en la vista
+SELECT p.id_producto, p.nombre, p.precio, p.stock, c.nombre
+FROM producto p
+JOIN categoria c ON c.id_categoria = p.id_categoria
+WHERE p.activo = TRUE AND c.activo = TRUE
+EXCEPT
+SELECT id_producto, nombre, precio, stock, nombre_categoria
+FROM vista_productos_vigentes;
+```
+
+Ambas consultas deben devolver `(0 rows)`.

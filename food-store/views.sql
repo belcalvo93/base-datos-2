@@ -51,3 +51,35 @@ JOIN cliente c ON c.id_cliente = p.id_cliente;
 -- EXCEPT
 -- SELECT id_pedido, fecha, forma_pago, nombre, apellido
 -- FROM vista_pedidos_cliente;
+
+-- vista_productos_vigentes
+-- Propósito: mostrar cada producto activo junto con el nombre de su
+-- categoría, aplicando el filtro de vigencia en ambas tablas. Un producto
+-- cuya categoría esté dada de baja no aparece, aunque el producto esté activo.
+-- INNER JOIN: producto.id_categoria es NOT NULL (FK con participación total).
+-- Idempotente: CREATE OR REPLACE VIEW.
+
+CREATE OR REPLACE VIEW vista_productos_vigentes AS
+SELECT p.id_producto, p.nombre, p.precio, p.stock, c.nombre AS nombre_categoria
+FROM producto p
+JOIN categoria c ON c.id_categoria = p.id_categoria
+WHERE p.activo = TRUE AND c.activo = TRUE;
+
+-- Verificación (criterio de aceptación de la spec): no ejecutar en cada corrida.
+-- Ambas direcciones del EXCEPT deben devolver exactamente 0 filas:
+--
+-- SELECT id_producto, nombre, precio, stock, nombre_categoria
+-- FROM vista_productos_vigentes
+-- EXCEPT
+-- SELECT p.id_producto, p.nombre, p.precio, p.stock, c.nombre
+-- FROM producto p
+-- JOIN categoria c ON c.id_categoria = p.id_categoria
+-- WHERE p.activo = TRUE AND c.activo = TRUE;
+--
+-- SELECT p.id_producto, p.nombre, p.precio, p.stock, c.nombre
+-- FROM producto p
+-- JOIN categoria c ON c.id_categoria = p.id_categoria
+-- WHERE p.activo = TRUE AND c.activo = TRUE
+-- EXCEPT
+-- SELECT id_producto, nombre, precio, stock, nombre_categoria
+-- FROM vista_productos_vigentes;
