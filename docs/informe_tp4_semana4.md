@@ -344,7 +344,8 @@ La parte 3 se centró en dos formas equivalentes de resolver un ranking de
 clientes por gasto total. La especificación fue fija antes de generar SQL:
 
 - tablas involucradas: `cliente`, `pedido`, `detalle_pedido`;
-- filtrado: solo clientes vigentes y solo pedidos válidos;
+- filtrado: se consideran todos los clientes y pedidos que existen en el
+  esquema; `cliente` no tiene baja lógica ni `pedido` tiene un estado adicional;
 - cálculo: gasto_total = suma de `cantidad * precio_unitario` por cliente;
 - salida: `id_cliente`, nombre, apellido, gasto_total y puesto;
 - orden: mayor gasto primero;
@@ -353,7 +354,7 @@ clientes por gasto total. La especificación fue fija antes de generar SQL:
 
 ### 5.1 Especificación del ranking con ventana
 
-La versión principal se resolvió con `ROW_NUMBER()` sobre el gasto total por
+La versión principal se resolvió con `RANK()` sobre el gasto total por
 cliente:
 
 ```sql
@@ -371,7 +372,7 @@ SELECT
     c.nombre,
     c.apellido,
     gpc.gasto_total,
-    ROW_NUMBER() OVER (
+    RANK() OVER (
         ORDER BY gpc.gasto_total DESC
     ) AS puesto
 FROM gasto_por_cliente AS gpc
@@ -413,9 +414,10 @@ ORDER BY gpc.gasto_total DESC;
 ```
 
 La subconsulta es correlacionada porque depende del valor de `gpc.gasto_total`
-para cada fila del conjunto exterior. La lógica es equivalente a la del ranking
-con ventana: el puesto se define por cuántos clientes tienen un gasto mayor al
-actual.
+para cada fila del conjunto exterior. La lógica es equivalente a `RANK()`: el
+puesto se define como uno más que la cantidad de clientes con un gasto mayor al
+actual. Si dos clientes empatan, ambos reciben el mismo puesto y se conserva el
+salto correspondiente en el ranking.
 
 ### 5.3 Verificación de equivalencia con `EXCEPT`
 
@@ -439,7 +441,7 @@ ranking_ventana AS (
         c.nombre,
         c.apellido,
         gpc.gasto_total,
-        ROW_NUMBER() OVER (
+        RANK() OVER (
             ORDER BY gpc.gasto_total DESC
         ) AS puesto
     FROM gasto_por_cliente AS gpc
@@ -484,7 +486,7 @@ ranking_ventana AS (
         c.nombre,
         c.apellido,
         gpc.gasto_total,
-        ROW_NUMBER() OVER (
+        RANK() OVER (
             ORDER BY gpc.gasto_total DESC
         ) AS puesto
     FROM gasto_por_cliente AS gpc
@@ -517,7 +519,7 @@ funciona sin depender de la apariencia visual del resultado.
 
 ### 5.4 Observación de diseño
 
-El punto clave de la parte 3 es que `ROW_NUMBER()` expresa el ranking de forma
+El punto clave de la parte 3 es que `RANK()` expresa el ranking de forma
 más directa y legible, mientras que la subconsulta correlacionada demuestra la
 misma lógica usando un criterio de comparación entre cada fila y el resto del
 conjunto. La diferencia no es semántica: ambas resuelven la misma definición de

@@ -60,18 +60,18 @@ Antes de cualquier cambio estructural (ALTER, DROP, creación de triggers o
 constraints), se respalda la copia de trabajo:
 
 ```bash
-pg_dump -U postgres -F c -f "respaldos/bd2_trabajo_20260826.dump" bd2_trabajo
+pg_dump -U postgres -F c -f "db/backups/bd2_trabajo_20260826.dump" bd2_trabajo
 ```
 
-Los respaldos viven en `respaldos/`, excluida del control de versiones por
+Los respaldos viven en `db/backups/`, excluida del control de versiones por
 `.gitignore` (son archivos binarios y no corresponde versionarlos).
 
 Restauración:
 
 ```bash
-pg_restore -U postgres -d bd2_trabajo --clean "respaldos/bd2_trabajo_20260826.dump"
+pg_restore -U postgres -d bd2_trabajo --clean "db/backups/bd2_trabajo_20260826.dump"
 ```
-Verificación realizada: el 26/08/2026 se ejecutó el pg_dump sobre bd2_trabajo y se comprobó que el archivo se generó correctamente en respaldos/ (14 KB).
+Verificación realizada: el 26/08/2026 se ejecutó el pg_dump sobre bd2_trabajo y se comprobó que el archivo se generó correctamente en db/backups/ (14 KB).
 
 ## Verificación previa a cada ejecución
 
