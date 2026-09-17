@@ -74,3 +74,75 @@ FROM vista_cliente_completo;
 ```
 
 Ambas consultas deben devolver `(0 rows)`.
+
+---
+
+## Vista 2 — `vista_pedidos_cliente`
+
+### Propósito
+
+Mostrar cada pedido junto con el nombre y apellido del cliente que lo
+realizó, sin exponer datos sensibles (email, teléfono). Esta vista
+cumple el criterio de seguridad del punto 4 de la Parte B: el caso de
+uso es operativo (consultar pedidos con identificación mínima del
+comprador), no administrativo. Para acceso completo al perfil de
+contacto existe `vista_cliente_completo`.
+
+### Consulta base
+
+```sql
+SELECT p.id_pedido, p.fecha, p.forma_pago, c.nombre, c.apellido
+FROM pedido p
+JOIN cliente c ON c.id_cliente = p.id_cliente;
+```
+
+El JOIN es `INNER JOIN`: `pedido.id_cliente` es `NOT NULL` (FK con
+participación total), por lo que todo pedido tiene exactamente un
+cliente. No se pierden filas.
+
+No aplica filtro de borrado lógico: ni `pedido` ni `cliente` tienen
+columna `activo`.
+
+### Columnas de la vista
+
+| Columna | Tabla origen | Tipo origen | Notas |
+|---|---|---|---|
+| `id_pedido` | `pedido` | `BIGINT` | PK de `pedido` |
+| `fecha` | `pedido` | `TIMESTAMPTZ NOT NULL` | Fecha y hora del pedido |
+| `forma_pago` | `pedido` | `forma_pago_enum NOT NULL` | `EFECTIVO`, `TARJETA` o `TRANSFERENCIA` |
+| `nombre` | `cliente` | `VARCHAR(80) NOT NULL` | Nombre del cliente |
+| `apellido` | `cliente` | `VARCHAR(80) NOT NULL` | Apellido del cliente |
+
+No se incluye `id_cliente`, `email`, `telefono` ni `created_at`.
+No se agrega ninguna columna derivada ni calculada.
+
+### Restricciones de implementación
+
+- Las columnas se listan explícitamente; no se usa `SELECT *`.
+- Vista de solo lectura: sin `WITH CHECK OPTION`, sin trigger `INSTEAD OF`.
+- Idempotente: `CREATE OR REPLACE VIEW vista_pedidos_cliente AS ...`
+
+### Criterio de aceptación
+
+La vista es correcta cuando ambas direcciones del `EXCEPT` devuelven
+exactamente 0 filas:
+
+```sql
+-- Dirección 1: filas en la vista que no están en la consulta base
+SELECT id_pedido, fecha, forma_pago, nombre, apellido
+FROM vista_pedidos_cliente
+EXCEPT
+SELECT p.id_pedido, p.fecha, p.forma_pago, c.nombre, c.apellido
+FROM pedido p
+JOIN cliente c ON c.id_cliente = p.id_cliente;
+
+-- Dirección 2: filas en la consulta base que no están en la vista
+SELECT p.id_pedido, p.fecha, p.forma_pago, c.nombre, c.apellido
+FROM pedido p
+JOIN cliente c ON c.id_cliente = p.id_cliente
+EXCEPT
+SELECT id_pedido, fecha, forma_pago, nombre, apellido
+FROM vista_pedidos_cliente;
+```
+
+Ambas consultas deben devolver `(0 rows)`.
