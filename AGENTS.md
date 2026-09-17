@@ -63,5 +63,5 @@ protocolo_seguridad.md — safety protocol (MANDATORY reading)
 - `EXPLAIN ANALYZE` on INSERT/UPDATE/DELETE **executes the statement**, not just plans it — always wrap in a transaction
 - `UPDATE`/`DELETE` without `WHERE` affects all rows — verify WHERE clauses before running
 - DBeaver connection must be closed before `createdb -T` (template locking)
-- `respuesta/` and `*.dump`/`*.backup` are gitignored — don't commit them
+- `food-store/backups/`, `respuesta/`, and `*.dump`/`*.backup` are gitignored — don't commit them
 - SQL scripts live under `food-store/`; `concurrencia/` is an empty placeholder for future work

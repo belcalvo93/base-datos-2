@@ -24,7 +24,7 @@ La spec se escribió antes de abrir OpenCode y se commiteó en el repositorio co
 
 > Leé la spec en spec_restricciones.md y proponé un plan para implementar las dos
 > reglas de negocio que describe. El resultado debe ser un archivo
-> db/restricciones.sql para PostgreSQL 17. No escribas nada todavía, solo
+> food-store/restricciones.sql para PostgreSQL 17. No escribas nada todavía, solo
 > describí el plan.
 
 Tras revisar el plan propuesto, se le pidieron tres correcciones antes de
@@ -52,7 +52,7 @@ autorizar la escritura:
 
 Dos archivos:
 
-**`db/restricciones.sql`** (86 líneas): dos funciones PL/pgSQL y dos triggers.
+**`food-store/restricciones.sql`** (86 líneas): dos funciones PL/pgSQL y dos triggers.
 
 - `fn_verificar_producto_activo()` — consulta `producto.activo` a partir de
   `NEW.id_producto` y lanza `RAISE EXCEPTION` si el producto está dado de baja.
@@ -115,7 +115,7 @@ responsabilidad de la aplicación.
 ## Verificación realizada
 
 Se aplicó el protocolo de seguridad completo: respaldo previo con `pg_dump`
-(`db/backups/bd2_trabajo_20260826_pre_triggers.dump`), aplicación sobre la copia
+(`food-store/backups/bd2_trabajo_20260826_pre_triggers.dump`), aplicación sobre la copia
 `bd2_trabajo`, y ejecución de los cuatro casos, cada uno dentro de
 `BEGIN ... ROLLBACK`.
 
