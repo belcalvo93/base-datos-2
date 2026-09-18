@@ -118,3 +118,42 @@ JOIN producto pr ON pr.id_producto = dp.id_producto;
 -- EXCEPT
 -- SELECT id_detalle, id_pedido, nombre_producto, cantidad, precio_unitario
 -- FROM vista_detalle_pedido_producto;
+
+-- vista_usuario_reportes
+-- Propósito: exponer los datos de usuario para reportes y administración
+-- ocultando la columna contrasena (criterio de seguridad, punto 4 Parte B;
+-- tabla usuario agregada por indicación de la cátedra — ver schema.sql y
+-- docs/duia/duia_parte5.md). Incluye rol y eliminado; solo usuarios vigentes
+-- (eliminado = FALSE), por eso eliminado vale siempre FALSE aquí. Las columnas
+-- se listan explícitamente (no SELECT *) para excluir contrasena a propósito.
+-- Solo lectura: sin WITH CHECK OPTION ni trigger INSTEAD OF.
+-- Idempotente: CREATE OR REPLACE VIEW.
+
+CREATE OR REPLACE VIEW vista_usuario_reportes AS
+SELECT id, nombre, apellido, mail, celular, rol, eliminado, created_at
+FROM usuario
+WHERE eliminado = FALSE;
+
+-- Verificación (criterio de aceptación de la spec): no ejecutar en cada corrida.
+-- Ambas direcciones del EXCEPT deben devolver exactamente 0 filas:
+--
+-- SELECT id, nombre, apellido, mail, celular, rol, eliminado, created_at
+-- FROM vista_usuario_reportes
+-- EXCEPT
+-- SELECT id, nombre, apellido, mail, celular, rol, eliminado, created_at
+-- FROM usuario
+-- WHERE eliminado = FALSE;
+--
+-- SELECT id, nombre, apellido, mail, celular, rol, eliminado, created_at
+-- FROM usuario
+-- WHERE eliminado = FALSE
+-- EXCEPT
+-- SELECT id, nombre, apellido, mail, celular, rol, eliminado, created_at
+-- FROM vista_usuario_reportes;
+--
+-- Verificación adicional: contrasena no debe estar expuesta en la vista:
+--
+-- SELECT column_name
+-- FROM information_schema.columns
+-- WHERE table_name = 'vista_usuario_reportes'
+--   AND column_name = 'contrasena';

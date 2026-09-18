@@ -316,3 +316,14 @@ FROM vista_detalle_pedido_producto;
 ```
 
 Ambas consultas deben devolver `(0 rows)`.
+
+---
+
+## Referencia cruzada
+
+La vista `vista_usuario_reportes` y la tabla `usuario` de la que
+depende están especificadas en un documento separado:
+`food-store/specs/spec_usuario.md`. La separación es intencional:
+`usuario` involucra también un DDL nuevo (tabla + tipo ENUM `rol`),
+mientras que este archivo cubre únicamente vistas sobre tablas
+existentes.
