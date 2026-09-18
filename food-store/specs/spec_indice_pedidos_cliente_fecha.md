@@ -11,7 +11,7 @@ pedidos de un cliente mostrando primero los más recientes.
 SELECT p.id_pedido, p.fecha, p.forma_pago, c.nombre, c.apellido
 FROM pedido p
 JOIN cliente c ON c.id_cliente = p.id_cliente
-WHERE p.id_cliente = 20155
+WHERE p.id_cliente = 10
 ORDER BY p.fecha DESC;
 ```
 

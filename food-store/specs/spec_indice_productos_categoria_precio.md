@@ -10,7 +10,7 @@ vigente de una categoría ordenado por precio descendente.
 ```sql
 SELECT p.id_producto, p.nombre, p.precio, p.stock
 FROM producto p
-WHERE p.id_categoria = 5
+WHERE p.id_categoria = 10
   AND p.activo = TRUE
 ORDER BY p.precio DESC;
 ```

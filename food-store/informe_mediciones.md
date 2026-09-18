@@ -1,35 +1,62 @@
 # Informe de mediciones — TP5, Parte A
 
-## Estado
+## Estado y entorno
 
-La Parte A está en preparación. Las tres specs de Kiro ya fueron redactadas
-para C1, C2 y C3. Todavía no se declaran índices aceptados porque faltan las
-mediciones ejecutadas sobre PostgreSQL con la base masiva.
+La evaluación se ejecutó en PostgreSQL sobre `practica_bd2`, después de la
+carga masiva y `ANALYZE`.
+
+Conteos verificados:
+
+| Tabla | Filas |
+|---|---:|
+| `categoria` | 5 |
+| `cliente` | 20.005 |
+| `producto` | 50.010 |
+| `pedido` | 200.005 |
+| `detalle_pedido` | 500.151 |
+
+Parámetros reproducibles: C1 `id_categoria = 10` (10.093 filas), C2
+`id_cliente = 10` (9 filas en la ejecución final) y C3 `id_producto = 64074`
+(26 filas). Cada candidato se probó dentro de una transacción y se verificó
+que no quedara instalado después del `ROLLBACK`.
 
 ## Consultas seleccionadas
 
 | Consulta | Spec | Índice candidato | Estado |
 |---|---|---|---|
-| C1 — productos por categoría y precio | `spec_indice_productos_categoria_precio.md` | `(id_categoria, precio DESC) WHERE activo = TRUE` | Pendiente de medir |
-| C2 — historial de pedidos por cliente | `spec_indice_pedidos_cliente_fecha.md` | `(id_cliente, fecha DESC)` | Pendiente de medir |
-| C3 — pedidos donde apareció un producto | `spec_indice_detalle_producto_pedido.md` | evaluar `(id_producto, id_pedido)` frente al índice existente | Pendiente de medir |
+| C1 — productos por categoría y precio | `spec_indice_productos_categoria_precio.md` | `(id_categoria, precio DESC) WHERE activo = TRUE` | Descartado |
+| C2 — historial de pedidos por cliente | `spec_indice_pedidos_cliente_fecha.md` | `(id_cliente, fecha DESC)` | Descartado |
+| C3 — pedidos donde apareció un producto | `spec_indice_detalle_producto_pedido.md` | `(id_producto, id_pedido)` | Descartado |
 
-## Evidencia que falta completar
+## Resultados antes/después
 
-Para cada consulta se debe registrar:
+| Consulta | Baseline | Con candidato | Plan observado | Decisión |
+|---|---:|---:|---|---|
+| C1 | 8,742 ms | 10,415 ms | Siguió `Bitmap Index Scan` sobre `idx_producto_categoria_activo` y `Sort` | Descartar |
+| C2 | 0,274 ms | 0,176 ms | Siguió `Bitmap Index Scan` sobre `idx_pedido_id_cliente` y `Sort`; mismos buffers | Descartar |
+| C3 | 0,382 ms | 0,455 ms | Usó el candidato, pero mantuvo `Sort`; era redundante | Descartar |
 
-1. `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)` antes del índice.
-2. Creación reversible del índice, respetando backup y transacción.
-3. El mismo `EXPLAIN` después del índice.
-4. Tipo de scan, presencia de `Sort`, buffers y `Execution Time`.
-5. Decisión final: aceptar o descartar.
+La diferencia de C2 no se considera una mejora concluyente: el plan, el tipo
+de scan y los buffers fueron equivalentes, y el índice existente ya resolvía
+el filtro.
 
-También falta medir el mismo lote de varios cientos de `INSERT` en
-`detalle_pedido` antes y después de los índices aceptados, y documentar una
-propuesta descartada explícitamente por sobreindexación.
+## Costo de escritura
 
-## Regla de decisión
+Se midió el mismo lote de 300 pedidos y 300 detalles con `ROLLBACK` al final.
 
-No se agregará ninguna sentencia a `food-store/indices.sql` hasta contar con
-evidencia real de que el cambio mejora el plan o el tiempo sin imponer un costo
-de escritura injustificado.
+| Estado | Filas | Buffers | Execution Time |
+|---|---:|---|---:|
+| Índices originales | 300 | hit=3658, read=1, dirtied=10, written=2 | 28,729 ms |
+| Con `idx_pedido_cliente_fecha` | 300 | hit=4558, read=6, dirtied=16, written=4 | 46,699 ms |
+
+El candidato de C2 incrementó el tiempo de escritura aproximadamente 62,5 %.
+Los lotes no dejaron filas persistentes.
+
+## Decisión final
+
+No se agrega ninguna sentencia a `food-store/indices.sql`. Los índices
+existentes cubren suficientemente las consultas evaluadas; los candidatos no
+eliminaron el `Sort`, no fueron elegidos por el planificador o agregaron costo
+de escritura. C3 se descarta además por redundancia frente a
+`idx_detalle_pedido_id_producto` y la restricción única
+`(id_pedido, id_producto)`.

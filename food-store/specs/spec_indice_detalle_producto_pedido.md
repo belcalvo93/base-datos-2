@@ -11,7 +11,7 @@ los que apareció un producto y ordenar esos pedidos por fecha.
 SELECT dp.id_detalle, dp.cantidad, dp.precio_unitario, ped.fecha
 FROM detalle_pedido dp
 JOIN pedido ped ON ped.id_pedido = dp.id_pedido
-WHERE dp.id_producto = 49112
+WHERE dp.id_producto = 64074
 ORDER BY ped.fecha DESC;
 ```
 
