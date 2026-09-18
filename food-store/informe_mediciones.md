@@ -1,4 +1,11 @@
-# Informe de mediciones — TP5, Parte A
+# Informe de mediciones — TP5
+
+Mediciones de las tres partes: el plan de indexado (A), la verificacion de equivalencia de
+las vistas (B) y la vista materializada (C).
+
+---
+
+# Parte A — Plan de indexado
 
 ## Estado y entorno
 
@@ -60,3 +67,62 @@ eliminaron el `Sort`, no fueron elegidos por el planificador o agregaron costo
 de escritura. C3 se descarta además por redundancia frente a
 `idx_detalle_pedido_id_producto` y la restricción única
 `(id_pedido, id_producto)`.
+
+---
+
+# Parte B — Vistas
+
+El entregable de la Parte B pide dejar documentada la verificacion de equivalencia de cada vista. Por
+cada una se ejecuto el `EXCEPT` en las dos direcciones contra la consulta manual equivalente.
+
+Las dos direcciones importan: `vista EXCEPT consulta` detecta filas que la vista devuelve de mas, y
+`consulta EXCEPT vista` detecta las que le faltan. Con una sola se puede dar por buena una vista que
+pierde filas.
+
+| Vista | Filas | `vista EXCEPT consulta` | `consulta EXCEPT vista` | Equivalente |
+|---|---:|---:|---:|---|
+| `vista_cliente_completo` | 20.005 | 0 | 0 | Si |
+| `vista_pedidos_cliente` | 200.005 | 0 | 0 | Si |
+| `vista_productos_vigentes` | 39.963 | 0 | 0 | Si |
+| `vista_detalle_pedido_producto` | 499.263 | 0 | 0 | Si |
+| `vista_usuario_reportes` | _(pendiente)_ | | | |
+
+Las consultas de verificacion de cada vista estan escritas en `specs/spec_vistas.md`, en la seccion
+"Criterio de aceptacion" de cada una.
+
+## Sobre los conteos
+
+`vista_productos_vigentes` devuelve 39.963 de 50.010 productos. La diferencia es el filtro de vigencia:
+descarta los productos inactivos y tambien los de categorias dadas de baja.
+
+`vista_detalle_pedido_producto` devuelve las 499.263 lineas sin filtrar por vigencia, a proposito.
+Reconstruye ventas pasadas: excluir lineas cuyo producto se dio de baja despues de la venta haria que
+algunos pedidos aparecieran con menos lineas de las que realmente tuvieron.
+
+## Vista con criterio de seguridad
+
+La consigna pide exponer el usuario sin la columna `contrasena`. El esquema no tenia esa columna, y por
+indicacion de la catedra se agrego la tabla `usuario` con `contrasena` y `rol`. Sobre ella,
+`vista_usuario_reportes` excluye la contrasena y expone solo usuarios vigentes.
+
+El detalle de la decision esta en `duia.md`, seccion B.2.
+
+---
+
+# Parte C — Vista materializada
+
+_(Pendiente. La spec esta preparada en `specs/spec_vista_materializada_parteC.md`.)_
+
+| | Consulta sin materializar | Vista materializada |
+|---|---|---|
+| Tiempo de ejecucion | | |
+| Nodo principal del plan | | |
+| Filas devueltas | | |
+
+**Tiempo del `REFRESH`:** es el costo que se paga a cambio y hay que reportarlo. Una vista que se
+consulta en milisegundos pero tarda un minuto en refrescarse solo conviene si se lee muchas mas veces de
+las que se refresca.
+
+**`REFRESH CONCURRENTLY`:** verificar que corre sin error, lo que prueba que el indice unico sirve.
+
+**Frecuencia de refresco propuesta y su justificacion:**
