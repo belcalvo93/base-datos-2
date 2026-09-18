@@ -110,3 +110,35 @@ CREATE INDEX idx_producto_categoria_activo ON producto (id_categoria) WHERE acti
 -- Acelera "reconstruir el detalle de un pedido" y "ver en qué pedidos
 -- apareció un producto" (join frecuente entre detalle_pedido y ambas puntas).
 CREATE INDEX idx_detalle_pedido_id_producto ON detalle_pedido (id_producto);
+
+-- ------------------------------------------------------------
+-- USUARIO + tipo ENUM rol
+-- Se agrega esta tabla por indicación directa de la cátedra
+-- (profesor Sergio Neira), documentada en docs/duia/duia_parte5.md:
+-- el criterio de seguridad del punto 4 (Parte B) exige ocultar la
+-- columna contrasena de una tabla de login, y el esquema de Food Store
+-- no tiene ese caso de uso (cliente no maneja autenticación). Usuario
+-- representa un actor de sistema (login) distinto del actor de negocio
+-- (cliente); no hay FK hacia ninguna tabla existente. Baja lógica con
+-- eliminado (eliminado = FALSE significa vigente), nunca DELETE físico.
+-- Difiere de la convención del proyecto en dos puntos, ambos
+-- intencionales porque respeta el DDL exacto confirmado por el
+-- profesor: la PK se llama "id" (no "id_usuario") y el ENUM se llama
+-- "rol" (no "rol_enum").
+-- ------------------------------------------------------------
+DROP TABLE IF EXISTS usuario CASCADE;
+DROP TYPE  IF EXISTS rol     CASCADE;
+
+CREATE TYPE rol AS ENUM ('USUARIO', 'ADMIN');
+
+CREATE TABLE usuario (
+    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nombre      VARCHAR(80)  NOT NULL,
+    apellido    VARCHAR(80)  NOT NULL,
+    mail        VARCHAR(120) NOT NULL UNIQUE,
+    celular     VARCHAR(30),
+    contrasena  VARCHAR(255) NOT NULL,
+    rol         rol          NOT NULL DEFAULT 'USUARIO',
+    eliminado   BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
+);

@@ -113,3 +113,22 @@ INSERT INTO detalle_pedido (cantidad, precio_unitario, id_pedido, id_producto) V
     (1, 3900.00,
         (SELECT id_pedido FROM pedido WHERE fecha = '2026-08-18 12:00:00-03'),
         (SELECT id_producto FROM producto WHERE nombre = 'Gaseosa cola 2.25L'));
+
+-- ------------------------------------------------------------
+-- USUARIO (datos de prueba — TP5 Parte B)
+-- Tabla agregada por indicación directa de la cátedra (profesor
+-- Sergio Neira), documentada en docs/duia/duia_parte5.md: es una
+-- tabla de login independiente de cliente (ver schema.sql).
+-- Los valores de contrasena son hashes placeholder no legibles
+-- (hex aleatorio), nunca texto plano: la columna almacena el hash.
+-- Se incluye un usuario dado de baja (eliminado = TRUE) a propósito:
+-- verifica que vista_usuario_reportes lo excluye (WHERE eliminado = FALSE).
+-- ------------------------------------------------------------
+INSERT INTO usuario (nombre, apellido, mail, celular, contrasena, rol, eliminado)
+VALUES
+    ('Nicole', 'González', 'n.gonzalez@foodstore.com', '+54 9 11 5555-0101',
+     '3f7a9c1e5b2d4f6a8c0e1d2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b', 'ADMIN', FALSE),
+    ('Matías', 'Ríos',     'm.rios@foodstore.com',     '+54 9 11 5555-0102',
+     '9c3e2d1f4a6b8c5d7e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d', 'USUARIO', FALSE),
+    ('Sofía',  'Luna',     's.luna@foodstore.com',     '+54 9 11 5555-0103',
+     'b0a9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c', 'USUARIO', TRUE);
