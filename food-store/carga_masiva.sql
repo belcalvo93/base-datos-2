@@ -5,7 +5,7 @@
 -- del proyecto. Genera volumen para demostrar diferencias de
 -- rendimiento entre estrategias de indexación.
 --
--- Archivo de salida: db/carga_masiva.sql
+-- Archivo de trabajo: food-store/carga_masiva.sql
 -- Base de trabajo:   bd2_tp3 (copia de bd2_trabajo)
 --
 -- Orden de los INSERT (respeta dependencias FK):
@@ -100,7 +100,7 @@ FROM generate_series(1, 20000) AS s(i);
 --   producto: sin correlación el subquery es InitPlan y los 10.000 pedidos
 --   repiten el mismo cliente (verificado). El "+ s.i * 0" lo vuelve un
 --   SubPlan por fila sin alterar el orden. Alternativa escalable (variante
---   B, se aparta del estilo de la cátedra) en db/carga_masiva_bloque3_B.sql.
+--   B, se aparta del estilo de la cátedra) en food-store/carga_masiva_bloque3_B.sql.
 -- ============================================================
 INSERT INTO pedido (fecha, forma_pago, id_cliente)
 SELECT

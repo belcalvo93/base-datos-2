@@ -55,5 +55,5 @@ Sobre `bd2_trabajo`, dentro de una transacción con ROLLBACK:
 
 ## Archivo a generar
 
-`db/restricciones.sql`, con los triggers y sus funciones asociadas, escrito de
+`food-store/restricciones.sql`, con los triggers y sus funciones asociadas, escrito de
 forma que se pueda reejecutar sin error (DROP TRIGGER IF EXISTS previo).

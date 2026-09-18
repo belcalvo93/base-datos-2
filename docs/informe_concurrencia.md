@@ -303,7 +303,7 @@ lugar de operar sobre un valor que la primera está por modificar.
 El escenario 3 no es un ejercicio abstracto: expone una limitación concreta de las
 restricciones implementadas en la Parte 1.
 
-La función `fn_verificar_stock_suficiente()`, en `db/restricciones.sql`, lee el
+La función `fn_verificar_stock_suficiente()`, en `food-store/restricciones.sql`, lee el
 stock así:
 
 ```sql

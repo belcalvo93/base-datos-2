@@ -1,0 +1,6 @@
+-- Parte A — índices evaluados sobre practica_bd2
+--
+-- No se agregan índices nuevos: las tres propuestas fueron probadas con
+-- EXPLAIN (ANALYZE, BUFFERS, VERBOSE) y descartadas por falta de mejora,
+-- redundancia o costo de escritura. Se conservan los índices definidos en
+-- schema.sql.
