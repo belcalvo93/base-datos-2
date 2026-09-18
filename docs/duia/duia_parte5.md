@@ -1,5 +1,8 @@
 # Declaración de Uso de IA (DUIA) — Parte 5
 
+> La bitácora consolidada del TP5 está en `food-store/duia.md`, que es donde la ubica el
+> punto 7 de la consigna. Lo de acá queda como registro; lo nuevo va allá.
+
 **Ejercicio:** TP5 — Partes A y B
 
 ## Parte A — plan de indexado

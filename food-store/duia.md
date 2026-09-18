@@ -20,8 +20,12 @@ El punto 6 pide como mínimo dos registros. Están en las secciones A.3 y B.3 de
 
 # Parte A — Plan de indexado
 
-**Base de medición:** 5 categorías, 20.005 clientes, 50.010 productos, 200.005 pedidos,
-500.151 detalles. Con `ANALYZE` corrido antes de medir.
+**Base de medición:** `practica_bd2`, con 5 categorías, 20.005 clientes, 50.010 productos,
+200.005 pedidos y 500.151 detalles, después de la carga masiva y con `ANALYZE` corrido.
+
+**Método:** cada candidato se leyó línea por línea antes de aplicarlo y se probó dentro de una
+transacción que termina en `ROLLBACK`, verificando que no quedara instalado. Las mediciones son con
+`EXPLAIN (ANALYZE, BUFFERS, VERBOSE)`.
 
 ## A.1 Especificación de los tres candidatos
 
@@ -94,8 +98,11 @@ La consigna pide una vista que exponga el usuario sin la columna `contrasena`, d
 `cliente` guarda datos de contacto, no credenciales, porque el modelo nunca contempló autenticación.
 
 Se consultó a la cátedra. Por indicación de Sergio Neira se agregó una tabla `usuario` separada de
-`cliente`, con `contrasena` y `rol` como ENUM, y sobre ella la vista `vista_usuario_reportes` que
-excluye explícitamente la contraseña.
+`cliente`, con la contraseña hasheada y `rol` como ENUM, y sobre ella la vista
+`vista_usuario_reportes`, que excluye explícitamente la contraseña y expone solo usuarios vigentes.
+
+Las cuatro vistas que ya existían sobre las tablas de negocio se mantienen sin cambios: la tabla
+`usuario` se agregó al costado, no reemplaza a `cliente` ni altera lo que había.
 
 Esto se aparta del punto general de no modificar el modelo de datos, y se documenta acá por eso: la
 excepción es por indicación expresa del docente para cumplir el criterio de seguridad del punto 4, no
