@@ -1,35 +1,47 @@
 # Declaración de Uso de IA (DUIA) — Parte 5
 
-**Ejercicio:** TP5 (pendiente)
+**Ejercicio:** TP5 — Partes A y B
 
----
+## Parte A — plan de indexado
 
-## Decisiones de diseño
+La Parte A fue validada en PostgreSQL sobre `practica_bd2`. La base tenía
+50.010 productos, 200.005 pedidos y 500.151 detalles. No se aceptó ningún
+índice nuevo: la decisión se tomó a partir de planes, tiempos, buffers y
+costo de escritura reales.
 
-### Decisión: agregar tabla `usuario` para el criterio de seguridad de la Parte B
+Specs utilizadas:
 
-**Contexto:** la consigna del TP5 (punto 4.2, Parte B) pide una vista
-que oculte la columna `contraseña` de una tabla de login. El esquema
-propio de Food Store no tiene ese caso de uso: `cliente` no maneja
-autenticación y no tiene columna `contrasena` ni `rol`.
+- `food-store/specs/spec_indice_productos_categoria_precio.md`
+- `food-store/specs/spec_indice_pedidos_cliente_fecha.md`
+- `food-store/specs/spec_indice_detalle_producto_pedido.md`
 
-**Consulta a la cátedra:** el profesor (Sergio Neira) confirmó, ante
-la misma consulta de otro grupo con el mismo problema de esquema, que
-el criterio a seguir es agregar una tabla `usuario` separada de
-`cliente`, con columnas `contrasena` (hasheada) y `rol` (tipo ENUM),
-en vez de adaptar el criterio de seguridad a otra columna existente.
-Confirmado que aplica el mismo criterio a todas las comisiones.
+Cada candidato se leyó y se probó dentro de una transacción con `ROLLBACK`,
+usando `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)`.
 
-**Decisión tomada:** se agrega la tabla `usuario` (nueva, separada de
-`cliente`) al esquema, con el tipo `rol` como ENUM. Esto se aparta de
-la restricción general del punto 3 de la consigna ("no se debe
-modificar el modelo de datos"), pero se hace por indicación directa
-y explícita de la cátedra para este punto puntual.
+Resultados:
 
-Se agrega `vista_usuario_reportes` (usuario sin la columna
-`contrasena`) como la vista que cumple el criterio de seguridad del
-punto 4 de la Parte B. Las 4 vistas ya construidas sobre `cliente`
-(`vista_cliente_completo`, `vista_pedidos_cliente`,
-`vista_productos_vigentes`, `vista_detalle_pedido_producto`) se
-mantienen sin cambios — no se reemplaza ninguna, `usuario` es una
-pieza adicional.
+- C1: `(id_categoria, precio DESC) WHERE activo = TRUE`; mantuvo el `Sort` y
+  pasó de 8,742 ms a 10,415 ms. Descartado.
+- C2: `(id_cliente, fecha DESC)`; mantuvo el plan con
+  `idx_pedido_id_cliente` y `Sort`. Además, el lote de escritura pasó de
+  28,729 ms a 46,699 ms. Descartado.
+- C3: `(id_producto, id_pedido)`; mantuvo el `Sort`, pasó de 0,382 ms a
+  0,455 ms y fue redundante frente a los índices existentes. Descartado.
+
+La conclusión fue no agregar índices nuevos a `food-store/indices.sql`.
+
+## Parte B — tabla `usuario` y vista de reportes
+
+La consigna del TP5 pide una vista que oculte la columna `contrasena` de una
+tabla de login. El esquema original no tenía ese caso de uso; `cliente` no
+maneja autenticación. Según la indicación documentada de la cátedra, se agregó
+una tabla `usuario` separada de `cliente`, con `contrasena` hasheada y `rol`
+como tipo ENUM.
+
+Se agregó `vista_usuario_reportes`, que excluye explícitamente `contrasena` y
+expone solamente usuarios vigentes. Las cuatro vistas existentes sobre las
+tablas de negocio se mantienen sin cambios. La spec específica está en
+`food-store/specs/spec_usuario.md`.
+
+La decisión se aparta del punto general de no modificar el modelo únicamente
+por la indicación explícita de la cátedra para este criterio de seguridad.

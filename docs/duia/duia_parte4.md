@@ -17,7 +17,7 @@ resumen/subconsulta.
 
 Se usaron tres herramientas, cada una en un rol distinto:
 
-- **OpenCode** — generación y revisión de `db/carga_masiva.sql` (bloques 3 y
+- **OpenCode** — generación y revisión de `food-store/carga_masiva.sql` (bloques 3 y
   4), análisis de planes (InitPlan/SubPlan) y la variante B del bloque 3.
 - **Claude (chat)** — lectura e interpretación del plan `EXPLAIN` del bloque
   1 (producto).
@@ -50,7 +50,7 @@ La consigna pide cuatro columnas; se agrega una columna `#` para referencia:
 | 6 | Claude (chat) | Lectura del plan del bloque 1 | Interpretó «InitPlan 1 … loops=1» como prueba de que el subquery se congelaba y todos los productos quedaban en una categoría; después se retractó al ver `count(DISTINCT id_categoria) = 5` | **Aceptado** el diagnóstico inicial, tras verificación empírica correcta. La retractación fue el error: ese conteo no distinguía nada (hay 5 categorías en total y los 11 productos preexistentes ya las cubrían). Se resolvió con una consulta que aísla las filas recién insertadas (`ORDER BY id_producto DESC LIMIT 10000`), que devolvió 1 |
 | 7 | OpenCode | Causa del InitPlan | Explicó por qué un subquery no correlacionado se convierte en InitPlan, la distinción InitPlan (loops=1) vs SubPlan (por fila) y por qué `random()` no lo evita (la decisión se toma por correlación, no por volatilidad) | **Aceptado**: coincide con la evidencia empírica. Reservas: citó código fuente de PostgreSQL (make_subplan(), subselect.c) que no se pudo verificar; dijo «4 categorías activas» cuando son 5; y clasificó el nodo Materialize como «un subplan», cuando es un nodo de caché del lado interno de un Nested Loop |
 | 8 | OpenCode | Detectar el bug de su propia variante B | Al pedirle justificar la variante B antes de aplicarla, encontró que su primera redacción (`JOIN ON c.rn = 1 + floor(random() * c.total)`) caía en el problema del bloque 4: la condición referencia solo la relación interna, no es hasheable, queda Nested Loop con Materialize y un solo sorteo para todos los pedidos | **Aceptado**: se corrigió moviendo el `random()` a un lateral correlacionado |
-| 9 | OpenCode | Variante B del bloque 3 | Prometió pasar de O(pedidos × sort de clientes) a O(clientes) de build + O(1) por pedido | **Descartado**: medición a 10.000 pedidos — B = 6.778 ms vs A = 9.676 ms → solo 1,4x, no la mejora estructural. El plan mostró por qué: el Hash Join quedó dentro del Nested Loop y el CTE se escanea una vez por pedido (CTE Scan on dominio_clientes: rows=4005 loops=10000). La ganancia no justifica apartarse del estilo de la cátedra; se conserva en db/carga_masiva_bloque3_B.sql |
+| 9 | OpenCode | Variante B del bloque 3 | Prometió pasar de O(pedidos × sort de clientes) a O(clientes) de build + O(1) por pedido | **Descartado**: medición a 10.000 pedidos — B = 6.778 ms vs A = 9.676 ms → solo 1,4x, no la mejora estructural. El plan mostró por qué: el Hash Join quedó dentro del Nested Loop y el CTE se escanea una vez por pedido (CTE Scan on dominio_clientes: rows=4005 loops=10000). La ganancia no justifica apartarse del estilo de la cátedra; se conserva en food-store/carga_masiva_bloque3_B.sql |
 | 10 | OpenCode | Corregir la verificación del bloque 1 | Cuando se le pidió un plan de corrección, señaló que `count(DISTINCT id_categoria)` no sirve como verificación: da 5 esté roto o arreglado, porque hay solo 5 categorías en total. Diseñó la consulta correcta: contar productos por categoría restringido a las filas recién insertadas (`ORDER BY id_producto DESC LIMIT 10000`), más un control de suma. También notó que el bloque 1 no filtra por `activo`, así que sortea sobre las 5 categorías, incluida la dada de baja | **Aceptado**: es la verificación que se usó |
 | 11 | OpenCode | Proponer índices a partir de los planes reales (Parte 2) | Se le pasaron los tres planes de EXPLAIN ANALYZE medidos sin índices y propuso tres índices compuestos, con la justificación de que la segunda columna cubriría el ORDER BY o el join y eliminaría el nodo Sort | **Aceptado como hipótesis y descartado tras medir**: los tres se crearon y midieron a igual volumen contra los del TP1. Empataron en tiempo de consulta (8,413 vs 8,450 / 0,159 vs 0,198 / 0,311 vs 0,285 ms) y cuestan 1,8x construirlos. La predicción sobre el Sort no se cumplió en ninguno de los tres |
 | 12 | OpenCode | Error de premisa sobre índices existentes (Parte 2) | Al analizar los planes afirmó que `idx_producto_categoria_activo` e `idx_pedido_id_cliente` "existen en el esquema" y explicó que el plan no los usaba porque el planificador no los elegía por selectividad. Los había leído de schema.sql | **Detectado**: en realidad se habían borrado con `DROP INDEX` antes de medir; el plan no los usaba porque no estaban. Es una causa construida para un fenómeno que tenía otra explicación |
@@ -96,8 +96,8 @@ prometida (1,4x a igual volumen). Se corrigieron antes de su uso final: el
 CROSS JOIN masivo (10.000 millones de filas intermedias), el `LIMIT 1` en las
 líneas por pedido (reemplazado por `LIMIT 4` + `row_number()`, decisión D6),
 la confusión entre líneas y cantidad, y el cast faltante del array de formas
-de pago. Las correcciones quedaron en `db/carga_masiva.sql`; la variante B
-descartada se conserva como evidencia en `db/carga_masiva_bloque3_B.sql`.
+de pago. Las correcciones quedaron en `food-store/carga_masiva.sql`; la variante B
+descartada se conserva como evidencia en `food-store/carga_masiva_bloque3_B.sql`.
 
 En la Parte 2 se descartaron tras medir los tres índices compuestos
 propuestos (Uso 11): empataron en tiempo de consulta contra los del TP1 y
