@@ -117,7 +117,7 @@ INSERT INTO detalle_pedido (cantidad, precio_unitario, id_pedido, id_producto) V
 -- ------------------------------------------------------------
 -- USUARIO (datos de prueba — TP5 Parte B)
 -- Tabla agregada por indicación directa de la cátedra (profesor
--- Sergio Neira), documentada en docs/duia/duia_parte5.md: es una
+-- Sergio Neira), documentada en food-store/duia.md: es una
 -- tabla de login independiente de cliente (ver schema.sql).
 -- Los valores de contrasena son hashes placeholder no legibles
 -- (hex aleatorio), nunca texto plano: la columna almacena el hash.

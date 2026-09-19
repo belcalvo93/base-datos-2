@@ -85,7 +85,7 @@ pierde filas.
 | `vista_pedidos_cliente` | 200.005 | 0 | 0 | Si |
 | `vista_productos_vigentes` | 39.963 | 0 | 0 | Si |
 | `vista_detalle_pedido_producto` | 499.263 | 0 | 0 | Si |
-| `vista_usuario_reportes` | _(pendiente)_ | | | |
+| `vista_usuario_reportes` | 2 | 0 | 0 | Si |
 
 Las consultas de verificacion de cada vista estan escritas en `specs/spec_vistas.md`, en la seccion
 "Criterio de aceptacion" de cada una.
@@ -104,6 +104,8 @@ algunos pedidos aparecieran con menos lineas de las que realmente tuvieron.
 La consigna pide exponer el usuario sin la columna `contrasena`. El esquema no tenia esa columna, y por
 indicacion de la catedra se agrego la tabla `usuario` con `contrasena` y `rol`. Sobre ella,
 `vista_usuario_reportes` excluye la contrasena y expone solo usuarios vigentes.
+
+Se cargaron 3 usuarios de prueba (1 ADMIN, 1 USUARIO vigente y 1 con `eliminado = TRUE`, para probar el filtro), con hashes placeholder en `contrasena`, nunca texto plano. La vista devuelve 2 filas. Ademas del `EXCEPT` en las dos direcciones (0 filas), se consulto `information_schema.columns` y `contrasena` no aparece entre las columnas de la vista.
 
 El detalle de la decision esta en `duia.md`, seccion B.2.
 
@@ -136,7 +138,7 @@ las que se refresca.
 
 **`REFRESH CONCURRENTLY`:** corrió sin error, lo que prueba que el índice único
 `uq_mv_facturacion_cat_mes` sirve para refrescar sin bloquear las lecturas (el punto de la consigna
-9.1).
+4.3.1).
 
 **Frecuencia de refresco propuesta y su justificacion:** diaria (una corrida nocturna). El reporte es
 mensual de negocios: ningún responsable toma una decisión al minuto con el monto del mes. Entre

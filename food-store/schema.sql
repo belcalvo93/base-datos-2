@@ -114,7 +114,7 @@ CREATE INDEX idx_detalle_pedido_id_producto ON detalle_pedido (id_producto);
 -- ------------------------------------------------------------
 -- USUARIO + tipo ENUM rol
 -- Se agrega esta tabla por indicación directa de la cátedra
--- (profesor Sergio Neira), documentada en docs/duia/duia_parte5.md:
+-- (profesor Sergio Neira), documentada en food-store/duia.md:
 -- el criterio de seguridad del punto 4 (Parte B) exige ocultar la
 -- columna contrasena de una tabla de login, y el esquema de Food Store
 -- no tiene ese caso de uso (cliente no maneja autenticación). Usuario

@@ -120,7 +120,9 @@ detecta filas de más pero no filas de menos.
 | `vista_pedidos_cliente` | 200.005 | 0 | 0 | Sí |
 | `vista_productos_vigentes` | 39.963 | 0 | 0 | Sí |
 | `vista_detalle_pedido_producto` | 499.263 | 0 | 0 | Sí |
-| `vista_usuario_reportes` | _(pendiente de registrar)_ | | | |
+| `vista_usuario_reportes` | 2 | 0 | 0 | Sí |
+
+La vista de seguridad tiene una comprobación más: con 3 usuarios de prueba (1 ADMIN, 1 USUARIO vigente y 1 con `eliminado = TRUE`), devuelve solo los 2 vigentes, y `information_schema.columns` confirma que `contrasena` no aparece entre sus columnas. Los hashes de prueba son placeholders, nunca texto plano.
 
 Un detalle que la verificación deja a la vista: `vista_productos_vigentes` devuelve 39.963 filas sobre
 50.010 productos. La diferencia es el filtro de vigencia, que descarta productos inactivos y también los
