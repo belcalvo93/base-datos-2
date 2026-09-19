@@ -111,18 +111,40 @@ El detalle de la decision esta en `duia.md`, seccion B.2.
 
 # Parte C — Vista materializada
 
-_(Pendiente. La spec esta preparada en `specs/spec_vista_materializada_parteC.md`.)_
+Vista materializada sobre el reporte de facturación por categoría y mes (Consulta A de la Semana 4,
+`docs/informe_tp4_semana4.md`). Spec: `specs/spec_vista_materializada_parteC.md`. Implementación:
+`materializadas.sql`.
+
+**Base de medición:** `practica_bd2`, 200.005 pedidos y 500.151 detalles, `ANALYZE` corrido.
+Mediciones con `EXPLAIN (ANALYZE, BUFFERS)`.
 
 | | Consulta sin materializar | Vista materializada |
 |---|---|---|
-| Tiempo de ejecucion | | |
-| Nodo principal del plan | | |
-| Filas devueltas | | |
+| Tiempo de ejecucion | 870,172 ms | **0,070 ms** |
+| Nodo principal del plan | `Parallel Hash Join` (2 workers) + `Sort` `external merge` (8.000 kB a disco) | `Seq Scan` sobre la vista |
+| Filas devueltas | 100 (tras 399.184 filas intermedias) | 100 |
 
-**Tiempo del `REFRESH`:** es el costo que se paga a cambio y hay que reportarlo. Una vista que se
-consulta en milisegundos pero tarda un minuto en refrescarse solo conviene si se lee muchas mas veces de
+La mejora es de ~**12.430x**. El plan pasa de cruzar ~500.000 líneas de `detalle_pedido` y ~200.000
+`pedido` con sort externo a disco para devolver 100 filas, a leer las 100 filas ya calculadas. El
+`rows=100` de la vista coincide con el `rows=100` del `GroupAggregate` del plan original: se materializo
+exactamente el resultado que antes exigía procesar ~400.000 filas.
+
+**Tiempo del `REFRESH`:** `REFRESH MATERIALIZED VIEW CONCURRENTLY` corrió en **0,927 s** (0 filas
+actualizadas: no hubo cambios entre el `CREATE` y el `REFRESH`). Es el costo que se paga a cambio: la
+vista se lee en 0,070 ms pero refrescarla cuesta ~0,9 s. Conviene porque se lee muchísimas más veces de
 las que se refresca.
 
-**`REFRESH CONCURRENTLY`:** verificar que corre sin error, lo que prueba que el indice unico sirve.
+**`REFRESH CONCURRENTLY`:** corrió sin error, lo que prueba que el índice único
+`uq_mv_facturacion_cat_mes` sirve para refrescar sin bloquear las lecturas (el punto de la consigna
+9.1).
 
-**Frecuencia de refresco propuesta y su justificacion:**
+**Frecuencia de refresco propuesta y su justificacion:** diaria (una corrida nocturna). El reporte es
+mensual de negocios: ningún responsable toma una decisión al minuto con el monto del mes. Entre
+refrescos el usuario ve un snapshot del último `REFRESH`: los pedidos cargados después no aparecen
+(desfasaje máximo 24 h). Como ninguna decisión operativa (stock, despacho, atención al cliente)
+depende de la facturación mensual exacta, el desfasaje es tolerable y refrescar más seguido sería gasto
+puro. Si un día hiciera falta el dato casi en tiempo real, esa consulta se resuelve directo contra
+`pedido`/`detalle_pedido`, no contra la vista.
+
+**Equivalencia verificada:** `EXCEPT` en las dos direcciones contra la consulta original. `vista
+EXCEPT consulta` → **0 filas**. `consulta EXCEPT vista` → **0 filas**.
