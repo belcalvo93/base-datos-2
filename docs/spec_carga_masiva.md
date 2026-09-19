@@ -1,6 +1,6 @@
 # Spec — Script de carga masiva de datos (TP3)
 
-**Archivo de salida:** `db/carga_masiva.sql`  
+**Archivo de salida:** `food-store/carga_masiva.sql`
 **Contexto:** Trabajo Práctico 3 — Unidad 2, optimización de consultas.  
 **Base de trabajo:** bd2_tp3 (creada como copia de bd2_trabajo mediante `CREATE DATABASE bd2_tp3 TEMPLATE bd2_trabajo`, para preservar intacta la entrega del TP2)
 
@@ -218,7 +218,7 @@ parametrización es manual y explícita, igual que en el script de cátedra.
 
 **Procedimiento:**
 
-1. Abrir `db/carga_masiva.sql` y ajustar los tres límites de `generate_series`
+1. Abrir `food-store/carga_masiva.sql` y ajustar los tres límites de `generate_series`
    al escenario activo del CONFIG (chica, mediana o producción).
 2. Verificar `SELECT current_database();` → debe devolver `bd2_tp3`.
 3. Ejecutar dentro de `BEGIN` / `ROLLBACK` y anotar el tiempo que reporta el
@@ -325,7 +325,7 @@ Los conteos de 11.1–11.3 demuestran volumen, no distribución. La distribució
 se verifica con consultas restringidas a las filas recién insertadas: cada
 bloque del script inserta las filas más nuevas, así que el corte se hace con
 `ORDER BY <pk> DESC LIMIT <n>` con `<n>` igual a la cantidad insertada (las
-consultas quedaron armadas en `db/verificacion_carga_masiva.sql`).
+consultas quedaron armadas en `food-store/verificacion_carga_masiva.sql`).
 
 `count(DISTINCT ...)` no sirve sobre columnas con pocos valores: con 5
 categorías, `count(DISTINCT id_categoria)` da 5 esté la distribución rota o no.
@@ -476,4 +476,4 @@ Distribución verificada tras el COMMIT:
 Operaciones posteriores a la carga:
 
 - `ANALYZE` sobre las cinco tablas, después del COMMIT.
-- Respaldo: `db/backups/bd2_tp3_poblada.dump` (9 MB).
+- Respaldo: `food-store/backups/bd2_tp3_poblada.dump` (9 MB).

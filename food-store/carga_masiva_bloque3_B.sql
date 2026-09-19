@@ -1,7 +1,7 @@
 -- ============================================================
 -- Variante B del bloque 3 (pedido → cliente)
 -- A/B para decidir con mediciones contra la opción A de
--- db/carga_masiva.sql (bloque 3).
+-- food-store/carga_masiva.sql (bloque 3).
 -- ============================================================
 -- ESTADO: VARIANTE DESCARTADA (medida el 2026-09-01)
 --   Medición A vs B a igual volumen (10.000 pedidos / 4.000
@@ -13,7 +13,7 @@
 --   solo se abarató. Se conserva este archivo como evidencia
 --   documentada de un diseño probado con su medición, NO como
 --   código a ejecutar. El bloque 3 activo es la opción A de
---   db/carga_masiva.sql.
+--   food-store/carga_masiva.sql.
 -- ============================================================
 -- APARTAMIENTO EXPLÍCITO DEL ESTILO DE LA CÁTEDRA:
 --   El Genera_registros.sql original resuelve las FK con un subquery
@@ -60,7 +60,7 @@
 -- ============================================================
 -- USO (protocolo_seguridad.md — transacción con ROLLBACK primero):
 --   BEGIN;
---   \i db/carga_masiva_bloque3_B.sql
+--   \i food-store/carga_masiva_bloque3_B.sql
 --   ROLLBACK;   -- o COMMIT tras inspeccionar
 --   Comparar contra la opción A a igual volumen y verificar:
 --   SELECT count(DISTINCT id_cliente) FROM
