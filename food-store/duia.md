@@ -153,7 +153,7 @@ Reporte materializado: facturación por categoría y mes (Consulta A de la Seman
 | Vista materializada | 0,070 ms — `Seq Scan` de 100 filas |
 | `COUNT(*)` de la vista | 100, coincide con el `rows=100` del plan de la consulta original |
 | `REFRESH MATERIALIZED VIEW CONCURRENTLY` | Corre sin error en 0,927 s → el índice único cumple la condición para refrescar sin bloquear lecturas |
-| Equivalencia `EXCEPT` | Dirección `vista EXCEPT consulta`: 0 filas. Dirección `consulta EXCEPT vista`: pendiente de confirmar en el motor |
+| Equivalencia `EXCEPT` | Dirección `vista EXCEPT consulta`: 0 filas. Dirección `consulta EXCEPT vista`: 0 filas |
 
 El detalle de la lectura crítica del plan está en `specs/spec_vista_materializada_parteC.md`: el
 `Sort external merge` a disco y la dispersión entre ~500.000 líneas de origen y 100 filas de salida son

@@ -147,5 +147,4 @@ puro. Si un día hiciera falta el dato casi en tiempo real, esa consulta se resu
 `pedido`/`detalle_pedido`, no contra la vista.
 
 **Equivalencia verificada:** `EXCEPT` en las dos direcciones contra la consulta original. `vista
-EXCEPT consulta` → **0 filas** (tabla vacía, confirmado). `consulta EXCEPT vista` → **pendiente de
-confirmar en el motor** (correr y verificar que devuelve 0 filas antes de la entrega).
+EXCEPT consulta` → **0 filas**. `consulta EXCEPT vista` → **0 filas**.
