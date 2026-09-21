@@ -1,9 +1,14 @@
+---
+inclusion: always
+---
+
 # Base de datos — contexto del proyecto
 
 ## Motor y entorno
 
-- **PostgreSQL** (versión compatible con `GENERATED ALWAYS AS IDENTITY` y `TIMESTAMPTZ`).
+- **PostgreSQL 17** (versión compatible con `GENERATED ALWAYS AS IDENTITY` y `TIMESTAMPTZ`).
 - El esquema se ejecuta desde `food-store/schema.sql`; los datos de carga inicial desde `food-store/data.sql`.
+- Hay seis tablas: `categoria`, `cliente`, `producto`, `pedido`, `detalle_pedido` y `usuario`.
 - Los scripts son idempotentes: `schema.sql` elimina con `DROP … IF EXISTS … CASCADE` antes de recrear.
 
 ---
@@ -81,6 +86,30 @@ Tabla intermedia N:M entre `pedido` y `producto`. Registra las líneas de cada p
 
 ---
 
+### `usuario`
+Actor de sistema (login y reportes), distinto del actor de negocio `cliente`. Se agregó en el TP5 Parte B por indicación de la cátedra, para poder ocultar la contraseña detrás de `vista_usuario_reportes`. **No tiene FK hacia ninguna otra tabla.** Detalle en `food-store/specs/spec_usuario.md`.
+
+Difiere de las convenciones del proyecto en dos puntos, **ambos intencionales** (DDL exacto confirmado por el profesor). No hay que "corregirlos":
+
+| Elemento | Convención del proyecto | En `usuario` |
+|---|---|---|
+| PK | `id_<tabla>` | `id` |
+| Tipo ENUM | `<nombre>_enum` | `rol` (valores `'USUARIO'`, `'ADMIN'`) |
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | `BIGINT` IDENTITY PK | |
+| `nombre` | `VARCHAR(80)` NOT NULL | |
+| `apellido` | `VARCHAR(80)` NOT NULL | |
+| `mail` | `VARCHAR(120)` NOT NULL UNIQUE | |
+| `celular` | `VARCHAR(30)` | Nullable |
+| `contrasena` | `VARCHAR(255)` NOT NULL | Nunca se expone en `vista_usuario_reportes` |
+| `rol` | `rol` NOT NULL DEFAULT `'USUARIO'` | |
+| `eliminado` | `BOOLEAN` NOT NULL DEFAULT FALSE | Baja lógica invertida: `FALSE` = vigente. Nunca `DELETE` físico |
+| `created_at` | `TIMESTAMPTZ` NOT NULL DEFAULT now() | |
+
+---
+
 ## Convenciones de nombres
 
 | Elemento | Convención | Ejemplo |
@@ -153,6 +182,9 @@ ALTER TYPE forma_pago_enum ADD VALUE 'CRYPTO';
 | `idx_pedido_id_cliente` | `pedido` | `id_cliente` | Historial de compras de un cliente |
 | `idx_producto_categoria_activo` | `producto` | `id_categoria` WHERE `activo = TRUE` | Productos vigentes por categoría |
 | `idx_detalle_pedido_id_producto` | `detalle_pedido` | `id_producto` | Reconstruir detalles de un pedido; ver en qué pedidos apareció un producto |
+| `idx_producto_categoria_precio` | `producto` | `(id_categoria, precio DESC)` `INCLUDE (id_producto, nombre, stock)` WHERE `activo = TRUE` | **Aceptado en el TP5 Parte A** tras medir: catálogo vigente de una categoría ordenado por precio, sin `Sort`. Los otros candidatos se descartaron; el motivo está en `indices.sql` y `informe_mediciones.md` |
+
+Regla del proyecto: un índice se acepta solo si `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)` antes/después lo justifica. Las propuestas de la IA son hipótesis, no decisiones.
 
 ---
 
@@ -167,7 +199,7 @@ ALTER TYPE forma_pago_enum ADD VALUE 'CRYPTO';
 
 ---
 
-## Carga inicial (`datos.sql`)
+## Carga inicial (`data.sql`)
 
 - Las PKs **no se insertan explícitamente**: son `GENERATED ALWAYS AS IDENTITY`, el motor las asigna.
 - Las FKs se resuelven con subconsultas sobre claves naturales (`nombre`, `email`) para que los scripts sean legibles y no dependan del orden de inserción ni de IDs hardcodeados.

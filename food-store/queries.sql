@@ -6,24 +6,24 @@
 -- TP2 — Parte 2: laboratorio de índices  (docs/informe_parte2_indices.md)
 -- ==========================================================================
 
--- C1 — Productos vigentes de la categoría 10 (parámetro medido).
+-- C1 — Productos vigentes de la categoría 5.
 SELECT p.id_producto, p.nombre, p.precio, p.stock
 FROM producto p
-WHERE p.id_categoria = 10 AND p.activo = TRUE
+WHERE p.id_categoria = 5 AND p.activo = TRUE
 ORDER BY p.precio DESC;
 
--- C2 — Historial de pedidos del cliente 10 (parámetro medido).
+-- C2 — Historial de pedidos del cliente 20155.
 SELECT p.id_pedido, p.fecha, p.forma_pago, c.nombre, c.apellido
 FROM pedido p
 JOIN cliente c ON c.id_cliente = p.id_cliente
-WHERE p.id_cliente = 10
+WHERE p.id_cliente = 20155
 ORDER BY p.fecha DESC;
 
--- C3 — Pedidos donde se vendió el producto 64074 (parámetro medido).
+-- C3 — Pedidos donde se vendió el producto 49112.
 SELECT dp.id_detalle, dp.cantidad, dp.precio_unitario, ped.fecha
 FROM detalle_pedido dp
 JOIN pedido ped ON ped.id_pedido = dp.id_pedido
-WHERE dp.id_producto = 64074
+WHERE dp.id_producto = 49112
 ORDER BY ped.fecha DESC;
 
 -- ==========================================================================

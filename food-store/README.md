@@ -34,11 +34,12 @@ personas la corren por separado, las mediciones dejan de ser comparables entre s
 
 ```bash
 createdb -U postgres bd2_tp3
-pg_restore -U postgres -d bd2_tp3 backups/bd2_tp3_poblada.dump
+pg_restore -U postgres -d bd2_tp3 backups/bd2_tp3_actualizada_20260919.dump
 ```
 
 El dump no está versionado —los `.dump` están en el `.gitignore`— y se comparte por fuera del repo
-justamente para que todos midan sobre los mismos datos.
+justamente para que todos midan sobre los mismos datos. Las mediciones de la Parte A del informe se hicieron
+sobre `bd2_tp3_actualizada_20260919.dump`; `pg_restore` no trae estadísticas, por eso el paso 3 es obligatorio.
 
 ## 2. Verificar el volumen
 
@@ -55,9 +56,10 @@ Esperado: 5 categorías, 20.005 clientes, 50.011 productos, 200.005 pedidos, 499
 ## 3. Actualizar las estadísticas
 
 ```sql
-ANALYZE;
+VACUUM ANALYZE;
 ```
 
+`VACUUM` además deja armado el mapa de visibilidad, que el `Index Only Scan` del índice de C1 necesita.
 Sin esto el planificador trabaja con estimaciones viejas y elige planes que no corresponden al volumen
 real. Es la causa más común de mediciones que no se pueden reproducir.
 
@@ -78,6 +80,13 @@ traer las páginas a memoria.
 EXPLAIN (ANALYZE, BUFFERS) <consulta de queries.sql>;
 ```
 
+`medicion_planes.sql` hace esto para cada índice candidato: imprime el `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)`
+antes y después, y cada "después" corre en `BEGIN … ROLLBACK`.
+
+```bash
+psql -U postgres -d bd2_trabajo -X -f medicion_planes.sql > planes_tp5_parteA.txt
+```
+
 ## 5. Aplicar los objetos del TP5
 
 Primero se lee el script línea por línea, después se prueba dentro de una transacción reversible, y
@@ -90,27 +99,36 @@ BEGIN;
 ROLLBACK;   -- cambiar por COMMIT cuando el resultado sea el esperado
 ```
 
-Lo mismo con `views.sql`.
+Lo mismo con `views.sql` y con `materializadas.sql`.
 
 ## 6. Medir el "después"
 
 Se repite el paso 4 sobre las mismas consultas y se completan las tablas de
 `informe_mediciones.md`.
 
-Para el costo sobre las escrituras (Parte A, punto 5), la carga de `INSERT` en `detalle_pedido` se mide
-con `\timing on` dentro de `BEGIN ... ROLLBACK`, antes y después de crear los índices.
+Para el costo sobre las escrituras (Parte A, punto 5), `medicion_escritura.sql` corre 500 `INSERT`
+individuales por tabla y 500 `UPDATE` de `stock`, cada estado en su propia transacción con `ROLLBACK`, y
+reporta tiempo y bytes de WAL. Una ejecución es una ronda; el informe usó 15 y tomó la mediana:
+
+```bash
+psql -U postgres -d bd2_trabajo -X -A -t -f medicion_escritura.sql
+```
 
 ## Archivos
 
 | Archivo | Contenido |
 |---|---|
-| `schema.sql` | Las cinco tablas. Heredado, no se modifica |
-| `data.sql` | Datos iniciales. Heredado |
+| `schema.sql` | Las tablas del modelo. Heredado, salvo la tabla `usuario` que se agregó en la Parte B por indicación de la cátedra |
+| `data.sql` | Datos iniciales. Heredado, más los usuarios de prueba de la Parte B |
 | `queries.sql` | Consultas de negocio de las Semanas 3 y 4. Fuente de la carga de trabajo a indexar |
 | `restricciones.sql` | Triggers de integridad del TP2 |
 | `carga_masiva.sql` | Generador de volumen del TP3 |
-| `indices.sql` | Índices aceptados en la Parte A |
-| `views.sql` | Vistas de la Parte B y la vista materializada de la Parte C |
-| `specs/` | Especificaciones de Kiro, una por pieza |
-| `duia.md` | Bitácora de uso de IA |
-| `informe_mediciones.md` | `EXPLAIN ANALYZE` antes y después, lectura y escritura |
+| `indices.sql` | Índices aceptados en la Parte A (uno) y los descartados, comentados con su motivo |
+| `medicion_planes.sql` | Planes `EXPLAIN` antes y después de cada índice candidato (Parte A) |
+| `medicion_escritura.sql` | Costo de escritura de los índices, en tiempo y WAL (Parte A) |
+| `planes_tp5_parteA.txt` | Salida de `medicion_planes.sql` |
+| `views.sql` | Las cinco vistas de la Parte B, incluida `vista_usuario_reportes` |
+| `materializadas.sql` | La vista materializada de la Parte C y su índice único para `REFRESH CONCURRENTLY` |
+| `specs/` | Especificaciones de Kiro, una por pieza (Partes A, B y C) |
+| `duia.md` | Bitácora de uso de IA de las Partes A, B y C |
+| `informe_mediciones.md` | Mediciones de las tres partes: planes y escritura (A), equivalencia de las vistas (B) y vista materializada (C) |
