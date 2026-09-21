@@ -51,3 +51,5 @@ plan y el mismo tiempo (0,15 ms antes y después). Además cuesta +26 % de WAL
 en cada `INSERT` de `pedido` (medido: 500 INSERT). Se cumple la salida
 prevista por la spec: "si la consulta devuelve pocas filas y el `Sort` resulta
 insignificante, se documenta el descarte".
+
+**Decisión confirmada por el autor el 21/09/2026.**

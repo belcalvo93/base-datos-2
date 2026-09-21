@@ -55,3 +55,5 @@ ahorra ningún acceso porque `cantidad` y `precio_unitario` igual se leen del
 heap, y `id_pedido` ya está cubierto por `UNIQUE (id_pedido, id_producto)`.
 Es un superconjunto del índice existente y cuesta +17 % de WAL en cada
 `INSERT` de `detalle_pedido` (medido: 500 INSERT).
+
+**Decisión confirmada por el autor el 21/09/2026.**

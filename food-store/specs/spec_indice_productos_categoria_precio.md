@@ -61,3 +61,5 @@ fila por fila (`EXCEPT` en ambas direcciones: 0 filas).
 Costo aceptado: 3,3 MB de índice y +45 % de WAL por `INSERT` en `producto`
 (+32 % de WAL por `UPDATE` de `stock`, que ahora deja de ser barato porque
 `stock` forma parte del índice).
+
+**Decisión confirmada por el autor el 21/09/2026.**

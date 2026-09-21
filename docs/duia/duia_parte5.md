@@ -62,9 +62,9 @@ Parte A sobre esas tres consultas fue reescrito y modificado por Claude Code
   `food-store/medicion_escritura.sql`, `food-store/planes_tp5_parteA.txt` y las
   secciones 4.1 a 4.3 y 5 de `food-store/informe_mediciones.md`.
 
-OpenCode no intervino en C1, C2 ni C3. Las decisiones de C1, C2 y C3 son las que
-propuso Claude Code a partir de las mediciones y siguen pendientes de
-confirmación explícita del autor (ver «Pendiente del autor»).
+OpenCode no intervino en C1, C2 ni C3. Las decisiones de C1, C2 y C3 las propuso
+Claude Code a partir de las mediciones y el autor las confirmó el 21/09/2026
+(ver «Pendiente del autor»).
 
 ---
 
@@ -186,12 +186,12 @@ evidencia"), se comprobó en el motor:
   milisegundos variaron como se esperaba. Falta repetir
   `medicion_escritura.sql` sobre `bd2_trabajo` (sección 9 del informe).
 - **Confirmar las decisiones.** Aceptar o descartar cada índice es decisión del
-  autor («se delega la escritura, nunca la decisión»). El 21/09/2026 el autor
-  confirmó el descarte de las consultas P4-A, P4-B y S4-A. **Siguen pendientes
-  de confirmación explícita** las decisiones de C1 (aceptar
-  `idx_producto_categoria_precio`), C2 y C3 (descartar), que propuso la IA a
-  partir de las mediciones: el autor debe revisarlas, hacerlas suyas o
-  cambiarlas antes de entregar.
+  autor («se delega la escritura, nunca la decisión»). **Confirmadas por el autor
+  el 21/09/2026:** el descarte de las consultas P4-A, P4-B y S4-A, y las
+  decisiones de C1 (aceptar `idx_producto_categoria_precio`), C2 y C3
+  (descartar). Las de C1, C2 y C3 las propuso la IA a partir de las mediciones y
+  el autor las hizo suyas; en la defensa oral debe poder justificar cada una sin
+  apoyo de IA.
 - **Defensa oral.** Poder explicar sin apoyo de IA por qué `INCLUDE` habilita el
   `Index Only Scan`, por qué el parcial sin `INCLUDE` no se usa, y por qué
   (id_producto, id_pedido) es un índice redundante.
