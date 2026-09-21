@@ -42,6 +42,30 @@ rendimiento y facilidad de uso. Es una decisión propia y se declara como un
 apartamiento de la herramienta que nombra la consigna para esas tres consultas;
 para las tres consultas con `Seq Scan` sí se siguió el flujo Kiro → OpenCode.
 
+**Autoría de C1, C2 y C3: reescrito y modificado por Claude Code.** El texto
+original de las tres specs es de Kiro (commit `e5e7907`), pero el trabajo de la
+Parte A sobre esas tres consultas fue reescrito y modificado por Claude Code
+(Claude Sonnet 5):
+
+- **Reescribió la Parte A** sobre el dump `bd2_tp3_actualizada_20260919.dump`,
+  reemplazando la versión anterior medida sobre `practica_bd2` (commit
+  `e711e99`), que descartaba los tres índices.
+- **Modificó las tres specs:** restauró los parámetros de `queries.sql` original
+  (categoría 5, cliente 20155, producto 49112) que esa versión había cambiado, y
+  les agregó la sección «Resultado de la medición».
+- **Propuso el índice de C1:** al ver que la hipótesis de la spec no se usaba,
+  propuso la variante con `INCLUDE (id_producto, nombre, stock)` que se acepta
+  (`idx_producto_categoria_precio`). Esa variante no estaba en la spec de Kiro.
+- **Propuso el descarte de C2 y C3** (`(id_cliente, fecha DESC)` y
+  `(id_producto, id_pedido)`), y el de C3 como caso de sobreindexación.
+- **Escribió** `food-store/indices.sql`, `food-store/medicion_planes.sql`,
+  `food-store/medicion_escritura.sql`, `food-store/planes_tp5_parteA.txt` y las
+  secciones 4.1 a 4.3 y 5 de `food-store/informe_mediciones.md`.
+
+OpenCode no intervino en C1, C2 ni C3. Las decisiones de C1, C2 y C3 son las que
+propuso Claude Code a partir de las mediciones y siguen pendientes de
+confirmación explícita del autor (ver «Pendiente del autor»).
+
 ---
 
 ## Spec o prompt utilizado
