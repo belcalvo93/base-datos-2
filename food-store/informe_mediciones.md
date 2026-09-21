@@ -121,6 +121,21 @@ Selectividad: 24 de 200.005 pedidos (0,012 %). Spec: [`spec_indice_pedidos_clien
 
 Candidato: `(id_cliente, fecha DESC)`. Después de crearlo el plan es **idéntico** al base: `Index Scan` en `cliente_pkey`, `Bitmap Heap Scan` sobre `pedido` con `idx_pedido_id_cliente`, y `Sort` de 24 filas (quicksort, 26 kB). El planificador ni siquiera elige el índice nuevo: con 24 filas no le conviene evitar un `Sort` que cuesta microsegundos.
 
+**Antes** (índice del TP1 `idx_pedido_id_cliente`) y **después** (con `(id_cliente, fecha DESC)` creado): el plan es el mismo, solo cambia el `Execution Time` por ruido.
+
+```text
+Sort  (cost=50.62..50.64 rows=10) (actual time=0.109..0.111 rows=24)
+  Sort Key: p.fecha DESC
+  Sort Method: quicksort  Memory: 26kB
+  Buffers: shared hit=28
+  ->  Nested Loop  (cost=4.66..50.45 rows=10)
+        ->  Index Scan using cliente_pkey on cliente c  (cost=0.29..8.30 rows=1)
+        ->  Bitmap Heap Scan on pedido p  (cost=4.37..42.05 rows=10)
+              Heap Blocks: exact=23
+              ->  Bitmap Index Scan on idx_pedido_id_cliente  (cost=0.00..4.37 rows=10)
+Execution Time: 0.150 ms   (antes)  /  0.157 ms   (después, mismo plan)
+```
+
 | | Plan | Mediana (5) | `pgbench` |
 |---|---|---:|---:|
 | Base (TP1) | Bitmap Heap Scan + Sort | 0,152 ms | 0,43 ms |
@@ -139,6 +154,28 @@ WHERE dp.id_producto = 49112 ORDER BY ped.fecha DESC;
 Selectividad: 27 de 499.263 detalles (0,005 %). Spec: [`spec_indice_detalle_producto_pedido.md`](specs/spec_indice_detalle_producto_pedido.md).
 
 Candidato: `(id_producto, id_pedido)`. Acá el planificador **sí** usa el índice nuevo (`Bitmap Index Scan on idx_detalle_producto_pedido`, en lugar de `idx_detalle_pedido_id_producto`), pero el plan tiene la misma forma y el mismo costo estimado (4,50), 27 bloques de heap en ambos casos, y el mismo `Index Scan` en `pedido_pkey`.
+
+**Antes** (índice del TP1 `idx_detalle_pedido_id_producto`):
+
+```text
+Sort  (cost=139.97..140.00 rows=11) (actual time=0.149..0.151 rows=27)
+  Sort Key: ped.fecha DESC
+  Sort Method: quicksort  Memory: 26kB
+  Buffers: shared hit=138
+  ->  Nested Loop  (cost=4.93..139.78 rows=11)
+        ->  Bitmap Heap Scan on detalle_pedido dp  (cost=4.51..46.97 rows=11)
+              Heap Blocks: exact=27
+              ->  Bitmap Index Scan on idx_detalle_pedido_id_producto  (cost=0.00..4.50 rows=11)
+        ->  Index Scan using pedido_pkey on pedido ped  (cost=0.42..8.44 rows=1)
+Execution Time: 0.179 ms
+```
+
+**Después** (con `(id_producto, id_pedido)` creado): idéntico salvo el nombre del índice, con el mismo costo total (139,97..140,00), los mismos 138 buffers y los mismos 27 bloques de heap.
+
+```text
+              ->  Bitmap Index Scan on idx_detalle_producto_pedido  (cost=0.00..4.50 rows=11)
+Execution Time: 0.332 ms
+```
 
 | | Plan | Mediana (5) | `pgbench` (3 rep.) |
 |---|---|---:|---:|
@@ -209,7 +246,7 @@ Referencia "base" = promedio de `base_a` y `base_b`.
 Las consultas P4-A, P4-B y S4-A hacen `Seq Scan` sobre `detalle_pedido`. Se probó si un índice puede evitarlo:
 
 * **P4-A y S4-A** leen todas las filas de `detalle_pedido` (agregan por categoría / mes sobre todo el histórico). Se probó un índice cubriente `(id_producto) INCLUDE (id_pedido, cantidad, precio_unitario)`, que permitiría un `Index Only Scan`. El planificador **lo ignora** y sigue con `Seq Scan`; tiempo 727 ms → 727 ms (P4-A) y 2.219 → 2.246 ms (S4-A). El índice pesaría 24 MB frente a los 33 MB de la tabla: leerlo entero no ahorra casi nada, y el trabajo pesado no está en el acceso sino en el `Hash Join`, la agregación y el ordenamiento externo (S4-A vuelca 23 MB a disco).
-* **P4-B (nunca vendidos)** es distinta: no necesita un índice nuevo, porque `idx_detalle_pedido_id_producto` ya permite un `Index Only Scan`. Forzándolo (`enable_seqscan = off`, en transacción) el plan pasa a `Merge Anti Join` con `Index Only Scan` y baja de 259 a 133 ms (1,9×). El planificador elige el `Seq Scan` porque estima costos casi iguales (17.496 contra 18.170); no es un problema de índices faltantes y no se resolvió tocando parámetros del motor.
+* **P4-B (nunca vendidos)** es distinta: no necesita un índice nuevo, porque `idx_detalle_pedido_id_producto` ya permite un `Index Only Scan`. Forzándolo (`enable_seqscan = off`, en transacción) el plan pasa a `Merge Anti Join` con `Index Only Scan` y baja de 259 a 133 ms (1,9×). El planificador elige el `Seq Scan` porque estima costos casi iguales (17.586 contra 18.338); no es un problema de índices faltantes y no se resolvió tocando parámetros del motor.
 
 **Conclusión.** Un `Seq Scan` que lee la mayoría de la tabla es la elección correcta, no un síntoma. Ningún índice nuevo mejora estas consultas; el camino para S4-A es la vista materializada de la Parte C.
 

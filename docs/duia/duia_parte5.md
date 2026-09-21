@@ -30,8 +30,12 @@ de C1) no contradice la anterior: aquella no probó esa variante.
   mediciones, proponer una variante de índice, escribir
   `food-store/medicion_planes.sql`, `food-store/medicion_escritura.sql`,
   `food-store/indices.sql` y `food-store/informe_mediciones.md`.
-- **OpenCode** — no se usó en esta sesión. La consigna lo nombra como agente
-  generador; ver "Pendiente del autor" al final.
+- **OpenCode** — no se usó en la Parte A. La consigna lo nombra como agente
+  generador; se lo reemplazó por Claude Code (ver el motivo abajo).
+
+**Por qué Claude Code y no OpenCode.** El autor de la Parte A eligió Claude
+Code por rendimiento y facilidad de uso. Es una decisión propia y se declara
+como un apartamiento de la herramienta que nombra la consigna.
 
 ---
 
@@ -90,14 +94,20 @@ evidencia"), se comprobó en el motor:
 ## Pendiente del autor
 
 - **Herramienta generadora.** La consigna pide que el índice lo proponga
-  OpenCode a partir de la spec de Kiro. En esta rehecha esa propuesta la hizo
-  Claude Code. Si se corre además una sesión con OpenCode sobre las mismas
-  specs, agregar su fila a la tabla; no se debe declarar un uso que no ocurrió.
+  OpenCode a partir de la spec de Kiro; en esta rehecha lo propuso Claude Code
+  por la razón declarada arriba. Los demás integrantes del equipo pueden editar
+  esta sección si la cátedra pide otra cosa. Si se corre además una sesión con
+  OpenCode sobre las mismas specs, agregar su fila a la tabla; no se debe
+  declarar un uso que no ocurrió.
 - **Reproducir en la base propia.** Las mediciones se hicieron en una instancia
   temporal con configuración por defecto. Antes de la defensa, repetir
   `medicion_planes.sql` y `medicion_escritura.sql` sobre `bd2_trabajo` (pasos
   en la sección 9 del informe): los milisegundos van a variar, los planes y las
   proporciones no deberían.
+- **Confirmar las decisiones.** Aceptar o descartar cada índice es decisión del
+  autor («se delega la escritura, nunca la decisión»). Las decisiones de esta
+  DUIA son las que la IA propuso a partir de las mediciones; el autor debe
+  revisarlas, hacerlas suyas o cambiarlas antes de entregar.
 - **Defensa oral.** Poder explicar sin apoyo de IA por qué `INCLUDE` habilita el
   `Index Only Scan`, por qué el parcial sin `INCLUDE` no se usa, y por qué
   (id_producto, id_pedido) es un índice redundante.

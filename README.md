@@ -147,7 +147,7 @@ Diagrama ER completo en `docs/Diagrama ER.png`.
 - **PostgreSQL 17.11** sobre Windows 11
 - Terminal: Git Bash
 - Editor: VS Code
-- Agentes de IA: OpenCode (Big Pickle / OpenCode Zen), Kiro
+- Agentes de IA: OpenCode (Big Pickle / OpenCode Zen), Kiro; Claude Code en la Parte A del TP5
 
 ### Bases de datos
 
@@ -156,6 +156,28 @@ Diagrama ER completo en `docs/Diagrama ER.png`.
 | `bd2_proyecto` | Plantilla. No se modifica. |
 | `bd2_trabajo` | Copia de trabajo. Se recrea con `createdb -T bd2_proyecto bd2_trabajo`. |
 | `bd2_tp3` | Base poblada de la Unidad 2 (~50.000 productos / 20.000 clientes / 200.000 pedidos / 499.000 detalles). |
+
+---
+
+## Cómo reproducir la Parte A del TP5
+
+Sobre `bd2_tp3` (o una copia `bd2_trabajo` de ella), confirmando antes con `SELECT current_database();`. Todo lo que crea índices de prueba corre dentro de `BEGIN; … ROLLBACK;`, así que no deja nada instalado.
+
+```bash
+# 1. Estadísticas y mapa de visibilidad al día (necesario para el Index Only Scan)
+psql -U postgres -d bd2_trabajo -X -c "VACUUM ANALYZE"
+
+# 2. EXPLAIN (ANALYZE, BUFFERS, VERBOSE) antes/después de cada índice candidato
+psql -U postgres -d bd2_trabajo -X -f food-store/medicion_planes.sql > food-store/planes_tp5_parteA.txt
+
+# 3. Costo de escritura (500 INSERT/UPDATE por tabla; el informe usó 15 rondas y tomó la mediana)
+psql -U postgres -d bd2_trabajo -X -A -t -f food-store/medicion_escritura.sql
+
+# 4. Crear el índice aceptado (probar primero dentro de BEGIN; … ROLLBACK;)
+psql -U postgres -d bd2_trabajo -f food-store/indices.sql
+```
+
+Las decisiones, los planes y las cifras están en `food-store/informe_mediciones.md` (la sección 9 detalla el método y cómo usar `pgbench`).
 
 ---
 
