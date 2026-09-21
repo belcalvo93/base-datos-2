@@ -1,10 +1,22 @@
 # Declaración de Uso de IA (DUIA) — Parte 5
 
-**Ejercicio:** TP5 (Unidad 3, Semana 5), Parte A — plan de indexado asistido
-por IA. Se rehízo la parte sobre el dump `bd2_tp3_actualizada_20260919.dump`
-para que el informe, los índices y las specs del repositorio coincidan con los
-datos de esa base (50.011 productos / 20.005 clientes / 200.005 pedidos /
-499.263 detalles).
+**Ejercicio:** TP5 (Unidad 3, Semana 5), Partes A y B.
+
+## Parte A — plan de indexado asistido por IA
+
+Se rehízo la Parte A sobre el dump `bd2_tp3_actualizada_20260919.dump` para que
+el informe, los índices y las specs del repositorio coincidan con los datos de
+esa base (50.011 productos / 20.005 clientes / 200.005 pedidos / 499.263
+detalles).
+
+**Esta versión reemplaza a la anterior de la Parte A** (commit `e711e99`),
+medida sobre `practica_bd2` (50.010 productos / 500.151 detalles) con otros
+parámetros (categoría 10, cliente 10, producto 64074) y que descartaba los tres
+índices. Esos parámetros no sirven en el dump (la categoría 10 y el cliente 10 no
+devuelven filas), por lo que se volvió a los de `queries.sql` original
+(categoría 5, cliente 20155, producto 49112), que son también los del informe
+del TP3. La diferencia de conclusión (acá se acepta la variante con `INCLUDE`
+de C1) no contradice la anterior: aquella no probó esa variante.
 
 **Fecha:** 21/09/2026
 
@@ -89,3 +101,21 @@ evidencia"), se comprobó en el motor:
 - **Defensa oral.** Poder explicar sin apoyo de IA por qué `INCLUDE` habilita el
   `Index Only Scan`, por qué el parcial sin `INCLUDE` no se usa, y por qué
   (id_producto, id_pedido) es un índice redundante.
+
+---
+
+## Parte B — tabla `usuario` y vista de reportes
+
+La consigna del TP5 pide una vista que oculte la columna `contrasena` de una
+tabla de login. El esquema original no tenía ese caso de uso; `cliente` no
+maneja autenticación. Según la indicación documentada de la cátedra, se agregó
+una tabla `usuario` separada de `cliente`, con `contrasena` hasheada y `rol`
+como tipo ENUM.
+
+Se agregó `vista_usuario_reportes`, que excluye explícitamente `contrasena` y
+expone solamente usuarios vigentes. Las cuatro vistas existentes sobre las
+tablas de negocio se mantienen sin cambios. La spec específica está en
+`food-store/specs/spec_usuario.md`.
+
+La decisión se aparta del punto general de no modificar el modelo únicamente
+por la indicación explícita de la cátedra para este criterio de seguridad.

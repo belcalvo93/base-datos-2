@@ -76,9 +76,9 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 | `food-store/medicion_planes.sql` | Genera los `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)` antes/después de cada índice candidato, en transacción con ROLLBACK |
 | `food-store/medicion_escritura.sql` | Mide el costo de escritura de los índices (500 INSERT por tabla y 500 UPDATE de `stock`; tiempo y WAL) |
 | `food-store/planes_tp5_parteA.txt` | Salida de `medicion_planes.sql` sobre la base de 499.263 detalles |
-| `food-store/views.sql` | Vistas del TP5, Partes B y C (pendiente) |
-| `food-store/informe_mediciones.md` | Informe de mediciones del TP5: Parte A completa; Partes B y C pendientes |
-| `food-store/specs/` | Specs del TP5: `spec_indice_*.md` (Parte A, con el resultado de la medición al final de cada una) y `spec_vistas.md` |
+| `food-store/views.sql` | Vistas del TP5, Partes B y C |
+| `food-store/informe_mediciones.md` | Informe de mediciones del TP5: Parte A completa; la Parte C se agrega cuando se cierre |
+| `food-store/specs/` | Specs de Kiro del TP5: `spec_indice_*.md` (Parte A, con el resultado de la medición al final de cada una), `spec_usuario.md` y `spec_vistas.md` |
 | `food-store/backups/` | Respaldos `.dump` de la base de trabajo |
 | `docs/Diagrama ER.png` | Diagrama entidad-relación |
 | `docs/spec_restricciones.md` | Especificación de restricciones de integridad |
@@ -94,7 +94,7 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 | `docs/informe_parte4_consultas.md` | Informe de la Parte 4 con la verificación de equivalencia |
 | `docs/informe_tp4_semana4.md` | Informe TP4: mediciones, lectura crítica, ranking y consultas bajo especificación |
 | `docs/duia/` | Documentación de uso de IA por unidad |
-| `docs/duia/duia_parte5.md` | DUIA del TP5 (Parte A completa; Partes B y C pendientes) |
+| `docs/duia/duia_parte5.md` | DUIA de las Partes A y B del TP5 |
 | `.kiro/steering/database.md` | Referencia del esquema con diseño justificado |
 
 ---
@@ -125,6 +125,7 @@ de aceptación.
 | `producto` | Productos del catálogo. Precio ≥ 0, stock ≥ 0. Participación total respecto a categoría. |
 | `pedido` | Cabecera de pedido: fecha, forma de pago (ENUM), cliente. |
 | `detalle_pedido` | Líneas del pedido (relación N:M). Congela precio histórico (R4). UNIQUE(id_pedido, id_producto). |
+| `usuario` | Actores de login y reportes; la contraseña no se expone en `vista_usuario_reportes`. |
 
 Diagrama ER completo en `docs/Diagrama ER.png`.
 
@@ -137,7 +138,7 @@ Diagrama ER completo en `docs/Diagrama ER.png`.
 | Unidad 1 | Semana 1 | Modelo ER, normalización a 3FN/BCNF, `food-store/schema.sql` |
 | Unidad 1 | Semana 2 | `protocolo_seguridad.md`, `docs/spec_restricciones.md`, `food-store/restricciones.sql`, `food-store/pruebas_restricciones.sql`, `docs/informe_concurrencia.md`, `docs/ejercicio_lectura_critica.md`, tres DUIA |
 | Unidad 2 | Sem. 3–4 | **Parte 1 (carga masiva):** `food-store/carga_masiva.sql`, `docs/spec_carga_masiva.md`, `food-store/verificacion_carga_masiva.sql`, `food-store/carga_masiva_bloque3_B.sql` (variante descartada), `docs/duia/duia_parte4.md`. **Parte 2 (índices):** `docs/informe_parte2_indices.md`, `docs/planes_parte2_antes.txt`, `docs/planes_parte2_despues.txt`. **Parte 3 (lectura crítica):** `docs/explicacion_ia_plan_c2.md`, `docs/informe_parte3_lectura_critica.md`. **Parte 4 (consultas bajo spec):** `docs/spec_consultas_parte4.md`, `docs/informe_parte4_consultas.md`. **Informe TP4:** `docs/informe_tp4_semana4.md`. |
-| Unidad 3 | TP5 | **Parte A:** `food-store/indices.sql`, `food-store/queries.sql`, `food-store/specs/spec_indice_*.md`, `food-store/medicion_planes.sql`, `food-store/medicion_escritura.sql`, `food-store/planes_tp5_parteA.txt`, informe en `food-store/informe_mediciones.md`. **Partes B y C:** `food-store/specs/spec_vistas.md`, `food-store/views.sql`, `food-store/informe_mediciones.md`. **DUIA:** `docs/duia/duia_parte5.md`. |
+| Unidad 3 | TP5 | **Parte A:** `food-store/indices.sql`, `food-store/queries.sql`, `food-store/specs/spec_indice_*.md`, `food-store/medicion_planes.sql`, `food-store/medicion_escritura.sql`, `food-store/planes_tp5_parteA.txt`, informe en `food-store/informe_mediciones.md`. **Parte B:** `food-store/specs/spec_vistas.md`, `food-store/specs/spec_usuario.md`, `food-store/views.sql`. **DUIA:** `docs/duia/duia_parte5.md`. |
 
 ---
 
