@@ -39,3 +39,19 @@ No se acepta automáticamente una segunda variante: puede ser redundante con el
 Comparar planes, buffers y tiempos antes/después. El índice solo se conserva
 si cambia favorablemente el acceso a `detalle_pedido` o reduce el trabajo del
 join sin introducir un costo de escritura desproporcionado.
+
+## Resultado de la medición (21/09/2026)
+
+Base: `bd2_tp3` (499.263 detalles). Evidencia en
+`food-store/informe_mediciones.md` (sección 4.3) y
+`food-store/planes_tp5_parteA.txt`.
+
+**`(id_producto, id_pedido)`: descartado por sobreindexación.** El
+planificador sí usa el índice nuevo, pero el plan es el mismo que con
+`idx_detalle_pedido_id_producto` (Bitmap Heap Scan, 27 bloques, `Index Scan`
+en `pedido_pkey`) y no mejora el tiempo: `pgbench` da 0,68-0,86 ms sin el
+índice y 0,73-0,78 ms con él, rangos que se superponen. La segunda columna no
+ahorra ningún acceso porque `cantidad` y `precio_unitario` igual se leen del
+heap, y `id_pedido` ya está cubierto por `UNIQUE (id_pedido, id_producto)`.
+Es un superconjunto del índice existente y cuesta +17 % de WAL en cada
+`INSERT` de `detalle_pedido` (medido: 500 INSERT).
