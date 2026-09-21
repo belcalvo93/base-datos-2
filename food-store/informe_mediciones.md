@@ -2,7 +2,7 @@
 
 ## 1. Resumen
 
-De los cuatro índices evaluados se **acepta uno** y se descartan tres, más una prueba adicional sobre las consultas analíticas del TP4 que también se descarta.
+Sobre C1, C2 y C3 se evaluaron cuatro índices: se **acepta uno** y se descartan tres. Las tres consultas que hoy sí hacen `Seq Scan` (P4-A, P4-B y S4-A) se especificaron en Kiro y se le pidió a OpenCode una propuesta por consulta: en las tres concluyó que **ningún índice se justifica**, la medición lo confirma y las tres quedan descartadas (sección 6).
 
 | Índice | Consulta | Decisión | Motivo en una línea |
 |---|---|---|---|
@@ -10,7 +10,9 @@ De los cuatro índices evaluados se **acepta uno** y se descartan tres, más una
 | `(id_categoria, precio DESC) WHERE activo` (hipótesis original de la spec) | C1 | Descartado | El planificador no lo usa; tiempo idéntico al base |
 | `(id_cliente, fecha DESC)` | C2 | Descartado | Devuelve 24 filas, el `Sort` es insignificante; sin cambio de plan ni de tiempo |
 | `(id_producto, id_pedido)` | C3 | Descartado (**sobreindexación**) | Superconjunto del índice existente; mismo plan, mismo tiempo, +17 % de WAL por INSERT |
-| `(id_producto) INCLUDE (id_pedido, cantidad, precio_unitario)` | TP4 analíticas | Descartado | Las consultas leen el 100 % de la tabla; siguen con `Seq Scan` (727 ms → 727 ms) |
+| `(id_producto) INCLUDE (id_detalle, cantidad, precio_unitario)` | P4-A | Descartado | Lee el 100 % de la tabla y sigue con `Seq Scan` (743 → 735 ms); 24 MB y +21 % de WAL por INSERT |
+| Ninguno (el índice existente alcanza) | P4-B | Descartado | `idx_detalle_pedido_id_producto` ya sirve; el `Seq Scan` es una decisión de costos del planificador (con `random_page_cost = 1.1` baja de 258 a 110 ms sin índice nuevo) |
+| `(id_producto) INCLUDE (id_pedido, cantidad, precio_unitario)` | S4-A | Descartado | Agrega todo el histórico; plan y tiempo no cambian (2.219 → 2.246 ms) |
 
 Sentencia final aceptada: [`food-store/indices.sql`](indices.sql). Planes completos: [`food-store/planes_tp5_parteA.txt`](planes_tp5_parteA.txt).
 
@@ -24,9 +26,9 @@ Sentencia final aceptada: [`food-store/indices.sql`](indices.sql). Planes comple
 
 **Protocolo.** Todo índice de prueba se creó dentro de `BEGIN; … ROLLBACK;` (`protocolo_seguridad.md`, paso 2). Antes de cada `EXPLAIN` la consulta se ejecutó una vez para calentar la caché.
 
-**Lectura (consigna 4).** `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)`, una corrida de calentamiento + 5 corridas medidas; se informa la **mediana**. Como C2 y C3 duran décimas de milisegundo, cada estado se midió además con `pgbench` (`-n -M simple -c 1 -T 5`, 3 repeticiones, miles de ejecuciones por repetición). La latencia de `pgbench` incluye transferir las filas al cliente, por eso es mayor que el `Execution Time` en C1.
+**Lectura (consigna 4).** `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)`, una corrida de calentamiento + 5 corridas medidas; se informa la **mediana**. `medicion_planes.sql` imprime una sola ejecución por sección (la que figura en `planes_tp5_parteA.txt`); las medianas de 5 se obtuvieron repitiendo cada `EXPLAIN` con un ciclo aparte, que no está como script en el repo. Como C2 y C3 duran décimas de milisegundo, cada estado se midió además con `pgbench` (`-n -M simple -c 1 -T 5`, 3 repeticiones, miles de ejecuciones por repetición). La latencia de `pgbench` incluye transferir las filas al cliente, por eso es mayor que el `Execution Time` en C1.
 
-**Escritura (consigna 5).** [`food-store/medicion_escritura.sql`](medicion_escritura.sql): 500 `INSERT` individuales por tabla (con los triggers de `restricciones.sql` activos) y 500 `UPDATE` de `stock`, cada estado en su propia transacción con `ROLLBACK`, 15 rondas, mediana. Se mide **tiempo** y **bytes de WAL** generados (ver sección 5 sobre por qué las dos métricas).
+**Escritura (consigna 5).** [`food-store/medicion_escritura.sql`](medicion_escritura.sql): 500 `INSERT` individuales por tabla (con los triggers de `restricciones.sql` activos) y 500 `UPDATE` de `stock`, cada estado en su propia transacción con `ROLLBACK`, 15 rondas, mediana. Se mide **tiempo** y **bytes de WAL** generados (ver sección 5 sobre por qué las dos métricas). La carga 5 (el índice de P4-A) se agregó después de las cargas 1-4, con su propio par de estados base; una segunda tanda de 15 rondas del script completo reprodujo el WAL de las cargas 1-4 con diferencias menores a 1 punto porcentual (el tiempo varió hasta ~30 puntos porcentuales, por eso el WAL es la métrica de referencia).
 
 **Limitación.** Los milisegundos absolutos son de esta máquina e instancia; al reproducir en `bd2_trabajo` van a variar. Lo reproducible son los planes y las proporciones.
 
@@ -46,7 +48,7 @@ La consigna pide partir de consultas que hoy resuelven con `Seq Scan` sobre una 
 
 **Hallazgo.** C1, C2 y C3 ya **no** hacen `Seq Scan`: los índices del TP1 se lo sacaron. Su `Seq Scan` original está medido en el TP3 (`docs/informe_parte2_indices.md`: 7,6 / 39,0 / 43,8 ms sin índices). Los `Seq Scan` sobre tablas grandes que subsisten hoy están en las consultas analíticas P4-A, P4-B y S4-A.
 
-Las tres specs de Kiro ya existentes (C1, C2, C3) apuntan a consultas operativas frecuentes cuyo plan todavía admite mejoras (el `Sort`, el acceso al heap). Se evaluaron esas tres tal como estaban especificadas (sección 4) y se probó por separado qué podía hacer un índice por las analíticas (sección 6).
+Las tres specs de Kiro de C1, C2 y C3 apuntan a consultas operativas frecuentes cuyo plan todavía admite mejoras (el `Sort`, el acceso al heap): se evaluaron tal como estaban especificadas (sección 4). Para las tres consultas que sí hacen `Seq Scan` (P4-A, P4-B y S4-A) se redactaron specs nuevas, revisadas en Kiro, y se le pidió a OpenCode una propuesta por cada una (sección 6).
 
 ## 4. Consultas candidatas
 
@@ -208,6 +210,12 @@ Referencia "base" = promedio de `base_a` y `base_b`.
 
 \* El índice aceptado vive en `producto`: no participa de estos `INSERT`, y el WAL lo confirma (+0,1 %). El +22 % de tiempo es ruido de esta carga (`base_a` vs `base_b` ya difieren 10 %).
 
+**Carga 5 — el índice de P4-A** `(id_producto) INCLUDE (id_detalle, cantidad, precio_unitario)`, con su propio par de estados base (55,0 y 55,6 ms; 207.048 y 207.128 bytes de WAL):
+
+| Estado | Tiempo | Δ tiempo | WAL (bytes) | Δ WAL |
+|---|---:|---:|---:|---:|
+| Descartado `(id_producto) INCLUDE (id_detalle, cantidad, precio_unitario)` | 88,4 ms | +60 % | 251.432 | **+21,4 %** |
+
 **`INSERT` en `pedido`** — base 24,1 ms / 139.216 bytes.
 
 | Estado | Tiempo | Δ tiempo | WAL (bytes) | Δ WAL |
@@ -241,14 +249,58 @@ Referencia "base" = promedio de `base_a` y `base_b`.
 
 ## 6. Los Seq Scan que sí persisten: consultas analíticas del TP4
 
-> Esta prueba fue **exploratoria**: se hizo después de las tres specs y no tiene spec propia de Kiro. Se documenta igual porque cierra la pregunta de la sección 3.
+Las consultas P4-A, P4-B y S4-A hacen `Seq Scan` sobre `detalle_pedido`. Para cada una se siguió el flujo de la consigna: spec → revisión en Kiro → propuesta de OpenCode → medición → decisión. Las specs son [`spec_indice_facturacion_categoria.md`](specs/spec_indice_facturacion_categoria.md) (P4-A), [`spec_indice_productos_nunca_vendidos.md`](specs/spec_indice_productos_nunca_vendidos.md) (P4-B) y [`spec_indice_facturacion_categoria_mes.md`](specs/spec_indice_facturacion_categoria_mes.md) (S4-A). Antes de las specs hubo una prueba exploratoria sin spec; se conserva como «Medición previa» dentro de cada una, y se rehízo con el flujo completo.
 
-Las consultas P4-A, P4-B y S4-A hacen `Seq Scan` sobre `detalle_pedido`. Se probó si un índice puede evitarlo:
+### 6.1 Sesiones de OpenCode
 
-* **P4-A y S4-A** leen todas las filas de `detalle_pedido` (agregan por categoría / mes sobre todo el histórico). Se probó un índice cubriente `(id_producto) INCLUDE (id_pedido, cantidad, precio_unitario)`, que permitiría un `Index Only Scan`. El planificador **lo ignora** y sigue con `Seq Scan`; tiempo 727 ms → 727 ms (P4-A) y 2.219 → 2.246 ms (S4-A). El índice pesaría 24 MB frente a los 33 MB de la tabla: leerlo entero no ahorra casi nada, y el trabajo pesado no está en el acceso sino en el `Hash Join`, la agregación y el ordenamiento externo (S4-A vuelca 23 MB a disco).
-* **P4-B (nunca vendidos)** es distinta: no necesita un índice nuevo, porque `idx_detalle_pedido_id_producto` ya permite un `Index Only Scan`. Forzándolo (`enable_seqscan = off`, en transacción) el plan pasa a `Merge Anti Join` con `Index Only Scan` y baja de 259 a 133 ms (1,9×). El planificador elige el `Seq Scan` porque estima costos casi iguales (17.586 contra 18.338); no es un problema de índices faltantes y no se resolvió tocando parámetros del motor.
+Modo Plan (no ejecuta ni edita), una sesión limpia por spec, con el mismo prompt (ver `docs/duia/duia_parte5.md`). Los exports de las sesiones identifican modelo y archivos abiertos:
 
-**Conclusión.** Un `Seq Scan` que lee la mayoría de la tabla es la elección correcta, no un síntoma. Ningún índice nuevo mejora estas consultas; el camino para S4-A es la vista materializada de la Parte C.
+| Sesión | Consulta | Modelo | Archivos que abrió | Propuesta |
+|---|---|---|---|---|
+| 1 | P4-A | `ling-3.0-flash-fin-free` | spec, `schema.sql`, `queries.sql` e **`indices.sql`** | Ningún índice |
+| 2 | P4-A (prompt con la línea «leé únicamente los archivos que te indico») | `ling-3.0-flash-fin-free` | los mismos cuatro: **abrió `indices.sql` igual** | Ningún índice |
+| 3 | P4-B | `gemini-3.5-flash-lite` | spec, `schema.sql`, `queries.sql` | Ningún índice |
+| 4 | S4-A | `gemini-3.5-flash-lite` | spec, `schema.sql`, `queries.sql` | Ningún índice |
+
+**Límite de las sesiones 1 y 2:** `indices.sql` ya traía la medición de un índice cubriente descartado para las analíticas, y OpenCode la cita como prueba. Su conclusión coincide con la medición, pero no es independiente de ella. Para las sesiones 3 y 4 se ocultaron `indices.sql`, este informe y los planes mientras duró la sesión; OpenCode solo abrió los tres archivos permitidos. Que las sesiones 1 y 2 ignoraran la instrucción de leer solo los archivos indicados es una observación sobre el agente.
+
+### 6.2 P4-A — facturación por categoría
+
+Lee el 100 % de las 499.263 filas de `detalle_pedido`. Se midió el índice cubriente que la consulta necesita, `(id_producto) INCLUDE (id_detalle, cantidad, precio_unitario)`: incluye `id_detalle` porque la consulta hace `COUNT(dp.id_detalle)`. La prueba exploratoria previa usaba `INCLUDE (id_pedido, cantidad, precio_unitario)`, sin `id_detalle`, y por eso no podía dar un `Index Only Scan`; OpenCode lo advirtió en su razonamiento y se rehízo con el índice correcto.
+
+| | Plan | Mediana de 5 (misma corrida) |
+|---|---|---:|
+| Sin índice | `Seq Scan` en `detalle_pedido` | 743 ms |
+| Índice de la prueba previa (sin `id_detalle`) | `Seq Scan` | 711 ms |
+| **`INCLUDE (id_detalle, cantidad, precio_unitario)`** | **`Seq Scan`** | **735 ms** |
+
+El planificador ignora el índice. Pesa 24 MB frente a los 33 MB de la tabla (73 %), así que recorrerlo no ahorra lectura, y cuesta **+21,4 % de WAL** por `INSERT` en `detalle_pedido` (sección 5). **Descartado:** no cumple la condición 1 (el `Seq Scan` no desaparece) ni la 2 (la mejora es del 1 %, no del 30 %).
+
+### 6.3 P4-B — productos nunca vendidos
+
+No necesita un índice nuevo: `idx_detalle_pedido_id_producto` (4,5 MB frente a 33 MB) ya permite un `Index Only Scan`. El planificador no lo elige por sus estimaciones de costo (17.586 contra 18.338, casi un empate). Lo que se midió:
+
+| Situación | Plan | Mediana |
+|---|---|---:|
+| Por defecto (`random_page_cost = 4`) | `Seq Scan` + `Hash Anti Join` | 258 ms |
+| Forzando `enable_seqscan = off` | `Merge Anti Join` + `Index Only Scan` | 112 ms |
+| `random_page_cost = 1.1` (valor habitual en SSD) | el mismo, **elegido por el planificador** | 110 ms |
+
+Una primera medición forzando `enable_seqscan = off` había dado 133 ms (planes, corrida única); la segunda dio 112 ms, ambas 2 a 2,3 veces más rápido. OpenCode acertó el diagnóstico: el cuello de botella no es un índice que falta sino el parámetro de costo. **Descartado** cualquier índice nuevo: uno sobre `id_producto` sería una copia del existente y el plan no puede cambiar respecto de él. `random_page_cost` es un parámetro del servidor y queda fuera de esta parte; se deja como observación (sección 8).
+
+### 6.4 S4-A — facturación por categoría y mes
+
+Agrega todo el histórico y hace `Seq Scan` en `detalle_pedido`, `pedido`, `producto` y `categoria`. El índice `(id_producto) INCLUDE (id_pedido, cantidad, precio_unitario)` sí contiene todas las columnas que S4-A usa de `detalle_pedido`: plan y tiempo no cambian (2.219 → 2.246 ms). El costo está en el `Hash Join`, la agregación y el ordenamiento externo (23 MB a disco), no en el acceso. **Descartado:** no cumple las condiciones 1 y 2. La mejora corresponde a la vista materializada de la Parte C, que OpenCode también señaló.
+
+### 6.5 Lo que se verificó de las respuestas de OpenCode
+
+Las respuestas se trataron como hipótesis y se contrastaron con el motor. Coinciden en lo esencial (ningún índice) pero tuvieron errores:
+
+* **Cifras incorrectas:** «~20K productos activos» (son 50.010) y «5 categorías activas» (son 4); «+24-27 % de WAL» para el índice de P4-A, cifra sin sustento (el 26 y el 27 % del repo corresponden a otros índices); «+17 % de WAL», tomado del índice de C3 y no del analizado; una «query C del TP4» que no existe.
+* **Generalización falsa** (sesiones 1, 2 y 4): «un `Seq Scan` siempre supera a cualquier índice cuando se lee toda la tabla». P4-B lo contradice: un `Index Only Scan` sobre un índice de 4,5 MB la deja en menos de la mitad del tiempo.
+* **Imprecisión** (sesión 3): dice que `UNIQUE (id_pedido, id_producto)` cubre `id_producto`; empieza por `id_pedido`, así que solo `idx_detalle_pedido_id_producto` sirve para buscar por producto.
+
+**Conclusión.** Un `Seq Scan` que lee la mayoría de la tabla es la elección correcta, no un síntoma. Ningún índice nuevo mejora estas tres consultas. Para S4-A el camino es la vista materializada de la Parte C; para P4-B, el ajuste de un parámetro de costo, no un índice.
 
 ## 7. Propuesta descartada por sobreindexación (consigna 6)
 
@@ -263,6 +315,7 @@ También se descartaron por el mismo criterio (índice que no cambia el plan per
 
 * `(id_cliente, fecha DESC)` en `pedido`: prefijo del existente, 24 filas, +26 % de WAL por `INSERT`.
 * `(id_categoria, precio DESC) WHERE activo` en `producto`, sin `INCLUDE`: el planificador no lo usa, +27 % de WAL por `INSERT`.
+* `(id_producto) INCLUDE (id_detalle, cantidad, precio_unitario)` en `detalle_pedido` (P4-A): el planificador lo ignora, pesa 24 MB frente a 33 MB de tabla, sin mejora medible (743 → 735 ms) y +21 % de WAL por `INSERT` en la tabla más escrita. Además, su primera columna repite la de `idx_detalle_pedido_id_producto`.
 
 ## 8. Decisión final, riesgos y pendientes
 
@@ -274,6 +327,8 @@ También se descartaron por el mismo criterio (índice que no cambia el plan per
 2. **Depende del autovacuum.** El `Index Only Scan` solo evita el heap si las páginas están marcadas como visibles; sobre una tabla con muchos cambios recientes aparecerán `Heap Fetches` y el beneficio baja hacia el del índice sin `INCLUDE`.
 3. **Tamaño.** 3,3 MB frente a los 360 kB del índice del TP1 (9×). Irrelevante hoy, pero es un trade-off explícito.
 4. **Redundancia con el heredado.** Con `idx_producto_categoria_precio`, `idx_producto_categoria_activo` (de `schema.sql`) queda redundante para esta consulta y se podría eliminar para ahorrar escritura. No se hace acá porque la consigna pide no modificar lo heredado; queda como pendiente para la próxima entrega. Las cifras de escritura de la sección 5 se midieron con **ambos** presentes (el peor caso).
+
+5. **`random_page_cost` (P4-B).** Con el valor por defecto (4, pensado para discos mecánicos) el planificador prefiere el `Seq Scan` en la consulta de productos nunca vendidos; con 1,1 usa el índice existente y baja de 258 a 110 ms. Es un parámetro del servidor: no se modificó porque está fuera de esta parte (no es un índice) y afectaría a todas las consultas. Queda como observación para quien administre el servidor.
 
 ## 9. Cómo reproducir
 

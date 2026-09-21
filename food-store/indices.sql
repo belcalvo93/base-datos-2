@@ -76,11 +76,37 @@ CREATE INDEX idx_producto_categoria_precio
 -- por UNIQUE (id_pedido, id_producto). Cuesta +17 % de WAL en cada INSERT de
 -- detalle_pedido.
 
--- DESCARTADO — consultas analíticas del TP4 (Seq Scan sobre detalle_pedido):
+-- Consultas analíticas del TP4 (hacen Seq Scan sobre detalle_pedido). Se
+-- especificaron en Kiro y se le pidió a OpenCode una propuesta por consulta
+-- (specs spec_indice_facturacion_categoria*.md y spec_indice_productos_nunca_vendidos.md).
+-- En las tres, OpenCode concluyó «ningún índice»; la medición lo confirma.
+
+-- DESCARTADO — P4-A, facturación por categoría (727 ms):
+--   CREATE INDEX idx_detalle_pedido_producto_cubriente ON detalle_pedido (id_producto)
+--       INCLUDE (id_detalle, cantidad, precio_unitario);
+-- Es el índice cubriente que la consulta necesita (usa id_detalle en COUNT, por
+-- eso lo incluye). El planificador lo ignora y sigue con Seq Scan (misma corrida: 743 ms sin
+-- índice vs 735 ms con él). La consulta agrega el 100 % de las 499.263 filas y el
+-- índice pesa 24 MB frente a los 33 MB de la tabla, así que leerlo no ahorra
+-- lectura. Cuesta además +21 % de WAL en cada INSERT de detalle_pedido.
+-- No cumple las condiciones 1 (el Seq Scan no desaparece) ni 2 (mejora < 30 %).
+
+-- DESCARTADO — P4-B, productos nunca vendidos (259 ms): sin índice nuevo.
+-- Ya existe idx_detalle_pedido_id_producto (4,5 MB) y permite un Index Only Scan.
+-- El planificador no lo elige por sus estimaciones de costo (17.586 contra
+-- 18.338, casi empate): con random_page_cost = 1.1 lo usa solo y la consulta baja
+-- a 110 ms (2,3×), y forzando enable_seqscan = off da 112 ms. No falta un índice;
+-- un segundo índice sobre id_producto sería una copia del existente. No se
+-- cambia random_page_cost: es un parámetro del servidor, fuera de esta parte.
+
+-- DESCARTADO — S4-A, facturación por categoría y mes (2.219 ms):
 --   CREATE INDEX idx_detalle_pedido_producto_cubriente ON detalle_pedido (id_producto)
 --       INCLUDE (id_pedido, cantidad, precio_unitario);
--- Las consultas leen el 100 % de las 499.263 filas: el planificador mantiene el
--- Seq Scan y el tiempo no cambia (727 ms vs 727 ms). El índice pesaría 24 MB.
+-- Este índice sí contiene todas las columnas que S4-A usa de detalle_pedido.
+-- Plan y tiempo no cambian (2.219 ms vs 2.246 ms): agrega todo el histórico y el
+-- costo está en el Hash Join, la agregación y el ordenamiento externo (23 MB a
+-- disco), no en el acceso. La mejora corresponde a la vista materializada de la
+-- Parte C.
 
 -- Nota para la Semana 6: con idx_producto_categoria_precio, el índice
 -- idx_producto_categoria_activo (schema.sql, TP1) queda redundante para esta
