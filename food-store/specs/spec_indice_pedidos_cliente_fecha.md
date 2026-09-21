@@ -37,3 +37,17 @@ Comparar planes y tiempos antes/después con
 `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)`. Medir también el costo de escritura que
 agrega el índice. Si la consulta devuelve pocas filas y el `Sort` resulta
 insignificante, se documenta el descarte.
+
+## Resultado de la medición (21/09/2026)
+
+Base: `bd2_tp3` (200.005 pedidos). Evidencia en
+`food-store/informe_mediciones.md` (sección 4.2) y
+`food-store/planes_tp5_parteA.txt`.
+
+**`(id_cliente, fecha DESC)`: descartado.** La consulta devuelve 24 filas, por
+lo que el `Sort` (quicksort, 26 kB) cuesta microsegundos. El planificador no
+usa el índice nuevo: mantiene `idx_pedido_id_cliente` + `Sort`, con el mismo
+plan y el mismo tiempo (0,15 ms antes y después). Además cuesta +26 % de WAL
+en cada `INSERT` de `pedido` (medido: 500 INSERT). Se cumple la salida
+prevista por la spec: "si la consulta devuelve pocas filas y el `Sort` resulta
+insignificante, se documenta el descarte".
