@@ -537,3 +537,94 @@ CREATE INDEX
 (46 filas)
 
 ROLLBACK
+
+
+########################################################################
+# Agregado el 21/09/2026 (mismo medicion_planes.sql, secciones nuevas):
+# i5 para P4-A y random_page_cost = 1.1 para P4-B, tras las propuestas de
+# OpenCode. Corrido sobre el dump restaurado desde cero + VACUUM ANALYZE.
+########################################################################
+=== TP4 Consulta A (P4-A) — DESPUÉS de i5 = (id_producto) INCLUDE (id_detalle, cantidad, precio_unitario) ===
+BEGIN
+CREATE INDEX
+ filas 
+-------
+     4
+(1 fila)
+
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=19624.82..19624.83 rows=4 width=58) (actual time=780.030..780.033 rows=4 loops=1)
+   Sort Key: (COALESCE(sum(((dp.cantidad)::numeric * dp.precio_unitario)), '0'::numeric)) DESC
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=4782
+   ->  HashAggregate  (cost=19624.73..19624.78 rows=4 width=58) (actual time=780.009..780.013 rows=4 loops=1)
+         Group Key: c.id_categoria
+         Batches: 1  Memory Usage: 24kB
+         Buffers: shared hit=4782
+         ->  Hash Right Join  (cost=1662.35..14632.08 rows=399412 width=36) (actual time=32.205..526.484 rows=398848 loops=1)
+               Hash Cond: (p.id_categoria = c.id_categoria)
+               Buffers: shared hit=4782
+               ->  Hash Right Join  (cost=1661.25..12209.55 rows=499263 width=26) (actual time=32.116..393.326 rows=499265 loops=1)
+                     Hash Cond: (dp.id_producto = p.id_producto)
+                     Buffers: shared hit=4781
+                     ->  Seq Scan on detalle_pedido dp  (cost=0.00..9237.63 rows=499263 width=26) (actual time=0.034..56.615 rows=499263 loops=1)
+                           Buffers: shared hit=4245
+                     ->  Hash  (cost=1036.11..1036.11 rows=50011 width=16) (actual time=31.812..31.812 rows=50010 loops=1)
+                           Buckets: 65536  Batches: 1  Memory Usage: 2857kB
+                           Buffers: shared hit=536
+                           ->  Seq Scan on producto p  (cost=0.00..1036.11 rows=50011 width=16) (actual time=0.032..13.955 rows=50010 loops=1)
+                                 Filter: activo
+                                 Rows Removed by Filter: 1
+                                 Buffers: shared hit=536
+               ->  Hash  (cost=1.05..1.05 rows=4 width=18) (actual time=0.061..0.061 rows=4 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                     Buffers: shared hit=1
+                     ->  Seq Scan on categoria c  (cost=0.00..1.05 rows=4 width=18) (actual time=0.045..0.047 rows=4 loops=1)
+                           Filter: activo
+                           Rows Removed by Filter: 1
+                           Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=36
+ Planning Time: 0.962 ms
+ Execution Time: 780.601 ms
+(34 filas)
+
+ tamano_i5 | tamano_tabla 
+-----------+--------------
+ 24 MB     | 33 MB
+(1 fila)
+
+ROLLBACK
+
+=== TP4 Consulta B (P4-B) — con random_page_cost = 1.1 (el planificador elige solo; sin índice nuevo) ===
+BEGIN
+SET
+ filas 
+-------
+     2
+(1 fila)
+
+                                                                                  QUERY PLAN                                                                                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=16130.12..16138.30 rows=3273 width=32) (actual time=111.444..111.446 rows=2 loops=1)
+   Sort Key: producto.nombre
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=1223
+   ->  Merge Anti Join  (cost=0.71..15939.03 rows=3273 width=32) (actual time=72.417..111.340 rows=2 loops=1)
+         Merge Cond: (producto.id_producto = detalle_pedido.id_producto)
+         Buffers: shared hit=1223
+         ->  Index Scan using producto_pkey on producto  (cost=0.29..1444.95 rows=50011 width=32) (actual time=0.020..16.397 rows=50010 loops=1)
+               Filter: activo
+               Rows Removed by Filter: 1
+               Buffers: shared hit=655
+         ->  Index Only Scan using idx_detalle_pedido_id_producto on detalle_pedido  (cost=0.42..8128.47 rows=499263 width=8) (actual time=0.028..54.567 rows=499253 loops=1)
+               Heap Fetches: 63
+               Buffers: shared hit=568
+ Planning:
+   Buffers: shared hit=22
+ Planning Time: 1.089 ms
+ Execution Time: 111.480 ms
+(18 filas)
+
+ROLLBACK

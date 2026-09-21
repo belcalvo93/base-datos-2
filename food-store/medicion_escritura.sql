@@ -233,3 +233,32 @@ SELECT pg_current_wal_insert_lsn() AS l0, clock_timestamp() AS t0 \gset
 SELECT round(extract(epoch FROM clock_timestamp() - :'t0'::timestamptz) * 1000, 1) AS ms, pg_wal_lsn_diff(pg_current_wal_insert_lsn(), :'l0') AS wal \gset
 ROLLBACK; VACUUM :tabla;
 \echo producto (UPDATE stock)|base_b|:ms|:wal
+
+-- ---------------------------------------------------------------------------
+-- Carga 5 — detalle_pedido con el índice cubriente evaluado para P4-A (i5).
+-- Se agregó después de las cargas 1-4, con su propio par base5_a/base5_b.
+-- ---------------------------------------------------------------------------
+\set i5 'CREATE INDEX idx_detalle_pedido_producto_cubriente ON detalle_pedido (id_producto) INCLUDE (id_detalle, cantidad, precio_unitario)'
+\set tabla detalle_pedido
+BEGIN; :body_detalle; ROLLBACK; VACUUM :tabla;   -- calentamiento, sin medir
+
+BEGIN; :nada;
+SELECT pg_current_wal_insert_lsn() AS l0, clock_timestamp() AS t0 \gset
+:body_detalle;
+SELECT round(extract(epoch FROM clock_timestamp() - :'t0'::timestamptz) * 1000, 1) AS ms, pg_wal_lsn_diff(pg_current_wal_insert_lsn(), :'l0') AS wal \gset
+ROLLBACK; VACUUM :tabla;
+\echo :tabla|base5_a|:ms|:wal
+
+BEGIN; :i5;
+SELECT pg_current_wal_insert_lsn() AS l0, clock_timestamp() AS t0 \gset
+:body_detalle;
+SELECT round(extract(epoch FROM clock_timestamp() - :'t0'::timestamptz) * 1000, 1) AS ms, pg_wal_lsn_diff(pg_current_wal_insert_lsn(), :'l0') AS wal \gset
+ROLLBACK; VACUUM :tabla;
+\echo :tabla|descartado (i5)|:ms|:wal
+
+BEGIN; :nada;
+SELECT pg_current_wal_insert_lsn() AS l0, clock_timestamp() AS t0 \gset
+:body_detalle;
+SELECT round(extract(epoch FROM clock_timestamp() - :'t0'::timestamptz) * 1000, 1) AS ms, pg_wal_lsn_diff(pg_current_wal_insert_lsn(), :'l0') AS wal \gset
+ROLLBACK; VACUUM :tabla;
+\echo :tabla|base5_b|:ms|:wal

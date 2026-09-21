@@ -132,3 +132,30 @@ EXPLAIN (ANALYZE, BUFFERS) :t4a;
 SELECT count(*) AS filas FROM (:s4a) q;
 EXPLAIN (ANALYZE, BUFFERS) :s4a;
 ROLLBACK;
+
+-- ---------------------------------------------------------------------------
+-- Agregado tras las propuestas de OpenCode para P4-A, P4-B y S4-A (las tres
+-- concluyeron «ningún índice»; ver informe_mediciones.md, sección 6).
+-- ---------------------------------------------------------------------------
+-- i5 es el índice cubriente CORRECTO para P4-A: incluye id_detalle, que la
+-- consulta usa en COUNT(dp.id_detalle). El i4 de más arriba (usado para S4-A)
+-- no lo incluye, así que no podía dar un Index Only Scan en P4-A.
+\set i5 'CREATE INDEX idx_detalle_pedido_producto_cubriente ON detalle_pedido (id_producto) INCLUDE (id_detalle, cantidad, precio_unitario)'
+
+\echo
+\echo '=== TP4 Consulta A (P4-A) — DESPUÉS de i5 = (id_producto) INCLUDE (id_detalle, cantidad, precio_unitario) ==='
+BEGIN;
+:i5;
+SELECT count(*) AS filas FROM (:t4a) q;
+EXPLAIN (ANALYZE, BUFFERS) :t4a;
+SELECT pg_size_pretty(pg_relation_size('idx_detalle_pedido_producto_cubriente')) AS tamano_i5,
+       pg_size_pretty(pg_relation_size('detalle_pedido')) AS tamano_tabla;
+ROLLBACK;
+
+\echo
+\echo '=== TP4 Consulta B (P4-B) — con random_page_cost = 1.1 (el planificador elige solo; sin índice nuevo) ==='
+BEGIN;
+SET LOCAL random_page_cost = 1.1;
+SELECT count(*) AS filas FROM (:t4b) q;
+EXPLAIN (ANALYZE, BUFFERS) :t4b;
+ROLLBACK;
