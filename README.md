@@ -23,7 +23,11 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 │   ├── carga_masiva_bloque3_B.sql
 │   ├── verificacion_carga_masiva.sql
 │   ├── log_carga_produccion.txt
+│   ├── queries.sql              (nuevo — TP5 Parte A)
 │   ├── indices.sql              (nuevo — TP5 Parte A)
+│   ├── medicion_planes.sql      (nuevo — TP5 Parte A)
+│   ├── medicion_escritura.sql   (nuevo — TP5 Parte A)
+│   ├── planes_tp5_parteA.txt    (nuevo — TP5 Parte A)
 │   ├── views.sql                (nuevo — TP5 Partes B y C)
 │   ├── informe_mediciones.md    (nuevo — TP5 Partes A y C)
 │   ├── specs/
@@ -47,7 +51,7 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 │       ├── duia_parte2.md
 │       ├── duia_parte3.md
 │       ├── duia_parte4.md
-│       └── duia_parte5.md    (nuevo — TP5)
+│       └── duia_parte5.md    (nuevo — TP5 Parte A)
 └── .kiro/
     └── steering/
         └── database.md
@@ -67,10 +71,14 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 | `food-store/carga_masiva_bloque3_B.sql` | Variante de carga masiva (descartada) |
 | `food-store/verificacion_carga_masiva.sql` | Verificación post-carga |
 | `food-store/log_carga_produccion.txt` | Log de la ejecución de carga |
-| `food-store/indices.sql` | Índices del TP5, Parte A (pendiente de completar) |
+| `food-store/queries.sql` | Consultas de TP2 y TP4 consolidadas como fuente de la carga de trabajo del TP5 |
+| `food-store/indices.sql` | Índices aceptados del TP5, Parte A (1 aceptado; los descartados quedan comentados con su motivo) |
+| `food-store/medicion_planes.sql` | Genera los `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)` antes/después de cada índice candidato, en transacción con ROLLBACK |
+| `food-store/medicion_escritura.sql` | Mide el costo de escritura de los índices (500 INSERT por tabla y 500 UPDATE de `stock`; tiempo y WAL) |
+| `food-store/planes_tp5_parteA.txt` | Salida de `medicion_planes.sql` sobre la base de 499.263 detalles |
 | `food-store/views.sql` | Vistas del TP5, Partes B y C (pendiente) |
-| `food-store/informe_mediciones.md` | Informe de mediciones del TP5, Partes A y C (pendiente) |
-| `food-store/specs/` | Specs del TP5; actualmente incluye `spec_vistas.md` |
+| `food-store/informe_mediciones.md` | Informe de mediciones del TP5: Parte A completa; Partes B y C pendientes |
+| `food-store/specs/` | Specs del TP5: `spec_indice_*.md` (Parte A, con el resultado de la medición al final de cada una) y `spec_vistas.md` |
 | `food-store/backups/` | Respaldos `.dump` de la base de trabajo |
 | `docs/Diagrama ER.png` | Diagrama entidad-relación |
 | `docs/spec_restricciones.md` | Especificación de restricciones de integridad |
@@ -86,7 +94,7 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 | `docs/informe_parte4_consultas.md` | Informe de la Parte 4 con la verificación de equivalencia |
 | `docs/informe_tp4_semana4.md` | Informe TP4: mediciones, lectura crítica, ranking y consultas bajo especificación |
 | `docs/duia/` | Documentación de uso de IA por unidad |
-| `docs/duia/duia_parte5.md` | DUIA del TP5 (pendiente) |
+| `docs/duia/duia_parte5.md` | DUIA del TP5 (Parte A completa; Partes B y C pendientes) |
 | `.kiro/steering/database.md` | Referencia del esquema con diseño justificado |
 
 ---
@@ -129,7 +137,7 @@ Diagrama ER completo en `docs/Diagrama ER.png`.
 | Unidad 1 | Semana 1 | Modelo ER, normalización a 3FN/BCNF, `food-store/schema.sql` |
 | Unidad 1 | Semana 2 | `protocolo_seguridad.md`, `docs/spec_restricciones.md`, `food-store/restricciones.sql`, `food-store/pruebas_restricciones.sql`, `docs/informe_concurrencia.md`, `docs/ejercicio_lectura_critica.md`, tres DUIA |
 | Unidad 2 | Sem. 3–4 | **Parte 1 (carga masiva):** `food-store/carga_masiva.sql`, `docs/spec_carga_masiva.md`, `food-store/verificacion_carga_masiva.sql`, `food-store/carga_masiva_bloque3_B.sql` (variante descartada), `docs/duia/duia_parte4.md`. **Parte 2 (índices):** `docs/informe_parte2_indices.md`, `docs/planes_parte2_antes.txt`, `docs/planes_parte2_despues.txt`. **Parte 3 (lectura crítica):** `docs/explicacion_ia_plan_c2.md`, `docs/informe_parte3_lectura_critica.md`. **Parte 4 (consultas bajo spec):** `docs/spec_consultas_parte4.md`, `docs/informe_parte4_consultas.md`. **Informe TP4:** `docs/informe_tp4_semana4.md`. |
-| Unidad 3 | TP5 | **Parte A:** `food-store/indices.sql`, `food-store/queries.sql`. **Partes B y C:** `food-store/specs/spec_vistas.md`, `food-store/views.sql`, `food-store/informe_mediciones.md`. **DUIA:** `docs/duia/duia_parte5.md`. |
+| Unidad 3 | TP5 | **Parte A:** `food-store/indices.sql`, `food-store/queries.sql`, `food-store/specs/spec_indice_*.md`, `food-store/medicion_planes.sql`, `food-store/medicion_escritura.sql`, `food-store/planes_tp5_parteA.txt`, informe en `food-store/informe_mediciones.md`. **Partes B y C:** `food-store/specs/spec_vistas.md`, `food-store/views.sql`, `food-store/informe_mediciones.md`. **DUIA:** `docs/duia/duia_parte5.md`. |
 
 ---
 
