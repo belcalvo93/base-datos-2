@@ -1,4 +1,11 @@
-# Informe de mediciones — TP5, Parte A: plan de indexado
+# Informe de mediciones — TP5
+
+Mediciones de las tres partes: el plan de indexado (A), la verificacion de equivalencia de
+las vistas (B) y la vista materializada (C).
+
+---
+
+# Parte A — Plan de indexado
 
 ## 1. Resumen
 
@@ -353,4 +360,90 @@ Para crear el índice aceptado: `psql -U postgres -d bd2_trabajo -f food-store/i
 
 ---
 
-*Partes B y C del TP5: este archivo se completa con la verificación de equivalencia de las vistas y la medición de la vista materializada cuando esas partes se cierren.*
+# Parte B — Vistas
+
+El entregable de la Parte B pide dejar documentada la verificacion de equivalencia de cada vista. Por
+cada una se ejecuto el `EXCEPT` en las dos direcciones contra la consulta manual equivalente.
+
+Las dos direcciones importan: `vista EXCEPT consulta` detecta filas que la vista devuelve de mas, y
+`consulta EXCEPT vista` detecta las que le faltan. Con una sola se puede dar por buena una vista que
+pierde filas.
+
+| Vista | Filas | `vista EXCEPT consulta` | `consulta EXCEPT vista` | Equivalente |
+|---|---:|---:|---:|---|
+| `vista_cliente_completo` | 20.005 | 0 | 0 | Si |
+| `vista_pedidos_cliente` | 200.005 | 0 | 0 | Si |
+| `vista_productos_vigentes` | 39.963 | 0 | 0 | Si |
+| `vista_detalle_pedido_producto` | 499.263 | 0 | 0 | Si |
+| `vista_usuario_reportes` | 2 | 0 | 0 | Si |
+
+Las consultas de verificacion de cada vista estan escritas en `specs/spec_vistas.md`, en la seccion
+"Criterio de aceptacion" de cada una.
+
+## Sobre los conteos
+
+`vista_productos_vigentes` devuelve 39.963 de 50.010 productos. La diferencia es el filtro de vigencia:
+descarta los productos inactivos y tambien los de categorias dadas de baja.
+
+`vista_detalle_pedido_producto` devuelve las 499.263 lineas sin filtrar por vigencia, a proposito.
+Reconstruye ventas pasadas: excluir lineas cuyo producto se dio de baja despues de la venta haria que
+algunos pedidos aparecieran con menos lineas de las que realmente tuvieron.
+
+## Vista con criterio de seguridad
+
+La consigna pide exponer el usuario sin la columna `contrasena`. El esquema no tenia esa columna, y por
+indicacion de la catedra se agrego la tabla `usuario` con `contrasena` y `rol`. Sobre ella,
+`vista_usuario_reportes` excluye la contrasena y expone solo usuarios vigentes.
+
+Se cargaron 3 usuarios de prueba (1 ADMIN, 1 USUARIO vigente y 1 con `eliminado = TRUE`, para probar el filtro), con hashes placeholder en `contrasena`, nunca texto plano. La vista devuelve 2 filas. Ademas del `EXCEPT` en las dos direcciones (0 filas), se consulto `information_schema.columns` y `contrasena` no aparece entre las columnas de la vista.
+
+El detalle de la decision esta en `duia.md`, seccion B.2.
+
+---
+
+# Parte C — Vista materializada
+
+Vista materializada sobre el reporte de facturación por categoría y mes (Consulta A de la Semana 4,
+`docs/informe_tp4_semana4.md`). Spec: `specs/spec_vista_materializada_parteC.md`. Implementación:
+`materializadas.sql`.
+
+**Base de medición:** `practica_bd2`, 200.005 pedidos y 500.151 detalles, `ANALYZE` corrido.
+Mediciones con `EXPLAIN (ANALYZE, BUFFERS)`.
+
+> **Nota sobre la base.** Esta parte se midió sobre `practica_bd2` (500.151 detalles), que no es la base
+> de la Parte A: esa se midió sobre el dump `bd2_tp3_actualizada_20260919.dump` (499.263 detalles). Los
+> milisegundos de las dos partes no son comparables entre sí. Por ejemplo, la misma consulta de
+> facturación por categoría y mes (S4-A en la Parte A) da 2.219 ms en el dump y 870 ms acá, en otra
+> máquina y otra base. Lo que se compara dentro de esta parte (consulta contra vista) es consistente.
+> No se re-midió sobre el dump.
+
+| | Consulta sin materializar | Vista materializada |
+|---|---|---|
+| Tiempo de ejecucion | 870,172 ms | **0,070 ms** |
+| Nodo principal del plan | `Parallel Hash Join` (2 workers) + `Sort` `external merge` (8.000 kB a disco) | `Seq Scan` sobre la vista |
+| Filas devueltas | 100 (tras 399.184 filas intermedias) | 100 |
+
+La mejora es de ~**12.430x**. El plan pasa de cruzar ~500.000 líneas de `detalle_pedido` y ~200.000
+`pedido` con sort externo a disco para devolver 100 filas, a leer las 100 filas ya calculadas. El
+`rows=100` de la vista coincide con el `rows=100` del `GroupAggregate` del plan original: se materializo
+exactamente el resultado que antes exigía procesar ~400.000 filas.
+
+**Tiempo del `REFRESH`:** `REFRESH MATERIALIZED VIEW CONCURRENTLY` corrió en **0,927 s** (0 filas
+actualizadas: no hubo cambios entre el `CREATE` y el `REFRESH`). Es el costo que se paga a cambio: la
+vista se lee en 0,070 ms pero refrescarla cuesta ~0,9 s. Conviene porque se lee muchísimas más veces de
+las que se refresca.
+
+**`REFRESH CONCURRENTLY`:** corrió sin error, lo que prueba que el índice único
+`uq_mv_facturacion_cat_mes` sirve para refrescar sin bloquear las lecturas (el punto de la consigna
+4.3.1).
+
+**Frecuencia de refresco propuesta y su justificacion:** diaria (una corrida nocturna). El reporte es
+mensual de negocios: ningún responsable toma una decisión al minuto con el monto del mes. Entre
+refrescos el usuario ve un snapshot del último `REFRESH`: los pedidos cargados después no aparecen
+(desfasaje máximo 24 h). Como ninguna decisión operativa (stock, despacho, atención al cliente)
+depende de la facturación mensual exacta, el desfasaje es tolerable y refrescar más seguido sería gasto
+puro. Si un día hiciera falta el dato casi en tiempo real, esa consulta se resuelve directo contra
+`pedido`/`detalle_pedido`, no contra la vista.
+
+**Equivalencia verificada:** `EXCEPT` en las dos direcciones contra la consulta original. `vista
+EXCEPT consulta` → **0 filas**. `consulta EXCEPT vista` → **0 filas**.

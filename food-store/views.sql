@@ -123,7 +123,7 @@ JOIN producto pr ON pr.id_producto = dp.id_producto;
 -- Propósito: exponer los datos de usuario para reportes y administración
 -- ocultando la columna contrasena (criterio de seguridad, punto 4 Parte B;
 -- tabla usuario agregada por indicación de la cátedra — ver schema.sql y
--- docs/duia/duia_parte5.md). Incluye rol y eliminado; solo usuarios vigentes
+-- food-store/duia.md). Incluye rol y eliminado; solo usuarios vigentes
 -- (eliminado = FALSE), por eso eliminado vale siempre FALSE aquí. Las columnas
 -- se listan explícitamente (no SELECT *) para excluir contrasena a propósito.
 -- Solo lectura: sin WITH CHECK OPTION ni trigger INSTEAD OF.
