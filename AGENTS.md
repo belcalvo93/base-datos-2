@@ -64,4 +64,4 @@ protocolo_seguridad.md — safety protocol (MANDATORY reading)
 - `UPDATE`/`DELETE` without `WHERE` affects all rows — verify WHERE clauses before running
 - DBeaver connection must be closed before `createdb -T` (template locking)
 - `food-store/backups/`, `respuesta/`, and `*.dump`/`*.backup` are gitignored — don't commit them
-- SQL scripts live under `food-store/`; `concurrencia/` is an empty placeholder for future work
+- SQL scripts live under `food-store/`; `concurrencia/` holds the reproducible concurrency scenarios (TPI, objetivo 8)

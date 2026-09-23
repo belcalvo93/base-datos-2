@@ -28,8 +28,18 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 │   ├── informe_mediciones.md    (nuevo — TP5 Partes A y C)
 │   ├── specs/
 │   └── backups/
+├── concurrencia/
+│   ├── README.md
+│   ├── escenario0_atomicidad.sql
+│   ├── escenario1_lectura_no_repetible_sesionA.sql
+│   ├── escenario1_lectura_no_repetible_sesionB.sql
+│   ├── escenario2_lectura_fantasma_sesionA.sql
+│   ├── escenario2_lectura_fantasma_sesionB.sql
+│   ├── escenario3_espera_bloqueo_sesionA.sql
+│   └── escenario3_espera_bloqueo_sesionB.sql
 ├── docs/
 │   ├── Diagrama ER.png
+│   ├── diagrama_er.mmd
 │   ├── spec_restricciones.md
 │   ├── spec_carga_masiva.md
 │   ├── informe_concurrencia.md
@@ -72,7 +82,10 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 | `food-store/informe_mediciones.md` | Informe de mediciones de la Parte A |
 | `food-store/specs/` | Specs de Kiro del TP5, incluidas las de Parte A y usuario |
 | `food-store/backups/` | Respaldos `.dump` de la base de trabajo |
+| `concurrencia/README.md` | Orquestación de los escenarios de concurrencia (TPI, objetivo 8) |
+| `concurrencia/escenario*.sql` | Escenarios reproducibles: atomicidad (0), lectura no repetible (1), fantasma (2), espera por bloqueo (3) |
 | `docs/Diagrama ER.png` | Diagrama entidad-relación |
+| `docs/diagrama_er.mmd` | Diagrama ER en Mermaid (fuente editable del PNG) |
 | `docs/spec_restricciones.md` | Especificación de restricciones de integridad |
 | `docs/spec_carga_masiva.md` | Especificación de la carga masiva |
 | `docs/informe_concurrencia.md` | Informe de ejercicios de concurrencia |
@@ -119,7 +132,7 @@ de aceptación.
 | `detalle_pedido` | Líneas del pedido (relación N:M). Congela precio histórico (R4). UNIQUE(id_pedido, id_producto). |
 | `usuario` | Actores de login y reportes; la contraseña no se expone en `vista_usuario_reportes`. |
 
-Diagrama ER completo en `docs/Diagrama ER.png`.
+Diagrama ER completo en `docs/Diagrama ER.png`; fuente editable en `docs/diagrama_er.mmd` (Mermaid).
 
 ---
 
