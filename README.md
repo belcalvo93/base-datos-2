@@ -212,4 +212,4 @@ Bruno se sumó al grupo con autorización del profesor Sergio
 Neira, otorgada por WhatsApp: al no tener grupo formal en la materia,
 se le consultó al profesor si podía sumarse aunque el grupo ya estuviera
 completo, y el profesor autorizó la excepción ("bueno.. metelo en el
-grupo"). Captura de la conversación: docs/autorizacion_grupo_4_whatsapp.png.jpeg.
+grupo"). Captura de la conversación: docs/autorizacion_grupo_4_whatsapp.png.
