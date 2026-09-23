@@ -425,12 +425,12 @@ Vista materializada sobre el reporte de facturación por categoría y mes (Consu
 **Base de medición:** `bd2_tp3` (base compartida del grupo), 50.011 productos, 200.005 pedidos y 499.263 detalles, `ANALYZE` corrido. Las mediciones se re-ejecutaron sobre esta base para que los tiempos sean comparables con los del resto del equipo.
 Mediciones con `EXPLAIN (ANALYZE, BUFFERS)`.
 
-> **Nota sobre la base.** Esta parte se midió sobre `practica_bd2` (500.151 detalles), que no es la base
-> de la Parte A: esa se midió sobre el dump `bd2_tp3_actualizada_20260919.dump` (499.263 detalles). Los
-> milisegundos de las dos partes no son comparables entre sí. Por ejemplo, la misma consulta de
-> facturación por categoría y mes (S4-A en la Parte A) da 2.219 ms en el dump y 870 ms acá, en otra
-> máquina y otra base. Lo que se compara dentro de esta parte (consulta contra vista) es consistente.
-> No se re-midió sobre el dump.
+> **Nota sobre la base.** Esta parte se remidió sobre `bd2_tp3` (la misma base compartida que la Parte A,
+> 499.263 detalles), reemplazando la medición anterior sobre `practica_bd2`. Los milisegundos absolutos
+> siguen sin ser directamente comparables entre partes: la Parte A midió en una instancia temporal en el
+> puerto 5433 con configuración propia (sección 2 de la Parte A), y esta parte se midió en otra máquina.
+> Lo que sí es comparable ahora son los conteos de filas y el hecho de que ambas partes miden sobre los
+> mismos datos.
 
 | | Consulta sin materializar | Vista materializada |
 |---|---|---|
