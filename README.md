@@ -22,6 +22,7 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 │   ├── carga_masiva.sql
 │   ├── carga_masiva_bloque3_B.sql
 │   ├── verificacion_carga_masiva.sql
+│   ├── verificacion_normalizacion.sql
 │   ├── log_carga_produccion.txt
 │   ├── queries.sql              (nuevo — TP5 Parte A)
 │   ├── indices.sql              (nuevo — TP5 Parte A)
@@ -37,6 +38,7 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 │   └── backups/
 ├── docs/
 │   ├── Diagrama ER.png
+│   ├── normalizacion_er_relacional.md
 │   ├── spec_restricciones.md
 │   ├── spec_carga_masiva.md
 │   ├── informe_concurrencia.md
@@ -55,7 +57,8 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 │       ├── duia_parte2.md
 │       ├── duia_parte3.md
 │       ├── duia_parte4.md
-│       └── duia_parte5.md    (nuevo — TP5 Partes A y B, registro detallado)
+│       ├── duia_parte5.md    (nuevo — TP5 Partes A y B, registro detallado)
+│       └── duia_normalizacion.md
 └── .kiro/
     └── steering/
         └── database.md
@@ -74,6 +77,7 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 | `food-store/carga_masiva.sql` | Inserción masiva de datos de prueba |
 | `food-store/carga_masiva_bloque3_B.sql` | Variante de carga masiva (descartada) |
 | `food-store/verificacion_carga_masiva.sql` | Verificación post-carga |
+| `food-store/verificacion_normalizacion.sql` | Contrasta contra los datos las dependencias funcionales del documento de normalización (solo lectura, `READ ONLY` + `ROLLBACK`) |
 | `food-store/log_carga_produccion.txt` | Log de la ejecución de carga |
 | `food-store/queries.sql` | Consultas de TP2 y TP4 consolidadas como fuente de la carga de trabajo del TP5 |
 | `food-store/indices.sql` | Índices aceptados del TP5, Parte A (1 aceptado; los descartados quedan comentados con su motivo) |
@@ -88,6 +92,8 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 | `food-store/specs/` | Specs de Kiro del TP5: `spec_indice_*.md` (Parte A, con el resultado de la medición al final de cada una), `spec_usuario.md` y `spec_vistas.md` (Parte B) y `spec_vista_materializada_parteC.md` (Parte C) |
 | `food-store/backups/` | Respaldos `.dump` de la base de trabajo |
 | `docs/Diagrama ER.png` | Diagrama entidad-relación |
+| `docs/normalizacion_er_relacional.md` | Pasaje ER→relacional, dependencias funcionales y justificación de 3FN/FNBC de cada tabla |
+| `docs/duia/duia_normalizacion.md` | DUIA del documento de normalización |
 | `docs/spec_restricciones.md` | Especificación de restricciones de integridad |
 | `docs/spec_carga_masiva.md` | Especificación de la carga masiva |
 | `docs/informe_concurrencia.md` | Informe de ejercicios de concurrencia |
