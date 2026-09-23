@@ -13,7 +13,7 @@
 Materializar el reporte agregado de facturacion por categoria y mes (Consulta A de la Semana 4,
 documentada en `docs/informe_tp4_semana4.md`). Vale la pena porque cada ejecucion cruza las cinco
 tablas, procesa ~500.000 lineas de `detalle_pedido` y ~200.000 `pedido`, arma un `Sort` externo a
-disco (8.000 kB) y recien entonces agrupa en ~100 filas mensuales (399.184 filas intermedias para
+disco (7.968 kB) y recien entonces agrupa en ~100 filas mensuales (398.846 filas intermedias para
 devolver 100). Materializar convierte ese costo, que se paga en cada consulta, en un costo unico de
 creacion + refresco; las lecturas posteriores son un `Seq Scan` de 100 filas.
 
@@ -34,9 +34,9 @@ WHERE c.activo = TRUE AND p.activo = TRUE
 GROUP BY c.id_categoria, c.nombre, DATE_TRUNC('month', pe.fecha);
 ```
 
-Sobre `practica_bd2` (200.005 pedidos, 500.151 detalles, `ANALYZE` corrido) esta consulta atraviesa
-399.184 filas antes de agregar, con `Parallel Hash Join` (2 workers) y sort externo a disco, y tarda
-870,172 ms. Ahi esta el costo que justifica materializarla.
+Sobre `bd2_tp3` (50.011 productos, 200.005 pedidos, 499.263 detalles, `ANALYZE` corrido) esta consulta
+atraviesa 398.846 filas antes de agregar, con `Parallel Hash Join` (2 workers) y sort externo a disco,
+y tarda 410,104 ms. Ahi esta el costo que justifica materializarla.
 
 ### Columnas de la vista
 
@@ -69,7 +69,7 @@ univoco, tampoco duplicados.
 
 ### Restricciones de implementacion
 
-- Se crea con `WITH DATA` (comportamiento por defecto), asi queda poblada desde el arranque.
+- Se crea con `WITH DATA` explicito en el `CREATE`, como lo pide el enunciado; asi queda poblada desde el arranque.
 - Las columnas se listan explicitamente; no se usa `SELECT *`.
 - No se modifica el modelo de datos ni las restricciones de las tablas base.
 - `materializadas.sql` es idempotente: `DROP MATERIALIZED VIEW IF EXISTS ... CASCADE` antes del `CREATE`.
@@ -79,11 +79,11 @@ univoco, tampoco duplicados.
 ### Criterio de aceptacion
 
 1. El tiempo de consultar la vista materializada es al menos 10 veces menor que el de la consulta sin
-   materializar, medido con `EXPLAIN (ANALYZE, BUFFERS)` en las dos. **Medido: 870,172 ms a 0,070 ms,
-   una mejora de ~12.430x.**
+   materializar, medido con `EXPLAIN (ANALYZE, BUFFERS)` en las dos. **Medido: 410,104 ms a 0,028 ms,
+   una mejora de ~14.647x.**
 2. Los resultados coinciden: `EXCEPT` en las dos direcciones devuelve 0 filas contra la consulta
    original, ejecutado inmediatamente despues del `REFRESH`.
-3. `REFRESH MATERIALIZED VIEW CONCURRENTLY` corre sin error (0,927 s en la base de medicion), lo que
+3. `REFRESH MATERIALIZED VIEW CONCURRENTLY` corre sin error (0,397 s en la base de medicion), lo que
    prueba que el indice unico sirve.
 
 ### Frecuencia de refresco
@@ -100,5 +100,5 @@ que el dato no se actualice entre uno y otro.
 | Que decision se tomaria mal con un dato desactualizado | Ninguna operativa. El reporte es mensual y sirve para analisis; las decisiones de atencion al cliente y stock no dependen del monto exacto por mes al minuto. Si una alerta dependiera del dato diario al instante, esta vista no seria la herramienta (ahi iria una consulta directa) |
 
 La ultima fila es la que define de verdad la frecuencia: si con datos de ayer nadie toma una decision
-equivocada, refrescar cada hora es gasto puro. El refresh, ademas, cuesta 0,927 s por corrida; hacerlo
+equivocada, refrescar cada hora es gasto puro. El refresh, ademas, cuesta 0,397 s por corrida; hacerlo
 una vez al dia es el costo minimo que mantiene el reporte util.

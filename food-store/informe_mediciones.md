@@ -422,7 +422,7 @@ Vista materializada sobre el reporte de facturación por categoría y mes (Consu
 `docs/informe_tp4_semana4.md`). Spec: `specs/spec_vista_materializada_parteC.md`. Implementación:
 `materializadas.sql`.
 
-**Base de medición:** `practica_bd2`, 200.005 pedidos y 500.151 detalles, `ANALYZE` corrido.
+**Base de medición:** `bd2_tp3` (base compartida del grupo), 50.011 productos, 200.005 pedidos y 499.263 detalles, `ANALYZE` corrido. Las mediciones se re-ejecutaron sobre esta base para que los tiempos sean comparables con los del resto del equipo.
 Mediciones con `EXPLAIN (ANALYZE, BUFFERS)`.
 
 > **Nota sobre la base.** Esta parte se midió sobre `practica_bd2` (500.151 detalles), que no es la base
@@ -434,18 +434,20 @@ Mediciones con `EXPLAIN (ANALYZE, BUFFERS)`.
 
 | | Consulta sin materializar | Vista materializada |
 |---|---|---|
-| Tiempo de ejecucion | 870,172 ms | **0,070 ms** |
-| Nodo principal del plan | `Parallel Hash Join` (2 workers) + `Sort` `external merge` (8.000 kB a disco) | `Seq Scan` sobre la vista |
-| Filas devueltas | 100 (tras 399.184 filas intermedias) | 100 |
+| Tiempo de ejecucion | 410,104 ms | **0,028 ms** |
+| Nodo principal del plan | `Parallel Hash Join` (2 workers) + `Sort` `external merge` (7.968 kB a disco) | `Seq Scan` sobre la vista |
+| Filas devueltas | 100 (tras 398.846 filas intermedias) | 100 |
 
-La mejora es de ~**12.430x**. El plan pasa de cruzar ~500.000 líneas de `detalle_pedido` y ~200.000
-`pedido` con sort externo a disco para devolver 100 filas, a leer las 100 filas ya calculadas. El
-`rows=100` de la vista coincide con el `rows=100` del `GroupAggregate` del plan original: se materializo
-exactamente el resultado que antes exigía procesar ~400.000 filas.
+La mejora es de ~**14.647x**. El plan pasa de cruzar ~500.000 líneas de `detalle_pedido` y ~200.000
+`pedido` con sort externo a disco para devolver 100 filas, a leer las 100 filas ya calculadas. La
+diferencia de búferes lo confirma: la consulta original leyó 7.197 búferes compartidos y escribió 2.893
+a disco temporal (el sort); la vista leyó **2 búferes**. El `rows=100` de la vista coincide con el
+`rows=100` del `GroupAggregate` del plan original: se materializo exactamente el resultado que antes
+exigía procesar ~400.000 filas.
 
-**Tiempo del `REFRESH`:** `REFRESH MATERIALIZED VIEW CONCURRENTLY` corrió en **0,927 s** (0 filas
+**Tiempo del `REFRESH`:** `REFRESH MATERIALIZED VIEW CONCURRENTLY` corrió en **0,397 s** (0 filas
 actualizadas: no hubo cambios entre el `CREATE` y el `REFRESH`). Es el costo que se paga a cambio: la
-vista se lee en 0,070 ms pero refrescarla cuesta ~0,9 s. Conviene porque se lee muchísimas más veces de
+vista se lee en 0,028 ms pero refrescarla cuesta ~0,4 s. Conviene porque se lee muchísimas más veces de
 las que se refresca.
 
 **`REFRESH CONCURRENTLY`:** corrió sin error, lo que prueba que el índice único

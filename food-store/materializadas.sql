@@ -29,7 +29,8 @@ JOIN producto p       ON p.id_categoria = c.id_categoria
 JOIN detalle_pedido dp ON dp.id_producto = p.id_producto
 JOIN pedido pe        ON pe.id_pedido = dp.id_pedido
 WHERE c.activo = TRUE AND p.activo = TRUE
-GROUP BY c.id_categoria, c.nombre, DATE_TRUNC('month', pe.fecha);
+GROUP BY c.id_categoria, c.nombre, DATE_TRUNC('month', pe.fecha)
+WITH DATA;  -- explicito: lo pide el enunciado (el default tambien crea poblada)
 
 -- Indice unico: condicion obligatoria para poder usar
 -- REFRESH MATERIALIZED VIEW CONCURRENTLY, que refresca sin bloquear a los

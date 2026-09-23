@@ -252,7 +252,7 @@ algunos pedidos aparecieran incompletos.
 
 # Parte C — Vista materializada
 
-**Base de medición:** `practica_bd2`, 200.005 pedidos y 500.151 detalles, con `ANALYZE` corrido.
+**Base de medición:** `bd2_tp3` (base compartida del grupo), 50.011 productos, 200.005 pedidos y 499.263 detalles, con `ANALYZE` corrido. Se re-ejecutó toda la medición sobre `bd2_tp3` para mantener los tiempos comparables con el resto del equipo.
 Reporte materializado: facturación por categoría y mes (Consulta A de la Semana 4). Implementación:
 `materializadas.sql`; mediciones completas en `informe_mediciones.md`, Parte C.
 
@@ -262,17 +262,17 @@ Reporte materializado: facturación por categoría y mes (Consulta A de la Seman
 |---|---|
 | Herramienta y propósito | Kiro para especificar antes de generar; OpenCode para producir el SQL y explicar el plan |
 | Spec entregado | `specs/spec_vista_materializada_parteC.md` |
-| Qué propuso la IA | `CREATE MATERIALIZED VIEW mv_facturacion_cat_mes` con `WITH DATA` (default) y el índice único `uq_mv_facturacion_cat_mes` sobre `(id_categoria, mes)` para habilitar `REFRESH MATERIALIZED VIEW CONCURRENTLY` |
+| Qué propuso la IA | `CREATE MATERIALIZED VIEW mv_facturacion_cat_mes` con `WITH DATA` explícito (como lo pide el enunciado) y el índice único `uq_mv_facturacion_cat_mes` sobre `(id_categoria, mes)` para habilitar `REFRESH MATERIALIZED VIEW CONCURRENTLY` |
 | Qué se aceptó, modificó o descartó | Se aceptó la propuesta tal cual, pero sólo después de verificar contra el motor cada uno de los puntos del criterio de aceptación (tiempos, `COUNT`, exactitud y refresco) |
 
 ## C.2 Verificación con el motor
 
 | Prueba | Resultado |
 |---|---|
-| Consulta sin materializar | 870,172 ms — `Parallel Hash Join` (2 workers) + `Sort` `external merge` (8.000 kB), 399.184 filas intermedias |
-| Vista materializada | 0,070 ms — `Seq Scan` de 100 filas |
+| Consulta sin materializar | 410,104 ms — `Parallel Hash Join` (2 workers) + `Sort` `external merge` (7.968 kB), 398.846 filas intermedias |
+| Vista materializada | 0,028 ms — `Seq Scan` de 100 filas |
 | `COUNT(*)` de la vista | 100, coincide con el `rows=100` del plan de la consulta original |
-| `REFRESH MATERIALIZED VIEW CONCURRENTLY` | Corre sin error en 0,927 s → el índice único cumple la condición para refrescar sin bloquear lecturas |
+| `REFRESH MATERIALIZED VIEW CONCURRENTLY` | Corre sin error en 0,397 s → el índice único cumple la condición para refrescar sin bloquear lecturas |
 | Equivalencia `EXCEPT` | Dirección `vista EXCEPT consulta`: 0 filas. Dirección `consulta EXCEPT vista`: 0 filas |
 
 El detalle de la lectura crítica del plan está en `specs/spec_vista_materializada_parteC.md`: el
