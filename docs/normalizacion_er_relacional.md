@@ -1,6 +1,6 @@
 # Pasaje ER → relacional y normalización — Food Store
 
-Documento de la Unidad 1 que justifica cómo el modelo entidad-relación se
+Documento del TPI (retoma el tema de la Unidad 1) que justifica cómo el modelo entidad-relación se
 transformó en las seis tablas de `food-store/schema.sql` y por qué cada tabla
 está en tercera forma normal (3FN) y, además, en forma normal de Boyce-Codd
 (FNBC).
@@ -37,8 +37,7 @@ lectura) y sus resultados, en la sección 7.
 
 `categoria`, `cliente`, `producto` y `usuario` agregan además `created_at` como
 atributo de auditoría (en `pedido` ese papel lo cumple `fecha`). No es un
-atributo del dominio; se menciona porque aparece en el esquema y no en el
-diagrama.
+atributo del dominio y no afecta la normalización.
 
 ### 1.3 Relaciones
 
@@ -46,7 +45,7 @@ diagrama.
 |---|---|---|---|---|
 | *realiza* | CLIENTE – PEDIDO | 1 : N | CLIENTE parcial (un cliente puede no haber comprado nunca); PEDIDO **total** (R2) | — |
 | *contiene* | CATEGORIA – PRODUCTO | 1 : N | CATEGORIA parcial (R1: puede estar vacía); PRODUCTO **total** (R1) | — |
-| *incluye* | PEDIDO – PRODUCTO | N : M | Ambas parciales (un producto puede no haberse vendido nunca; el esquema no obliga a que un pedido tenga líneas) | **cantidad**, **precio_unitario** |
+| *incluye* | PEDIDO – PRODUCTO | N : M | Ambas parciales a nivel de esquema (un producto puede no haberse vendido nunca; ninguna restricción obliga a que un pedido tenga líneas; el procedimiento `registrar_pedido` rechaza pedidos sin ítems, pero es una regla del procedimiento, no del esquema) | **cantidad**, **precio_unitario** |
 
 USUARIO no participa en ninguna relación. Representa un actor de sistema
 (login y reportes), distinto del actor de negocio CLIENTE; se agregó en el
@@ -57,10 +56,12 @@ atributos de PEDIDO ni de PRODUCTO, sino de la relación *incluye***: la
 cantidad depende de qué producto y en qué pedido; el precio histórico también
 (R4). Por eso terminan en `detalle_pedido`.
 
-> El diagrama actualizado está en `docs/diagrama_er.mmd` (fuente Mermaid de
-> `docs/Diagrama ER.png`). Incluye `usuario` y muestra la relación N:M ya
-> resuelta como entidad `DETALLE_PEDIDO`, con las mismas participaciones que
-> esta tabla.
+> El diagrama actualizado está en `docs/diagrama_er.mmd` (Mermaid). Incluye
+> `usuario` y `created_at`, y muestra la relación N:M ya resuelta en dos
+> relaciones 1:N hacia `DETALLE_PEDIDO` (*compone* desde PEDIDO y *aparece en*
+> desde PRODUCTO), con las mismas participaciones que esta tabla. La relación
+> que acá se llama *incluye* es ese par. `docs/Diagrama ER.png` es la versión
+> anterior, sin `usuario`.
 
 ---
 
@@ -306,7 +307,7 @@ caso no se da.
 
 | Decisión | Por qué parece un problema | Por qué no lo es |
 |---|---|---|
-| `detalle_pedido.precio_unitario` | "El precio ya está en `producto`, está duplicado" | Es otro dato: el precio al momento de la venta (R4). Si se leyera de `producto.precio`, un aumento de precio cambiaría retroactivamente el total de pedidos viejos |
+| `detalle_pedido.precio_unitario` | "El precio ya está en `producto`, está duplicado" | Es otro dato: el precio al momento de la venta (R4). Si se leyera de `producto.precio`, un aumento de precio cambiaría retroactivamente el total de pedidos viejos. El procedimiento `registrar_pedido` (`food-store/procedimientos.sql`) lo aplica: copia el precio vigente en `precio_unitario` al registrar la venta |
 | No guardar `subtotal` | "Hay que calcularlo en cada consulta" | Es un atributo derivado. Guardarlo agrega una DF entre no primos (rompe 3FN) y un riesgo de inconsistencia. Calcularlo cuesta una multiplicación por fila |
 | `producto.stock` almacenado | "El stock se podría derivar de las ventas" | No hay una tabla de movimientos (compras a proveedores, ajustes, mermas) de la que derivarlo; con solo las ventas no alcanza para reconstruirlo. Es un dato de estado propio del producto: depende solo de `id_producto` |
 | `cliente` y `usuario` con columnas parecidas (nombre, apellido, mail) | "Hay datos repetidos" | Son entidades distintas (actor de negocio vs. actor de sistema), sin FK entre sí. No existe una DF que vincule una fila de `cliente` con una de `usuario`: una persona puede ser cliente sin usuario, o usuario sin ser cliente. Redundancia sería que el **mismo hecho** estuviera en dos lugares, y acá no es el mismo hecho |
