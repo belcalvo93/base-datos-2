@@ -157,3 +157,31 @@ WHERE eliminado = FALSE;
 -- FROM information_schema.columns
 -- WHERE table_name = 'vista_usuario_reportes'
 --   AND column_name = 'contrasena';
+
+-- ----------------------------------------------------------------------------
+-- GRANT — Punto 1 de la devolución del profesor: permitir SELECT sobre
+-- vista_usuario_reportes sin dar acceso a la tabla base usuario.
+--
+-- Rol de prueba (no tiene acceso a ninguna tabla salvo lo que se le otorgue
+-- explícitamente): rol_reportes.
+-- Idempotente: el CREATE ROLE se protege con un chequeo en pg_roles; el
+-- GRANT es idempotente por naturaleza (repetirlo no cambia nada).
+-- ----------------------------------------------------------------------------
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'rol_reportes') THEN
+        CREATE ROLE rol_reportes LOGIN PASSWORD 'reportes123';
+    END IF;
+END
+$$;
+
+GRANT SELECT ON vista_usuario_reportes TO rol_reportes;
+
+-- Verificación (probado en el motor el 23/09/2026): con PGPASSWORD='reportes123'
+--
+--   psql -U rol_reportes -d bd2_tp3 -c "SELECT * FROM vista_usuario_reportes;"
+--   → devuelve 2 filas (usuarios con eliminado = FALSE). Funciona.
+--
+--   psql -U rol_reportes -d bd2_tp3 -c "SELECT * FROM usuario;"
+--   → ERROR: permiso denegado a la tabla usuario. Confirma que el rol no
+--     tiene acceso a la tabla base, solo a la vista.

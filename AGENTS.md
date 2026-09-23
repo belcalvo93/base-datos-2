@@ -84,4 +84,4 @@ protocolo_seguridad.md — safety protocol (MANDATORY reading)
 - `psql`/`pg_dump` live in `C:\Program Files\PostgreSQL\17\bin`; if the command is not found in Git Bash, that folder is missing from `PATH`
 - After a bulk load or restore, run `VACUUM ANALYZE` before measuring, otherwise plans and Index Only Scans are not representative
 - `food-store/backups/`, `respuesta/`, and `*.dump`/`*.backup` are gitignored — don't commit them
-- SQL scripts live under `food-store/`; `concurrencia/` is an empty placeholder for future work
+- SQL scripts live under `food-store/`; `concurrencia/` holds the reproducible concurrency scenarios (TPI, objetivo 8)

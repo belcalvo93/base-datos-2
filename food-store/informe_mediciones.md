@@ -399,6 +399,21 @@ Se cargaron 3 usuarios de prueba (1 ADMIN, 1 USUARIO vigente y 1 con `eliminado 
 
 El detalle de la decision esta en `duia.md`, seccion B.2.
 
+### GRANT sobre vista_usuario_reportes
+
+Para que la vista pueda usarse en reportes sin dar acceso a la tabla usuario, se creo un rol de prueba
+(`rol_reportes`, sin permisos por defecto) y se le otorgo SELECT unicamente sobre la vista:
+
+    GRANT SELECT ON vista_usuario_reportes TO rol_reportes;
+
+Probado en el motor (23/09/2026):
+
+- `SELECT * FROM vista_usuario_reportes` con `rol_reportes` -> devuelve las 2 filas esperadas.
+- `SELECT * FROM usuario` con el mismo rol -> `ERROR: permiso denegado a la tabla usuario`.
+
+Confirma que el rol accede a los datos filtrados de la vista pero no puede leer la tabla base directamente.
+Script en `views.sql`, al final del archivo.
+
 ---
 
 # Parte C — Vista materializada
@@ -407,30 +422,32 @@ Vista materializada sobre el reporte de facturación por categoría y mes (Consu
 `docs/informe_tp4_semana4.md`). Spec: `specs/spec_vista_materializada_parteC.md`. Implementación:
 `materializadas.sql`.
 
-**Base de medición:** `practica_bd2`, 200.005 pedidos y 500.151 detalles, `ANALYZE` corrido.
+**Base de medición:** `bd2_tp3` (base compartida del grupo), 50.011 productos, 200.005 pedidos y 499.263 detalles, `ANALYZE` corrido. Las mediciones se re-ejecutaron sobre esta base para que los tiempos sean comparables con los del resto del equipo.
 Mediciones con `EXPLAIN (ANALYZE, BUFFERS)`.
 
-> **Nota sobre la base.** Esta parte se midió sobre `practica_bd2` (500.151 detalles), que no es la base
-> de la Parte A: esa se midió sobre el dump `bd2_tp3_actualizada_20260919.dump` (499.263 detalles). Los
-> milisegundos de las dos partes no son comparables entre sí. Por ejemplo, la misma consulta de
-> facturación por categoría y mes (S4-A en la Parte A) da 2.219 ms en el dump y 870 ms acá, en otra
-> máquina y otra base. Lo que se compara dentro de esta parte (consulta contra vista) es consistente.
-> No se re-midió sobre el dump.
+> **Nota sobre la base.** Esta parte se remidió sobre `bd2_tp3` (la misma base compartida que la Parte A,
+> 499.263 detalles), reemplazando la medición anterior sobre `practica_bd2`. Los milisegundos absolutos
+> siguen sin ser directamente comparables entre partes: la Parte A midió en una instancia temporal en el
+> puerto 5433 con configuración propia (sección 2 de la Parte A), y esta parte se midió en otra máquina.
+> Lo que sí es comparable ahora son los conteos de filas y el hecho de que ambas partes miden sobre los
+> mismos datos.
 
 | | Consulta sin materializar | Vista materializada |
 |---|---|---|
-| Tiempo de ejecucion | 870,172 ms | **0,070 ms** |
-| Nodo principal del plan | `Parallel Hash Join` (2 workers) + `Sort` `external merge` (8.000 kB a disco) | `Seq Scan` sobre la vista |
-| Filas devueltas | 100 (tras 399.184 filas intermedias) | 100 |
+| Tiempo de ejecucion | 410,104 ms | **0,028 ms** |
+| Nodo principal del plan | `Parallel Hash Join` (2 workers) + `Sort` `external merge` (7.968 kB a disco) | `Seq Scan` sobre la vista |
+| Filas devueltas | 100 (tras 398.846 filas intermedias) | 100 |
 
-La mejora es de ~**12.430x**. El plan pasa de cruzar ~500.000 líneas de `detalle_pedido` y ~200.000
-`pedido` con sort externo a disco para devolver 100 filas, a leer las 100 filas ya calculadas. El
-`rows=100` de la vista coincide con el `rows=100` del `GroupAggregate` del plan original: se materializo
-exactamente el resultado que antes exigía procesar ~400.000 filas.
+La mejora es de ~**14.647x**. El plan pasa de cruzar ~500.000 líneas de `detalle_pedido` y ~200.000
+`pedido` con sort externo a disco para devolver 100 filas, a leer las 100 filas ya calculadas. La
+diferencia de búferes lo confirma: la consulta original leyó 7.197 búferes compartidos y escribió 2.893
+a disco temporal (el sort); la vista leyó **2 búferes**. El `rows=100` de la vista coincide con el
+`rows=100` del `GroupAggregate` del plan original: se materializo exactamente el resultado que antes
+exigía procesar ~400.000 filas.
 
-**Tiempo del `REFRESH`:** `REFRESH MATERIALIZED VIEW CONCURRENTLY` corrió en **0,927 s** (0 filas
+**Tiempo del `REFRESH`:** `REFRESH MATERIALIZED VIEW CONCURRENTLY` corrió en **0,397 s** (0 filas
 actualizadas: no hubo cambios entre el `CREATE` y el `REFRESH`). Es el costo que se paga a cambio: la
-vista se lee en 0,070 ms pero refrescarla cuesta ~0,9 s. Conviene porque se lee muchísimas más veces de
+vista se lee en 0,028 ms pero refrescarla cuesta ~0,4 s. Conviene porque se lee muchísimas más veces de
 las que se refresca.
 
 **`REFRESH CONCURRENTLY`:** corrió sin error, lo que prueba que el índice único

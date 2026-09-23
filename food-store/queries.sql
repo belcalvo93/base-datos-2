@@ -106,3 +106,48 @@ GROUP BY
     c.apellido
 ORDER BY
     gasto_total DESC;
+
+-- ==========================================================================
+-- TPI — Punto 5: funciones de ventana y HAVING (Unidades 1-3)
+-- ==========================================================================
+
+-- Ranking de productos por facturación dentro de cada categoría (RANK + PARTITION BY).
+SELECT
+    c.nombre AS categoria,
+    p.nombre AS producto,
+    COALESCE(SUM(dp.cantidad * dp.precio_unitario), 0) AS facturacion_producto,
+    RANK() OVER (
+        PARTITION BY c.id_categoria
+        ORDER BY COALESCE(SUM(dp.cantidad * dp.precio_unitario), 0) DESC
+    ) AS puesto_en_categoria
+FROM categoria c
+JOIN producto p ON p.id_categoria = c.id_categoria AND p.activo = TRUE
+LEFT JOIN detalle_pedido dp ON dp.id_producto = p.id_producto
+WHERE c.activo = TRUE
+GROUP BY c.id_categoria, c.nombre, p.id_producto, p.nombre
+ORDER BY c.nombre, puesto_en_categoria;
+
+-- Cada pedido comparado con el pedido anterior del mismo cliente (LAG).
+WITH total_por_pedido AS (
+    SELECT dp.id_pedido, SUM(dp.cantidad * dp.precio_unitario) AS total_pedido
+    FROM detalle_pedido AS dp
+    GROUP BY dp.id_pedido
+)
+SELECT
+    pe.id_cliente,
+    pe.id_pedido,
+    pe.fecha,
+    tpp.total_pedido,
+    LAG(tpp.total_pedido) OVER (PARTITION BY pe.id_cliente ORDER BY pe.fecha, pe.id_pedido) AS total_pedido_anterior,
+    tpp.total_pedido - LAG(tpp.total_pedido) OVER (PARTITION BY pe.id_cliente ORDER BY pe.fecha, pe.id_pedido) AS diferencia
+FROM total_por_pedido AS tpp
+JOIN pedido AS pe ON pe.id_pedido = tpp.id_pedido
+ORDER BY pe.id_cliente, pe.fecha, pe.id_pedido;
+
+-- Clientes con más de 12 pedidos (HAVING sobre COUNT).
+SELECT c.id_cliente, c.nombre, c.apellido, COUNT(*) AS cantidad_pedidos
+FROM pedido pe
+JOIN cliente c ON c.id_cliente = pe.id_cliente
+GROUP BY c.id_cliente, c.nombre, c.apellido
+HAVING COUNT(*) > 12
+ORDER BY cantidad_pedidos DESC;

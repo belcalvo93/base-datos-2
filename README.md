@@ -36,8 +36,18 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 │   ├── README.md                (nuevo — cómo reproducir las pruebas)
 │   ├── specs/
 │   └── backups/
+├── concurrencia/
+│   ├── README.md
+│   ├── escenario0_atomicidad.sql
+│   ├── escenario1_lectura_no_repetible_sesionA.sql
+│   ├── escenario1_lectura_no_repetible_sesionB.sql
+│   ├── escenario2_lectura_fantasma_sesionA.sql
+│   ├── escenario2_lectura_fantasma_sesionB.sql
+│   ├── escenario3_espera_bloqueo_sesionA.sql
+│   └── escenario3_espera_bloqueo_sesionB.sql
 ├── docs/
 │   ├── Diagrama ER.png
+│   ├── diagrama_er.mmd
 │   ├── normalizacion_er_relacional.md
 │   ├── spec_restricciones.md
 │   ├── spec_carga_masiva.md
@@ -91,7 +101,10 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 | `food-store/README.md` | Pasos para levantar la base y repetir las pruebas del TP5 |
 | `food-store/specs/` | Specs de Kiro del TP5: `spec_indice_*.md` (Parte A, con el resultado de la medición al final de cada una), `spec_usuario.md` y `spec_vistas.md` (Parte B) y `spec_vista_materializada_parteC.md` (Parte C) |
 | `food-store/backups/` | Respaldos `.dump` de la base de trabajo |
+| `concurrencia/README.md` | Orquestación de los escenarios de concurrencia (TPI, objetivo 8) |
+| `concurrencia/escenario*.sql` | Escenarios reproducibles: atomicidad (0), lectura no repetible (1), fantasma (2), espera por bloqueo (3) |
 | `docs/Diagrama ER.png` | Diagrama entidad-relación |
+| `docs/diagrama_er.mmd` | Diagrama ER en Mermaid (fuente editable del PNG) |
 | `docs/normalizacion_er_relacional.md` | Pasaje ER→relacional, dependencias funcionales y justificación de 3FN/FNBC de cada tabla |
 | `docs/duia/duia_normalizacion.md` | DUIA del documento de normalización |
 | `docs/spec_restricciones.md` | Especificación de restricciones de integridad |
@@ -142,7 +155,7 @@ de aceptación.
 | `detalle_pedido` | Líneas del pedido (relación N:M). Congela precio histórico (R4). UNIQUE(id_pedido, id_producto). |
 | `usuario` | Actores de login y reportes; la contraseña no se expone en `vista_usuario_reportes`. |
 
-Diagrama ER completo en `docs/Diagrama ER.png`.
+Diagrama ER completo en `docs/Diagrama ER.png`; fuente editable en `docs/diagrama_er.mmd` (Mermaid).
 
 ---
 
@@ -207,3 +220,15 @@ Antes de cualquier cambio estructural: **backup** (`pg_dump`), **transacción co
 ## Uso de IA
 
 La cátedra establece la IA como motor primario de escritura. La regla es **«se delega la escritura, nunca la decisión»**. Cada uso está documentado en `docs/duia/`.
+
+---
+
+## Equipo
+
+El grupo está conformado por 4 integrantes: Belén Calvo,
+Elías Tello, Hernán González y Bruno Fiouchetta.
+Bruno se sumó al grupo con autorización del profesor Sergio
+Neira, otorgada por WhatsApp: al no tener grupo formal en la materia,
+se le consultó al profesor si podía sumarse aunque el grupo ya estuviera
+completo, y el profesor autorizó la excepción ("bueno.. metelo en el
+grupo"). Captura de la conversación: docs/autorizacion_grupo_4_whatsapp.png.

@@ -1,0 +1,85 @@
+%% ============================================================
+%% Diagrama ER actualizado — Food Store (TPI)
+%% Fuente editable del PNG docs/Diagrama ER.png.
+%% Previsualizar / exportar PNG en https://mermaid.live
+%%
+%% Relaciones (convencion Mermaid: la entidad de la izquierda es "uno",
+%% la de la derecha "muchos"):
+%%   CATEGORIA    1 - N PRODUCTO        (R1: todo producto pertenece a
+%%                                      exactamente una categoria)
+%%   CLIENTE      1 - N PEDIDO          (R2: todo pedido pertenece a un
+%%                                      cliente registrado)
+%%   PEDIDO       1 - N DETALLE_PEDIDO  (detalle_pedido es la tabla
+%%                                      intermedia que resuelve el N:M
+%%                                      PEDIDO-PRODUCTO)
+%%   PRODUCTO     1 - N DETALLE_PEDIDO
+%%
+%% Participacion:
+%%   - CATEGORIA -> PRODUCTO es parcial (una categoria puede existir sin
+%%     productos; p. ej. recien creada).
+%%   - PRODUCTO -> CATEGORIA es total (id_categoria NOT NULL).
+%%   - PEDIDO -> CLIENTE es total (id_cliente NOT NULL).
+%%   - DETALLE_PEDIDO -> PEDIDO/PRODUCTO es total (FKs NOT NULL).
+%%
+%% Baja logica (R7): categoria.activo y producto.activo; pedido/cliente no
+%% guardan estado. Detalle_pedido congelo precio_unitario historico (R4).
+%% USUARIO es una entidad aislada, sin FK hacia las demas: es actor de
+%% sistema (login) distinto del actor de negocio (cliente); decision de la
+%% catedra documentada en food-store/specs/spec_usuario.md. Baja logica
+%% invertida: eliminado = FALSE significa vigente.
+%% ============================================================
+
+erDiagram
+    CATEGORIA {
+        BIGINT id_categoria PK
+        VARCHAR(80) nombre UK
+        BOOLEAN activo
+        TIMESTAMPTZ created_at
+    }
+    CLIENTE {
+        BIGINT id_cliente PK
+        VARCHAR(80) nombre
+        VARCHAR(80) apellido
+        VARCHAR(150) email UK
+        VARCHAR(30) telefono
+        TIMESTAMPTZ created_at
+    }
+    PRODUCTO {
+        BIGINT id_producto PK
+        VARCHAR(120) nombre
+        TEXT descripcion
+        NUMERIC(10,2) precio
+        INTEGER stock
+        BOOLEAN activo
+        BIGINT id_categoria FK
+        TIMESTAMPTZ created_at
+    }
+    PEDIDO {
+        BIGINT id_pedido PK
+        TIMESTAMPTZ fecha
+        forma_pago_enum forma_pago
+        BIGINT id_cliente FK
+    }
+    DETALLE_PEDIDO {
+        BIGINT id_detalle PK
+        INTEGER cantidad
+        NUMERIC(10,2) precio_unitario
+        BIGINT id_pedido FK
+        BIGINT id_producto FK
+    }
+    USUARIO {
+        BIGINT id PK
+        VARCHAR(80) nombre
+        VARCHAR(80) apellido
+        VARCHAR(120) mail UK
+        VARCHAR(30) celular
+        VARCHAR(255) contrasena
+        rol rol
+        BOOLEAN eliminado
+        TIMESTAMPTZ created_at
+    }
+
+    CATEGORIA ||--o{ PRODUCTO : "1:N (contiene)"
+    CLIENTE ||--o{ PEDIDO : "1:N (realiza)"
+    PEDIDO ||--o{ DETALLE_PEDIDO : "1:N (compone)"
+    PRODUCTO ||--o{ DETALLE_PEDIDO : "1:N (aparece en)"

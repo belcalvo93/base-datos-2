@@ -57,9 +57,10 @@ atributos de PEDIDO ni de PRODUCTO, sino de la relación *incluye***: la
 cantidad depende de qué producto y en qué pedido; el precio histórico también
 (R4). Por eso terminan en `detalle_pedido`.
 
-> El diagrama `docs/Diagrama ER.png` muestra la relación N:M ya resuelta como
-> entidad `DETALLE_PEDIDO` y todavía no incluye `usuario`; su actualización es
-> una tarea aparte.
+> El diagrama actualizado está en `docs/diagrama_er.mmd` (fuente Mermaid de
+> `docs/Diagrama ER.png`). Incluye `usuario` y muestra la relación N:M ya
+> resuelta como entidad `DETALLE_PEDIDO`, con las mismas participaciones que
+> esta tabla.
 
 ---
 
