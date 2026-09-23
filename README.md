@@ -201,3 +201,15 @@ Antes de cualquier cambio estructural: **backup** (`pg_dump`), **transacción co
 ## Uso de IA
 
 La cátedra establece la IA como motor primario de escritura. La regla es **«se delega la escritura, nunca la decisión»**. Cada uso está documentado en `docs/duia/`.
+
+---
+
+## Equipo
+
+El grupo está conformado por 4 integrantes: Belén Calvo,
+Elías Tello, Hernán González y Bruno Fiouchetta.
+Bruno se sumó al grupo con autorización del profesor Sergio
+Neira, otorgada por WhatsApp: al no tener grupo formal en la materia,
+se le consultó al profesor si podía sumarse aunque el grupo ya estuviera
+completo, y el profesor autorizó la excepción ("bueno.. metelo en el
+grupo"). Captura de la conversación: docs/autorizacion_grupo_4_whatsapp.png.jpeg.
