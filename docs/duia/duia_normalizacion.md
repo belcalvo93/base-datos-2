@@ -89,14 +89,14 @@ Ejecutado el 23/09/2026 sobre `bd2_tp3` y `bd2_trabajo` (resultados idénticos):
 
 ## Qué se aceptó, modificó o descartó
 
-*A completar por el autor después de leer el documento línea por línea.*
+El autor leyó el documento y el script completos y los aceptó sin cambios.
 
-| Parte | Decisión (aceptado / modificado / descartado) | Motivo |
+| Parte | Decisión | Motivo |
 |---|---|---|
-| Secciones 1–2 (ER y pasaje) | | |
-| Sección 3 (DF) | | |
-| Sección 4 (formas normales) | | |
-| Sección 5 (decisiones) | | |
-| Sección 6 (contraejemplo) | | |
-| Sección 7 y script de verificación | | |
-| Descarte del `INSERT` de prueba (V8 original) | Descartado | Innecesario: los datos reales ya refutan la DF, y el script queda de solo lectura |
+| Secciones 1–2 (ER y pasaje) | Aceptado | Las reglas de pasaje coinciden con `schema.sql`: FK del lado N con `NOT NULL` donde la participación es total (R1, R2), tabla intermedia para la N:M y las políticas `ON DELETE` que ya estaban. La participación coincide también con el diagrama actualizado (`docs/diagrama_er.mmd`) |
+| Sección 3 (DF) | Aceptado | Las DF se derivan de las reglas R1–R7 y no de los datos. Las claves candidatas que se afirman son las que el motor tiene declaradas (V1) |
+| Sección 4 (formas normales) | Aceptado | El análisis de 2FN sobre la clave compuesta `(id_pedido, id_producto)`, y no solo sobre la PK sustituta, es el punto a defender, y quedó confirmado con datos (V3/V8) |
+| Sección 5 (decisiones) | Aceptado | Justifica decisiones de diseño ya tomadas en unidades anteriores (`precio_unitario`, `subtotal`, `stock`, `usuario`) sin proponer cambios al esquema |
+| Sección 6 (contraejemplo) | Aceptado | Muestra qué anomalías evita la descomposición, con una tabla plana construida con los mismos atributos del esquema |
+| Sección 7 y script de verificación | Aceptado | Script de solo lectura (`READ ONLY` + `ROLLBACK`). Se ejecutó en el motor y los resultados están en la sección 7 |
+| `INSERT` de prueba (V8 original) | Descartado | Innecesario: los datos reales ya refutan la DF, y así el script queda de solo lectura |
