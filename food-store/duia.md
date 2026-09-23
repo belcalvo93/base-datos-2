@@ -217,6 +217,15 @@ Esto se aparta del punto general de no modificar el modelo de datos, y se docume
 excepción es por indicación expresa del docente para cumplir el criterio de seguridad del punto 4, no
 una decisión del equipo.
 
+**Punto 1 de la devolución del profesor — GRANT sobre `vista_usuario_reportes`.** Para que la vista
+pueda usarse en reportes sin dar acceso a la tabla base `usuario`, se implementó el `GRANT SELECT` sobre
+`vista_usuario_reportes` a un rol de prueba (`rol_reportes`, sin permisos por defecto) y se probó
+manualmente en el motor con `psql`. En este caso puntual el SQL lo guió Claude Code y la verificación fue
+manual; no hubo generación de SQL por Kiro ni por OpenCode, y se declara como apartamiento igual que los
+otros de esta bitácora. La verificación fue la misma que se documentó en `informe_mediciones.md`: el rol
+accede a la vista (devuelve las 2 filas vigentes) pero no puede leer la tabla `usuario` directamente
+(`ERROR: permiso denegado`).
+
 ## B.3 Verificación de equivalencia
 
 El caso que la consigna exige. Por cada vista se ejecutó el `EXCEPT` en las dos direcciones contra la

@@ -399,6 +399,21 @@ Se cargaron 3 usuarios de prueba (1 ADMIN, 1 USUARIO vigente y 1 con `eliminado 
 
 El detalle de la decision esta en `duia.md`, seccion B.2.
 
+### GRANT sobre vista_usuario_reportes
+
+Para que la vista pueda usarse en reportes sin dar acceso a la tabla usuario, se creo un rol de prueba
+(`rol_reportes`, sin permisos por defecto) y se le otorgo SELECT unicamente sobre la vista:
+
+    GRANT SELECT ON vista_usuario_reportes TO rol_reportes;
+
+Probado en el motor (23/09/2026):
+
+- `SELECT * FROM vista_usuario_reportes` con `rol_reportes` -> devuelve las 2 filas esperadas.
+- `SELECT * FROM usuario` con el mismo rol -> `ERROR: permiso denegado a la tabla usuario`.
+
+Confirma que el rol accede a los datos filtrados de la vista pero no puede leer la tabla base directamente.
+Script en `views.sql`, al final del archivo.
+
 ---
 
 # Parte C — Vista materializada
