@@ -6,6 +6,8 @@ inclusion: always
 
 ## Motor y entorno
 
+> **Nota TP U4**: Este TP crea la base `bd2_tp4u4` a partir de `bd2_tp3` (que incluye carga masiva). No se modifica `bd2_proyecto` ni `bd2_tp3`. La base de trabajo para este TP es `bd2_tp4u4`.
+
 - **PostgreSQL 17** (versión compatible con `GENERATED ALWAYS AS IDENTITY` y `TIMESTAMPTZ`).
 - El esquema se ejecuta desde `food-store/schema.sql`; los datos de carga inicial desde `food-store/data.sql`.
 - Hay seis tablas: `categoria`, `cliente`, `producto`, `pedido`, `detalle_pedido` y `usuario`.
@@ -205,3 +207,16 @@ Regla del proyecto: un índice se acepta solo si `EXPLAIN (ANALYZE, BUFFERS, VER
 - Las FKs se resuelven con subconsultas sobre claves naturales (`nombre`, `email`) para que los scripts sean legibles y no dependan del orden de inserción ni de IDs hardcodeados.
 - `detalle_pedido.precio_unitario` usa valores históricos menores al precio de lista vigente en algunos registros, para demostrar la independencia entre precio histórico y precio actual (R4).
 - Las fechas de `pedido` son explícitas (no `now()`) para que las consultas por rango devuelvan resultados estables en cada reejecución.
+
+---
+
+## Estructuras redundantes (TP U4)
+
+Toda estructura redundante (columna calculada, tabla resumen, dato duplicado, etc.) exige cuatro cosas:
+
+1. **Medición antes y después**: `EXPLAIN (ANALYZE, BUFFERS)` que justifique el cambio.
+2. **Único mecanismo**: un solo trigger, proceso o script que mantenga la redundancia.
+3. **Conciliación**: script que compare el dato redundante con su fuente y devuelva 0 filas.
+4. **Reversión**: script que elimine la estructura sin perder datos fuente (la fuente es la verdad).
+
+> Esta regla aplica a partir del TP U4. Se usa para decidir si conviene desnormalizar.

@@ -15,7 +15,7 @@ Kiro **especifica**: redacta y revisa specs. No ejecuta SQL ni modifica la base 
 | **Kiro** | Escribe y revisa specs en `food-store/specs/` y mantiene el steering. |
 | **OpenCode** | Propone y genera el SQL a partir de una spec (empieza en modo Plan). |
 | **Claude Code** | Ejecuta mediciones y escribe scripts y informes cuando el autor lo pide. |
-| **El autor** | Lee cada línea, ejecuta contra `bd2_trabajo` y decide. |
+| **El autor** | Lee cada línea, ejecuta contra `bd2_trabajo` (TP U4: `bd2_tp4u4`) y decide. |
 
 ## Prohibido para Kiro
 
@@ -41,6 +41,7 @@ Kiro **especifica**: redacta y revisa specs. No ejecuta SQL ni modifica la base 
 - Excepción documentada: `usuario` usa PK `id` y ENUM `rol`. No corregirlo.
 - Los scripts son idempotentes (`DROP … IF EXISTS` antes de `CREATE`) y todo lo que escribe corre primero en `BEGIN; … ROLLBACK;`.
 - Ante una spec en borrador, la nota «Estado: borrador» se reemplaza por la fecha y lo que se modificó al revisarla.
+- Estructuras redundantes: toda desnormalización exige medición, único dueño, conciliación y reversión (ver `database.md`).
 
 ## Uso de IA
 
