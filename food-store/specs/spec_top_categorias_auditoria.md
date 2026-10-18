@@ -2,7 +2,7 @@
 
 **Responsable**: Bruno  
 **Fecha de creación**: 2026-10-18  
-**Última revisión**: 2026-10-18 — Corregido: auditoría sin filtro de día, INNER JOIN como 5.1
+**Última revisión**: 2026-10-18 — Corrección 2: comentarios de auditoría alineados con la fuente
 
 ---
 
@@ -19,7 +19,7 @@ Detectar desincronización entre el dato redundante (tabla resumen o vista mater
 ```sql
 -- Comparar: dato guardado vs dato recalculado
 -- Debe devolver 0 filas si están sincronizados
--- Recalcula para TODOS los días presentes en el resumen
+-- Recalcula para TODOS los días de la fuente (pedido y detalle_pedido)
 (
     SELECT r.id_categoria, r.fecha, r.total_vendido AS guardado
     FROM resumen_ventas_categoria_dia r
@@ -53,7 +53,7 @@ UNION ALL
 
 ```sql
 -- Comparar: dato en la MV vs dato recalculado
--- Recalcula para TODOS los días presentes en la MV
+-- Recalcula para TODOS los días de la fuente (pedido y detalle_pedido)
 (
     SELECT id_categoria, fecha, total_vendido AS guardado
     FROM mv_resumen_ventas_categoria_dia

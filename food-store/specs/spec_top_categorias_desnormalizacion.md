@@ -2,7 +2,7 @@
 
 **Responsable**: Bruno  
 **Fecha de creación**: 2026-10-18  
-**Última revisión**: 2026-10-18 — Corregido: zona horaria explícita, DEFAULT CURRENT_DATE quitado, vista materializada sin filtro
+**Última revisión**: 2026-10-18 — Corrección 2: trigger deriva día de pedido.fecha, carga completa para auditoría
 
 ---
 
@@ -86,12 +86,12 @@ No aplica (depende de spec 4).
    - Función trigger que ejecuta en cada INSERT/UPDATE/DELETE sobre `detalle_pedido`.
    - Debe actualizar `resumen_ventas_categoria_dia` sumando o restando `cantidad * precio_unitario`.
    - Considerar: ¿qué pasa si cambia `pedido.fecha`? ¿Qué pasa si cambia `producto.id_categoria`? Documentar como "fuera de alcance" si no se cubre.
-   - Zona horaria: usar `CURRENT_DATE` sin timezone (asume server timezone).
+   - El día de cada línea se deriva siempre de `pedido.fecha`, nunca de `CURRENT_DATE`. El trigger, la consulta nueva y la auditoría calculan el día con la misma zona horaria escrita explícitamente (`America/Argentina/Mendoza`, a confirmar por el autor).
    
    **Si es Patrón 2 (vista materializada)**:
    - Función de refresco con `REFRESH MATERIALIZED VIEW CONCURRENTLY`.
 
-3. **Carga inicial**: populal la estructura desnormalizada con los datos existentes de hoy.
+3. **Carga inicial**: popular la estructura desnormalizada con todos los días existentes en `pedido` y `detalle_pedido` (carga completa, una sola vez, para que el resumen coincida con lo recalculado por la auditoría).
 
 4. **Reversión**: script que borre trigger, función y tabla (o vista materializada) sin afectar los datos fuente.
 
