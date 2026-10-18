@@ -15,7 +15,10 @@ generado por IA, sin excepción.
 | Base | Rol |
 |---|---|
 | `bd2_proyecto` | Plantilla. Contiene el esquema y la carga inicial del TP1. No se modifica. |
-| `bd2_trabajo` | Copia de desarrollo. Es la única sobre la que se ejecutan scripts. |
+| `bd2_trabajo` | Copia de desarrollo del TP1-TP5. Es la única sobre la que se ejecutan scripts de esos trabajos. |
+| `bd2_tp4u4` | Copia de desarrollo del TP U4, creada a partir de `bd2_tp3`. Única base sobre la que se ejecutan los scripts de este TP. |
+
+> **Nota**: `bd2_tp4u4` se crea desde `bd2_tp3` (que incluye la carga masiva), no desde `bd2_proyecto`. `bd2_tp3` y `bd2_proyecto` no se modifican.
 
 ## Paso 1 — Copia
 
