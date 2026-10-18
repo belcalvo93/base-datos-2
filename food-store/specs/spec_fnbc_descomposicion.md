@@ -2,7 +2,7 @@
 
 **Responsable**: Hernán  
 **Fecha de creación**: 2026-10-18  
-**Última revisión**: 2026-10-18 — Corregido: migración y verificación en BEGIN/ROLLBACK
+**Última revisión**: 2026-10-18 — Descomposición ajustada al esquema de la consigna: R1 con PK `responsable_control_id`, R2 con PK `(lote_id, responsable_control_id)`; unión por `responsable_control_id`; vista de compatibilidad reconstruye `(lote_id, deposito_id, responsable_control_id)`
 
 ---
 
@@ -18,19 +18,19 @@ Descomponer la tabla `control_lote_almacen` en dos tablas que cumplan FNBC, mant
 
 Según el análisis de dependencias funcionales:
 
-- **Depósito del responsable** (`responsable_deposito`):
-  - PK: `(responsable_control_id, deposito_id)`
-  - FK: `deposito_id → deposito(id)`
+- **R1 — Depósito del responsable** (`responsable_deposito`):
+  - PK: `responsable_control_id`
+  - FKs: `deposito_id → deposito(id)`, `responsable_control_id → usuario(id)`
 
-- **Control de lote** (`control_lote`):
-  - PK: `(lote_id, deposito_id, responsable_control_id)`
-  - FKs: `lote_id → lote(id)`, `deposito_id → deposito(id)`
+- **R2 — Control de lote** (`control_lote`):
+  - PK: `(lote_id, responsable_control_id)`
+  - FKs: `lote_id → lote(id)`, `responsable_control_id → responsable_deposito(responsable_control_id)`
 
 ### 2.2. Justificación de la descomposición
 
 La DF `(lote_id, deposito_id) → responsable_control_id` NO se preserva en la descomposición. Esto debe documentarse en el informe.
 
-El atributo común `deposito_id` es superclave de `responsable_deposito`, lo que garantiza la unión sin pérdida.
+El atributo común de la unión es `responsable_control_id`, que es superclave de R1 (`responsable_deposito`); eso garantiza la unión sin pérdida.
 
 ---
 
@@ -45,8 +45,8 @@ El atributo común `deposito_id` es superclave de `responsable_deposito`, lo que
 
 | Tabla | Columnas |
 |-------|----------|
-| `responsable_deposito` | responsable_control_id (PK), deposito_id (PK) |
-| `control_lote` | lote_id (PK), deposito_id (PK), responsable_control_id (PK), cantidad |
+| `responsable_deposito` | responsable_control_id (PK), deposito_id |
+| `control_lote` | lote_id (PK), responsable_control_id (PK) |
 
 ---
 
@@ -60,13 +60,13 @@ No aplica (depende de spec 1).
 
 ### 6.1. Lo que se pide
 
-1. **Crear las dos tablas** con PKs compuestas y FKs correspondientes.
-2. **Crear una vista de compatibilidad**:
+1. **Crear las dos tablas** con sus PKs y FKs correspondientes.
+2. **Crear una vista de compatibilidad** que reconstruya `(lote_id, deposito_id, responsable_control_id)` con NATURAL JOIN (la única columna común es `responsable_control_id`):
    ```sql
    CREATE OR REPLACE VIEW v_control_lote_almacen AS
-   SELECT cl.lote_id, cl.deposito_id, cl.responsable_control_id, cl.cantidad
-   FROM control_lote cl
-   NATURAL JOIN responsable_deposito rd;
+   SELECT lote_id, deposito_id, responsable_control_id
+   FROM control_lote
+   NATURAL JOIN responsable_deposito;
    ```
 3. **Migrar los datos** desde `control_lote_almacen` a las nuevas tablas (primero dentro de `BEGIN; … ROLLBACK;` para verificar el resultado antes de confirmar).
 4. **Verificar equivalencia** en ambas direcciones usando EXCEPT (también dentro de `BEGIN; … ROLLBACK;`):

@@ -2,7 +2,7 @@
 
 **Responsable**: Belén  
 **Fecha de creación**: 2026-10-18  
-**Última revisión**: —
+**Última revisión**: 2026-10-18 — Esquema alineado con la consigna (lote/deposito con BIGINT, control_lote_almacen con PK compuesta (lote_id, deposito_id), sin `id` ni `cantidad`); instancia de ejemplo ajustada; corregido el supuesto del dominio (cada responsable pertenece a un único depósito)
 
 ---
 
@@ -19,23 +19,22 @@ Crear el esquema inicial de la Parte 1 del TP U4 y demostrar mediante artefactos
 ```sql
 -- Tabla lote (mínima, según decisión tomada)
 CREATE TABLE IF NOT EXISTS lote (
-    id INTEGER PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     nombre VARCHAR(120) NOT NULL
 );
 
 -- Tabla deposito (mínima, según decisión tomada)
 CREATE TABLE IF NOT EXISTS deposito (
-    id INTEGER PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     nombre VARCHAR(80) NOT NULL
 );
 
--- Tabla control_lote_almacen (esquema de la consigna)
+-- Tabla control_lote_almacen (esquema exacto de la consigna)
 CREATE TABLE IF NOT EXISTS control_lote_almacen (
-    id INTEGER PRIMARY KEY,
-    lote_id INTEGER NOT NULL REFERENCES lote(id),
-    deposito_id INTEGER NOT NULL REFERENCES deposito(id),
-    responsable_control_id INTEGER NOT NULL,
-    cantidad INTEGER NOT NULL CHECK (cantidad >= 0)
+    lote_id BIGINT NOT NULL REFERENCES lote(id),
+    deposito_id BIGINT NOT NULL REFERENCES deposito(id),
+    responsable_control_id BIGINT NOT NULL REFERENCES usuario(id),
+    PRIMARY KEY (lote_id, deposito_id)
 );
 ```
 
@@ -43,12 +42,10 @@ CREATE TABLE IF NOT EXISTS control_lote_almacen (
 
 ```sql
 INSERT INTO lote (id, nombre) VALUES 
-(501, 'Lote A'), (502, 'Lote B'), (503, 'Lote C')
-ON CONFLICT (id) DO NOTHING;
+(501, 'Lote A'), (502, 'Lote B'), (503, 'Lote C');
 
 INSERT INTO deposito (id, nombre) VALUES 
-(30, 'Depósito Centro'), (31, 'Depósito Norte')
-ON CONFLICT (id) DO NOTHING;
+(30, 'Depósito Centro'), (31, 'Depósito Norte');
 
 -- Usuarios 801 y 802 (con OVERRIDING SYSTEM VALUE por ser IDENTITY ALWAYS)
 INSERT INTO usuario (id, nombre, apellido, mail, contrasena, rol, eliminado)
@@ -56,13 +53,9 @@ OVERRIDING SYSTEM VALUE
 VALUES 
 (801, 'Usuario', 'Admin', 'admin801@test.com', 'hash801', 'ADMIN', FALSE),
 (802, 'Usuario', 'Supervisor', 'supervisor802@test.com', 'hash802', 'USUARIO', FALSE)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
-INSERT INTO control_lote_almacen (id, lote_id, deposito_id, responsable_control_id, cantidad) VALUES
-(1, 501, 30, 801, 100),
-(2, 501, 31, 801, 50),
-(3, 502, 30, 802, 200)
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO control_lote_almacen VALUES (501, 30, 801), (502, 30, 801), (503, 31, 802);
 ```
 
 ---
@@ -71,7 +64,7 @@ ON CONFLICT (id) DO NOTHING;
 
 - **Frecuencia**: operación manual de control de stock, pocas veces al día.
 - **Carga**: ~3-10 registros en la instancia de ejemplo.
-- Supuesto del dominio: un responsable puede atender varios depósitos (a confirmar).
+- Regla de negocio (consigna): cada responsable pertenece a un único depósito, por lo que la DF `responsable_control_id → deposito_id` se cumple.
 
 ---
 
@@ -79,11 +72,9 @@ ON CONFLICT (id) DO NOTHING;
 
 | Rol | Columna | Tabla |
 |-----|---------|-------|
-| PK | `id` | control_lote_almacen |
-| FK | `lote_id` | lote |
-| FK | `deposito_id` | deposito |
-| Atributo | `responsable_control_id` | — |
-| Atributo | `cantidad` | — |
+| PK (compuesta) + FK | `lote_id` | lote |
+| PK (compuesta) + FK | `deposito_id` | deposito |
+| FK | `responsable_control_id` | usuario |
 
 ---
 
