@@ -2,7 +2,7 @@
 
 **Responsable**: Bruno  
 **Fecha de creación**: 2026-10-18  
-**Última revisión**: —
+**Última revisión**: 2026-10-18 — Corregido: zona horaria explícita, DEFAULT CURRENT_DATE quitado, vista materializada sin filtro
 
 ---
 
@@ -20,7 +20,7 @@ Implementar el patrón elegido (trigger o vista materializada) con un único due
 -- Tabla resumen por categoría y día
 CREATE TABLE IF NOT EXISTS resumen_ventas_categoria_dia (
     id_categoria BIGINT NOT NULL,
-    fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+    fecha DATE NOT NULL,
     total_vendido NUMERIC(12,2) NOT NULL DEFAULT 0,
     PRIMARY KEY (id_categoria, fecha)
 );
@@ -36,15 +36,13 @@ CREATE INDEX IF NOT EXISTS idx_resumen_ventas_fecha
 -- Vista materializada
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_resumen_ventas_categoria_dia AS
 SELECT c.id_categoria, c.nombre AS categoria, 
-       CURRENT_DATE AS fecha,
-       COALESCE(SUM(dp.cantidad * dp.precio_unitario), 0) AS total_vendido
+       (ped.fecha AT TIME ZONE 'America/Argentina/Mendoza')::date AS fecha,
+       SUM(dp.cantidad * dp.precio_unitario) AS total_vendido
 FROM categoria c
-LEFT JOIN producto pr ON pr.id_categoria = c.id_categoria AND pr.activo = TRUE
-LEFT JOIN detalle_pedido dp ON dp.id_producto = pr.id_producto
-LEFT JOIN pedido ped ON ped.id_pedido = dp.id_pedido 
-    AND ped.fecha >= CURRENT_DATE AND ped.fecha < CURRENT_DATE + 1
-GROUP BY c.id_categoria, c.nombre
-ORDER BY total_vendido DESC
+INNER JOIN producto pr ON pr.id_categoria = c.id_categoria
+INNER JOIN detalle_pedido dp ON dp.id_producto = pr.id_producto
+INNER JOIN pedido ped ON ped.id_pedido = dp.id_pedido
+GROUP BY c.id_categoria, c.nombre, (ped.fecha AT TIME ZONE 'America/Argentina/Mendoza')::date
 WITH DATA;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_resumen_categoria_dia 
@@ -103,13 +101,13 @@ No aplica (depende de spec 4).
    SELECT c.nombre AS categoria, r.total_vendido
    FROM resumen_ventas_categoria_dia r
    JOIN categoria c ON c.id_categoria = r.id_categoria
-   WHERE r.fecha = CURRENT_DATE
+   WHERE r.fecha = (now() AT TIME ZONE 'America/Argentina/Mendoza')::date
    ORDER BY r.total_vendido DESC LIMIT 5;
    
    -- Para Patrón 2
    SELECT categoria, total_vendido
    FROM mv_resumen_ventas_categoria_dia
-   WHERE fecha = CURRENT_DATE
+   WHERE fecha = (now() AT TIME ZONE 'America/Argentina/Mendoza')::date
    ORDER BY total_vendido DESC LIMIT 5;
    ```
 

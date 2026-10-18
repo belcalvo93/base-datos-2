@@ -2,7 +2,7 @@
 
 **Responsable**: Elías  
 **Fecha de creación**: 2026-10-18  
-**Última revisión**: —
+**Última revisión**: 2026-10-18 — Corregido: tolerate -> tolera, nota de timezone
 
 ---
 
@@ -30,6 +30,7 @@ GROUP BY c.nombre ORDER BY total_vendido DESC LIMIT 5;
 
 - **Origen**: adaptación de la consigna TP U4 punto 5.1 al esquema existente.
 - **Decisión tomada**: se usa `pedido.fecha` con rango (`>= CURRENT_DATE AND < CURRENT_DATE + 1`) en lugar de `= CURRENT_DATE` porque `fecha` es TIMESTAMPTZ.
+- **Nota**: la consulta basal usa CURRENT_DATE de la sesión, así que se corre con `SET timezone = 'America/Argentina/Mendoza'` para que el día coincida con el de la desnormalización.
 
 ---
 
@@ -39,7 +40,7 @@ GROUP BY c.nombre ORDER BY total_vendido DESC LIMIT 5;
 - **Relación lecturas/escrituras**: a confirmar con las 5 preguntas del profe:
   1. ¿Con qué frecuencia se ejecuta la consulta?
   2. ¿Cuántas escrituras (INSERT/UPDATE/DELETE en detalle_pedido) hay por minuto?
-  3. ¿La consulta tolerate desfase (consistencia eventual) o requiere tiempo real?
+  3. ¿La consulta tolera desfase (consistencia eventual) o requiere tiempo real?
   4. ¿Cuántas categorías hay? ¿El top 5 cambia seguido?
   5. ¿El volumen de datos crece con el tiempo?
 

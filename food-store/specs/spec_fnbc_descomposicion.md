@@ -2,7 +2,7 @@
 
 **Responsable**: Hernán  
 **Fecha de creación**: 2026-10-18  
-**Última revisión**: —
+**Última revisión**: 2026-10-18 — Corregido: migración y verificación en BEGIN/ROLLBACK
 
 ---
 
@@ -68,8 +68,8 @@ No aplica (depende de spec 1).
    FROM control_lote cl
    NATURAL JOIN responsable_deposito rd;
    ```
-3. **Migrar los datos** desde `control_lote_almacen` a las nuevas tablas.
-4. **Verificar equivalencia** en ambas direcciones usando EXCEPT:
+3. **Migrar los datos** desde `control_lote_almacen` a las nuevas tablas (primero dentro de `BEGIN; … ROLLBACK;` para verificar el resultado antes de confirmar).
+4. **Verificar equivalencia** en ambas direcciones usando EXCEPT (también dentro de `BEGIN; … ROLLBACK;`):
    - Datos originales menos datos reconstruidos (debe dar 0 filas).
    - Datos reconstruidos menos datos originales (debe dar 0 filas).
 

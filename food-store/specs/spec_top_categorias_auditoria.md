@@ -2,7 +2,7 @@
 
 **Responsable**: Bruno  
 **Fecha de creación**: 2026-10-18  
-**Última revisión**: —
+**Última revisión**: 2026-10-18 — Corregido: auditoría sin filtro de día, INNER JOIN como 5.1
 
 ---
 
@@ -19,34 +19,33 @@ Detectar desincronización entre el dato redundante (tabla resumen o vista mater
 ```sql
 -- Comparar: dato guardado vs dato recalculado
 -- Debe devolver 0 filas si están sincronizados
+-- Recalcula para TODOS los días presentes en el resumen
 (
     SELECT r.id_categoria, r.fecha, r.total_vendido AS guardado
     FROM resumen_ventas_categoria_dia r
-    WHERE r.fecha = CURRENT_DATE
     EXCEPT
-    SELECT c.id_categoria, CURRENT_DATE AS fecha, 
-           COALESCE(SUM(dp.cantidad * dp.precio_unitario), 0) AS recalculado
+    SELECT c.id_categoria, 
+           (ped.fecha AT TIME ZONE 'America/Argentina/Mendoza')::date AS fecha, 
+           SUM(dp.cantidad * dp.precio_unitario) AS recalculado
     FROM categoria c
-    LEFT JOIN producto pr ON pr.id_categoria = c.id_categoria AND pr.activo = TRUE
-    LEFT JOIN detalle_pedido dp ON dp.id_producto = pr.id_producto
-    LEFT JOIN pedido ped ON ped.id_pedido = dp.id_pedido 
-        AND ped.fecha >= CURRENT_DATE AND ped.fecha < CURRENT_DATE + 1
-    GROUP BY c.id_categoria
+    INNER JOIN producto pr ON pr.id_categoria = c.id_categoria
+    INNER JOIN detalle_pedido dp ON dp.id_producto = pr.id_producto
+    INNER JOIN pedido ped ON ped.id_pedido = dp.id_pedido
+    GROUP BY c.id_categoria, (ped.fecha AT TIME ZONE 'America/Argentina/Mendoza')::date
 )
 UNION ALL
 (
-    SELECT c.id_categoria, CURRENT_DATE AS fecha, 
-           COALESCE(SUM(dp.cantidad * dp.precio_unitario), 0) AS recalculado
+    SELECT c.id_categoria, 
+           (ped.fecha AT TIME ZONE 'America/Argentina/Mendoza')::date AS fecha, 
+           SUM(dp.cantidad * dp.precio_unitario) AS recalculado
     FROM categoria c
-    LEFT JOIN producto pr ON pr.id_categoria = c.id_categoria AND pr.activo = TRUE
-    LEFT JOIN detalle_pedido dp ON dp.id_producto = pr.id_producto
-    LEFT JOIN pedido ped ON ped.id_pedido = dp.id_pedido 
-        AND ped.fecha >= CURRENT_DATE AND ped.fecha < CURRENT_DATE + 1
-    GROUP BY c.id_categoria
+    INNER JOIN producto pr ON pr.id_categoria = c.id_categoria
+    INNER JOIN detalle_pedido dp ON dp.id_producto = pr.id_producto
+    INNER JOIN pedido ped ON ped.id_pedido = dp.id_pedido
+    GROUP BY c.id_categoria, (ped.fecha AT TIME ZONE 'America/Argentina/Mendoza')::date
     EXCEPT
     SELECT r.id_categoria, r.fecha, r.total_vendido
     FROM resumen_ventas_categoria_dia r
-    WHERE r.fecha = CURRENT_DATE
 );
 ```
 
@@ -54,34 +53,33 @@ UNION ALL
 
 ```sql
 -- Comparar: dato en la MV vs dato recalculado
+-- Recalcula para TODOS los días presentes en la MV
 (
     SELECT id_categoria, fecha, total_vendido AS guardado
     FROM mv_resumen_ventas_categoria_dia
-    WHERE fecha = CURRENT_DATE
     EXCEPT
-    SELECT c.id_categoria, CURRENT_DATE AS fecha, 
-           COALESCE(SUM(dp.cantidad * dp.precio_unitario), 0) AS recalculado
+    SELECT c.id_categoria, 
+           (ped.fecha AT TIME ZONE 'America/Argentina/Mendoza')::date AS fecha, 
+           SUM(dp.cantidad * dp.precio_unitario) AS recalculado
     FROM categoria c
-    LEFT JOIN producto pr ON pr.id_categoria = c.id_categoria AND pr.activo = TRUE
-    LEFT JOIN detalle_pedido dp ON dp.id_producto = pr.id_producto
-    LEFT JOIN pedido ped ON ped.id_pedido = dp.id_pedido 
-        AND ped.fecha >= CURRENT_DATE AND ped.fecha < CURRENT_DATE + 1
-    GROUP BY c.id_categoria
+    INNER JOIN producto pr ON pr.id_categoria = c.id_categoria
+    INNER JOIN detalle_pedido dp ON dp.id_producto = pr.id_producto
+    INNER JOIN pedido ped ON ped.id_pedido = dp.id_pedido
+    GROUP BY c.id_categoria, (ped.fecha AT TIME ZONE 'America/Argentina/Mendoza')::date
 )
 UNION ALL
 (
-    SELECT c.id_categoria, CURRENT_DATE AS fecha, 
-           COALESCE(SUM(dp.cantidad * dp.precio_unitario), 0) AS recalculado
+    SELECT c.id_categoria, 
+           (ped.fecha AT TIME ZONE 'America/Argentina/Mendoza')::date AS fecha, 
+           SUM(dp.cantidad * dp.precio_unitario) AS recalculado
     FROM categoria c
-    LEFT JOIN producto pr ON pr.id_categoria = c.id_categoria AND pr.activo = TRUE
-    LEFT JOIN detalle_pedido dp ON dp.id_producto = pr.id_producto
-    LEFT JOIN pedido ped ON ped.id_pedido = dp.id_pedido 
-        AND ped.fecha >= CURRENT_DATE AND ped.fecha < CURRENT_DATE + 1
-    GROUP BY c.id_categoria
+    INNER JOIN producto pr ON pr.id_categoria = c.id_categoria
+    INNER JOIN detalle_pedido dp ON dp.id_producto = pr.id_producto
+    INNER JOIN pedido ped ON ped.id_pedido = dp.id_pedido
+    GROUP BY c.id_categoria, (ped.fecha AT TIME ZONE 'America/Argentina/Mendoza')::date
     EXCEPT
     SELECT id_categoria, fecha, total_vendido
     FROM mv_resumen_ventas_categoria_dia
-    WHERE fecha = CURRENT_DATE
 );
 ```
 
