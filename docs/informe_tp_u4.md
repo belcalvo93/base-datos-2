@@ -65,11 +65,48 @@ La descomposición que corrige esto se desarrolla en los puntos e y f, en la sec
 
 ## Parte 2 a — Consulta y medición antes
 
-*Pendiente: Elías.*
+**Datos de la medición.** Base `bd2_tp4u4` (copia de `bd2_tp3`) con 200.005 + 10.000 pedidos, 499.263 + 20.012 detalles y 50.011 productos; los 10.000 pedidos y ~20.000 detalles de hoy se cargaron con `food-store/carga_pedidos_hoy.sql`, seguido de `VACUUM ANALYZE`. La base tiene solo 5 categorías, por lo que el top 5 las devuelve todas.
+
+**Consulta medida.** La del punto 5.1, adaptada al esquema real: el monto es `cantidad * precio_unitario` (el subtotal no se almacena), el filtro de hoy es un rango sobre `pedido.fecha` (es `TIMESTAMPTZ`, no `DATE`) y no hay columnas `eliminado`.
+
+```sql
+SET timezone = 'America/Argentina/Mendoza';
+SELECT c.nombre AS categoria, SUM(dp.cantidad * dp.precio_unitario) AS total_vendido
+FROM detalle_pedido dp
+JOIN producto pr ON pr.id_producto = dp.id_producto
+JOIN categoria c ON c.id_categoria = pr.id_categoria
+JOIN pedido ped ON ped.id_pedido = dp.id_pedido
+WHERE ped.fecha >= CURRENT_DATE AND ped.fecha < CURRENT_DATE + 1
+GROUP BY c.nombre ORDER BY total_vendido DESC LIMIT 5;
+```
+
+**Resultado.** Script: `food-store/medicion_top_categorias_antes.sql`; salida completa en `food-store/medicion_antes_salida.txt`. Seis corridas con `EXPLAIN (ANALYZE, BUFFERS)`; la primera es warm-up y se descarta.
+
+| Corrida | Execution Time (ms) |
+|---|---|
+| 1 (warm-up, descartada) | 69,256 |
+| 2 | 71,525 |
+| 3 | 68,483 |
+| 4 | 72,302 |
+| 5 | 70,405 |
+| 6 | 71,044 |
+| **Mediana (corridas 2–6)** | **71,044** |
+
+**Nodo dominante.** El plan no usa ningún índice: hay tres `Seq Scan` encadenados por `Hash Join`. El nodo hoja más costoso es el `Parallel Seq Scan on detalle_pedido` (costo 6658 de 14480): recorre las ~519.000 filas de la tabla para quedarse con las ~20.000 del día. Le sigue el `Parallel Seq Scan on pedido`, que lee 210.005 filas y descarta 200.005 por no existir un índice sobre `pedido.fecha`, y el `Seq Scan on producto`, que se vuelve a leer y a hashear (50.011 filas) en cada uno de los 3 procesos del plan paralelo. El costo crece con el histórico de la base, no con el volumen del día.
 
 ## Parte 2 b — Patrón de desnormalización elegido
 
-*Pendiente: Elías.*
+**Elección: tabla resumen `resumen_ventas_categoria_dia(id_categoria, fecha, total_vendido)` mantenida por un trigger sobre `detalle_pedido`.** La medición del punto 2a muestra una mediana de 71,0 ms con tres recorridos secuenciales (`detalle_pedido`, `pedido` y `producto`) que leen cientos de miles de filas para devolver 5, y ese trabajo crece con el histórico aunque lo vendido hoy sea poco; para un panel que consulta "muchas veces por minuto" es un costo repetido sin necesidad. El dato redundante se mantiene sincronizado con un único mecanismo, un trigger `AFTER INSERT/UPDATE/DELETE` sobre `detalle_pedido` que suma o resta `cantidad * precio_unitario` en la fila de su categoría y día (el día se deriva siempre de `pedido.fecha` con la zona `America/Argentina/Mendoza`, nunca de `CURRENT_DATE`), y un script de auditoría que recalcula desde las tablas fuente con `INNER JOIN` y compara con `EXCEPT` en ambos sentidos, cuyo resultado debe ser vacío. Es reversible sin pérdida: bastan `DROP TRIGGER`, `DROP FUNCTION` y `DROP TABLE`, porque la fuente de verdad (`detalle_pedido`, con su `precio_unitario` histórico congelado) no se modifica y el resumen siempre puede reconstruirse. Se prefiere el trigger a la vista materializada porque el panel requiere tiempo real: la vista queda desactualizada entre refrescos, mientras que el trigger da consistencia inmediata a cambio de un costo en cada escritura, que se mide en la Parte 2 c–e.
+
+**Respuestas a las 5 preguntas del profesor** (los puntos marcados como *supuesto* hay que confirmarlos con el dominio):
+
+1. *Frecuencia de la consulta:* "muchas veces por minuto" (consigna).
+2. *Escrituras por minuto en `detalle_pedido`:* *supuesto*: muy inferiores a las lecturas, ya que un panel consulta con más frecuencia de la que se registran pedidos. Se medirá el costo de escritura con 500 INSERT antes y después.
+3. *¿Tolera desfase?:* no; el panel exige tiempo real, por eso se descarta la vista materializada.
+4. *Cantidad de categorías y cambios del top:* la base tiene 5 categorías (4 activas), por lo que el top 5 equivale a todas y el orden puede cambiar con cada venta; la tabla resumen es chica (a lo sumo 5 filas por día).
+5. *Crecimiento del volumen:* el histórico crece con el tiempo (200.005 pedidos en dos años), y con él el costo de la consulta original, mientras que la lectura del resumen depende solo de la cantidad de categorías.
+
+**Limitaciones declaradas (fuera de alcance del trigger):** el cambio posterior de `pedido.fecha` o de `producto.id_categoria` sobre líneas ya registradas no se propaga al resumen; la auditoría lo detectaría como diferencia. La carga de pedidos de hoy se hizo con `INSERT` directo, por lo que el stock de los productos no se descontó; no afecta a esta consulta.
 
 ## Parte 2 c–e — Implementación, antes/después y auditoría
 

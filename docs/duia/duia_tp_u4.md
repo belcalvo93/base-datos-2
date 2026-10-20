@@ -55,13 +55,18 @@ Leé food-store/specs/spec_fnbc_control_lote.md, .kiro/steering/database.md y .k
 
 | Fecha | Herramienta | Propósito | Input | Output | Decisión | Motivo |
 |-------|-------------|-----------|-------|--------|----------|--------|
-| — | — | — | — | — | — | — |
+| 19/10/2026 | Claude Code | Leer la consigna, el contexto del grupo y el repo; ubicar qué tareas son de Elías y en qué orden | Consigna (PDF), `contexto_tp_u4_para_ias.md`, specs y `docs/informe_tp_u4.md` de `origin/main` | Cadena de specs 3→4→5→6 con responsables, y detección de que la consulta del PDF no corre tal cual (`subtotal` y `eliminado` no existen; `fecha` es `TIMESTAMPTZ`) | Aceptado | Verificado contra `schema.sql`; la adaptación (monto = `cantidad * precio_unitario`, rango de fechas) coincide con la que fija la spec 4 |
+| 19/10/2026 | Claude Code | Proponer alternativas para la carga de pedidos | Spec 3 y `carga_masiva.sql` | Cinco alternativas: A) `generate_series` con tabla temporal de productos vendibles; B) `LATERAL` + `ORDER BY random()`; C) clonar pedidos históricos a hoy; D) `registrar_pedido`; E) variante escalable `carga_masiva_bloque3_B.sql` | Aceptado la A | Elías eligió la A: es la más fácil de explicar y no depende del histórico; la B ordena ~50k productos por cada pedido; la D la descarta la spec |
+| 19/10/2026 | Claude Code | Escribir `food-store/carga_pedidos_hoy.sql` (10.000 pedidos de hoy, 1 a 3 líneas por pedido) | Plan aprobado por Elías y spec 3 | Script con `DELETE` idempotente del día, inserción de pedidos, tabla temporal `tmp_vendibles` (activos con stock ≥ 3), `ON CONFLICT DO NOTHING` por el `UNIQUE (id_pedido, id_producto)`, verificaciones y `ROLLBACK` final | Aceptado con 1 cambio | Corrida de prueba con `ROLLBACK` en `bd2_tp4u4`: 10.000 pedidos, 20.054 detalles, 16.474 productos distintos, reparto de `forma_pago` parejo, consulta del 5.1 con 5 filas. Único cambio del autor: `ROLLBACK;` por `COMMIT;` (línea 140) para la corrida real, seguida de `VACUUM ANALYZE` |
+
+**Nota de la carga:** se inserta directo en `detalle_pedido` (sin `registrar_pedido`), por lo que el stock no se descuenta; no afecta a la consulta medida. La base tiene solo 5 categorías (4 activas) y el script no filtra por `categoria.activo`, así que las ventas incluyen la categoría inactiva; se mantiene para que la consulta devuelva 5 filas, como exige la spec.
 
 ### Elías — Spec 4: Top Categorías (antes)
 
 | Fecha | Herramienta | Propósito | Input | Output | Decisión | Motivo |
 |-------|-------------|-----------|-------|--------|----------|--------|
-| — | — | — | — | — | — | — |
+| 19/10/2026 | Claude Code | Escribir `food-store/medicion_top_categorias_antes.sql` (6 corridas de `EXPLAIN (ANALYZE, BUFFERS)`) | Spec 4 | Script de solo lectura dentro de `BEGIN … ROLLBACK`, con la 1.ª corrida como warm-up | Aceptado | Ejecutado por Elías en `bd2_tp4u4` tras el `VACUUM ANALYZE`; Execution Time: 69,256 / 71,525 / 68,483 / 72,302 / 70,405 / 71,044 ms |
+| 19/10/2026 | Claude Code | Calcular la mediana, identificar el nodo dominante y redactar las secciones 2a y 2b del informe | Salida de las seis corridas y plan completo de la corrida 3 | Mediana de 71,044 ms (corridas 2 a 6); nodo dominante `Parallel Seq Scan on detalle_pedido`, sin índices sobre `pedido.fecha`; patrón tabla resumen con trigger, con respuestas a las 5 preguntas del profesor | Aceptado, pendiente de revisión del autor | Elías decidió el patrón (tabla resumen con trigger) y el volumen (10.000 pedidos); las respuestas 2 y 3 son supuestos marcados como tales en el informe y deben confirmarse |
 
 ### Bruno — Spec 5: Top Categorías Desnormalización
 
@@ -84,6 +89,7 @@ Si alguien se aparta del flujo (por ejemplo, usa Claude Code en lugar de OpenCod
 | Fecha | Integrante | Apartamiento | Justificación |
 |-------|------------|--------------|---------------|
 | 18/10/2026 | Belén | Las correcciones a las specs 1 y 2 las aplicó OpenCode en lugar de Kiro | Kiro quedó sin herramientas de edición y su reescritura degradó los archivos (sin tildes) |
+| 19/10/2026 | Elías | El SQL de las specs 3 y 4 (`carga_pedidos_hoy.sql` y `medicion_top_categorias_antes.sql`) y la redacción de 2a y 2b las propuso Claude Code en lugar de OpenCode | Se trabajó en una sola sesión de Claude Code; se mantuvo el principio de delegar la escritura y no la decisión: Elías eligió alternativa, volumen y patrón, ejecutó todo en `bd2_tp4u4` con `BEGIN … ROLLBACK` primero y verificó la salida |
 
 ---
 
