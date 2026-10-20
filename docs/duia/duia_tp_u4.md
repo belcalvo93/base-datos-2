@@ -67,13 +67,15 @@ Leé food-store/specs/spec_fnbc_control_lote.md, .kiro/steering/database.md y .k
 
 | Fecha | Herramienta | Propósito | Input | Output | Decisión | Motivo |
 |-------|-------------|-----------|-------|--------|----------|--------|
-| — | — | — | — | — | — | — |
+| 19/10/2026 | Claude Code | Revisar la spec 5 contra la consigna y el esquema antes de pasarla a OpenCode | Consigna 5.2, spec 5, `schema.sql`, steering | Cinco observaciones: filas que quedan en 0, índice sobre la columna que cambia en cada venta, UPDATE que cambia de categoría o de día, casos que el trigger no ve, contención sobre las filas de cada categoría | Aceptado | Las cinco se pueden comprobar en el esquema; se pasan a la spec como ediciones puntuales |
+| 19/10/2026 | Claude Code | Comprobar qué ve el trigger cuando se borra un pedido en cascada | Base descartable con `pedido` y `detalle_pedido` reducidos | Los triggers `BEFORE` y `AFTER` de `detalle_pedido` ven NULL al buscar el pedido | Aceptado | Se agrega a la spec un trigger `BEFORE DELETE` sobre `pedido` que llama a la misma función. Se probó un prototipo: la auditoría dio 0 filas en todos los casos |
+| 19/10/2026 | Claude Code | Corregir la spec 5 | Las observaciones anteriores | PK `(fecha, id_categoria)` sin índice extra, columna `cantidad_lineas`, reglas del trigger, casos fuera de alcance y criterios de aceptación | Aceptado | Revisado contra el `git diff` |
 
 ### Bruno — Spec 6: Top Categorías Auditoría
 
 | Fecha | Herramienta | Propósito | Input | Output | Decisión | Motivo |
 |-------|-------------|-----------|-------|--------|----------|--------|
-| — | — | — | — | — | — | — |
+| 19/10/2026 | Claude Code | Corregir la spec 6 en línea con la spec 5 | Spec 6 y los cambios de la spec 5 | Auditoría del Patrón 1 con `cantidad_lineas`, recálculo escrito una sola vez y columna `lado`; aviso de que la del Patrón 2 se corre después del refresco; tres pruebas de detección | Aceptado | La consulta se ejecutó en la base descartable: 0 filas sincronizada, 2 filas con una escritura a mano en el resumen |
 
 ---
 
@@ -84,6 +86,7 @@ Si alguien se aparta del flujo (por ejemplo, usa Claude Code en lugar de OpenCod
 | Fecha | Integrante | Apartamiento | Justificación |
 |-------|------------|--------------|---------------|
 | 18/10/2026 | Belén | Las correcciones a las specs 1 y 2 las aplicó OpenCode en lugar de Kiro | Kiro quedó sin herramientas de edición y su reescritura degradó los archivos (sin tildes) |
+| 19/10/2026 | Bruno | Las correcciones a las specs 5 y 6 las hizo Claude Code en lugar de Kiro | Las correcciones salieron de una prueba ejecutada en el motor (el borrado en cascada), y Kiro no ejecuta SQL. Se aplicaron como ediciones puntuales, para evitar la reescritura completa que ya había pasado con Kiro en las specs 1 y 2. El SQL final lo propone OpenCode |
 
 ---
 
