@@ -70,6 +70,7 @@ Leé food-store/specs/spec_fnbc_control_lote.md, .kiro/steering/database.md y .k
 | 19/10/2026 | Claude Code | Revisar la spec 5 contra la consigna y el esquema antes de pasarla a OpenCode | Consigna 5.2, spec 5, `schema.sql`, steering | Cinco observaciones: filas que quedan en 0, índice sobre la columna que cambia en cada venta, UPDATE que cambia de categoría o de día, casos que el trigger no ve, contención sobre las filas de cada categoría | Aceptado | Las cinco se pueden comprobar en el esquema; se pasan a la spec como ediciones puntuales |
 | 19/10/2026 | Claude Code | Comprobar qué ve el trigger cuando se borra un pedido en cascada | Base descartable con `pedido` y `detalle_pedido` reducidos | Los triggers `BEFORE` y `AFTER` de `detalle_pedido` ven NULL al buscar el pedido | Aceptado | Se agrega a la spec un trigger `BEFORE DELETE` sobre `pedido` que llama a la misma función. Se probó un prototipo: la auditoría dio 0 filas en todos los casos |
 | 19/10/2026 | Claude Code | Corregir la spec 5 | Las observaciones anteriores | PK `(fecha, id_categoria)` sin índice extra, columna `cantidad_lineas`, reglas del trigger, casos fuera de alcance y criterios de aceptación | Aceptado | Revisado contra el `git diff` |
+| 20/10/2026 | Claude Code | Actualizar en la spec 5 el patrón elegido, a pedido de Belén | Decisión de Elías (punto 2b) | Una línea en la sección 3 | Aceptado | La línea seguía diciendo que el patrón se iba a definir en la spec 4 |
 
 ### Bruno — Spec 6: Top Categorías Auditoría
 
