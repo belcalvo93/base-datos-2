@@ -2,7 +2,7 @@
 
 **Responsable**: Bruno  
 **Fecha de creación**: 2026-10-18  
-**Última revisión**: 2026-10-19 — Corrección 3: PK `(fecha, id_categoria)` sin índice extra, columna `cantidad_lineas`, UPDATE como resta + suma, borrado en cascada de `pedido`, casos fuera de alcance
+**Última revisión**: 2026-10-20 — Patrón elegido actualizado en la sección 3. Antes (2026-10-19), corrección 3: PK `(fecha, id_categoria)` sin índice extra, columna `cantidad_lineas`, UPDATE como resta + suma, borrado en cascada de `pedido`, casos fuera de alcance
 
 ---
 
@@ -59,7 +59,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_resumen_categoria_dia
 
 - **Frecuencia de lectura**: "muchas veces por minuto" (según spec 4).
 - **Frecuencia de escritura**: depende del volumen de pedidos nuevos por minuto.
-- **Patrón elegido**: se definirá en spec 4 según las mediciones.
+- **Patrón elegido**: Patrón 1, tabla resumen mantenida por trigger. Lo eligió Elías con la medición basal de la spec 4 (mediana 71,0 ms); la justificación está en el punto 2b del informe.
 - **Costo del Patrón 1 en concurrencia**: todas las ventas de un día actualizan las mismas filas, una por categoría. Dos transacciones que venden en la misma categoría se esperan una a la otra hasta que la primera confirma. Con el volumen del TP no se nota, pero es el precio del patrón y se menciona en la justificación.
 - **Costo del Patrón 2**: `REFRESH MATERIALIZED VIEW CONCURRENTLY` recalcula todos los días, no solo el de hoy. Si el panel necesita el dato "en tiempo real", habría que refrescar muchas veces por minuto, y cada refresco cuesta más que la consulta original. Este dato sirve para la justificación de Elías (punto 5.2b).
 
