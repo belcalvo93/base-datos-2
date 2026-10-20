@@ -49,7 +49,8 @@ Leé food-store/specs/spec_fnbc_control_lote.md, .kiro/steering/database.md y .k
 
 | Fecha | Herramienta | Propósito | Input | Output | Decisión | Motivo |
 |-------|-------------|-----------|-------|--------|----------|--------|
-| — | — | — | — | — | — | — |
+| 20/10/2026 | OpenCode (modo Plan) | Proponer la segunda mitad de `food-store/tp_fnbc_control_lote.sql` (puntos e–f) | `spec_fnbc_descomposicion.md`, primera mitad de `tp_fnbc_control_lote.sql` y steering | DDL de `responsable_deposito` (R1) y `control_lote` (R2), migración desde `control_lote_almacen`, vista `v_control_lote_almacen` con `NATURAL JOIN` y verificación de equivalencia en ambas direcciones con `EXCEPT`, manteniendo `BEGIN; … ROLLBACK;` e idempotencia | Aceptado | Ejecutado contra `bd2_tp4u4`: `responsable_deposito` = 2 filas, `control_lote` = 3 filas, `v_control_lote_almacen` = 3 filas y ambos `EXCEPT` devuelven 0 filas |
+| 20/10/2026 | OpenCode | Redactar la sección de Parte 1 (puntos e–f) en `docs/informe_tp_u4.md` y el resultado en `spec_fnbc_descomposicion.md` | Salida real de `psql` sobre `bd2_tp4u4` y criterios de la spec 2 | Sección `Parte 1 — Descomposición sin pérdida (puntos e–f)` en el informe y sección 8 de la spec 2 | Aceptado | Coincide con la salida verificada en el motor y documenta la unión sin pérdida y la no preservación de F1 |
 
 ### Elías — Spec 3: Carga de pedidos de hoy
 

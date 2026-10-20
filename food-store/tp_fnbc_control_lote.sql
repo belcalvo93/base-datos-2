@@ -8,9 +8,14 @@
 --        c) determinación de FNBC, DF violatoria y por qué
 --        d) un escenario concreto por cada anomalía (inserción,
 --           borrado, actualización)
---   Los puntos e) y f) NO forman parte de este script.
+--        e) descomposición en FNBC (responsable_deposito y control_lote),
+--           análisis de pérdida de información y preservación de DFs
+--        f) migración de datos, vista v_control_lote_almacen (NATURAL JOIN)
+--           y verificación de equivalencia en ambas direcciones con EXCEPT
 --
--- Spec: food-store/specs/spec_fnbc_control_lote.md
+-- Specs:
+--   food-store/specs/spec_fnbc_control_lote.md (puntos a-d)
+--   food-store/specs/spec_fnbc_descomposicion.md (puntos e-f)
 --   Donde la spec y la consigna difieren, manda la consigna:
 --   control_lote_almacen NO tiene columnas id ni cantidad, la PK es
 --   (lote_id, deposito_id), los tipos son BIGINT y
@@ -49,7 +54,10 @@ SELECT current_database();
 -- ============================================================
 -- CONTEXTO — consigna 4.1
 -- ============================================================
--- DROP en orden inverso al CREATE (primero la tabla con las FK).
+-- DROP en orden inverso al CREATE (primero la vista y tablas con FK).
+DROP VIEW IF EXISTS v_control_lote_almacen;
+DROP TABLE IF EXISTS control_lote CASCADE;
+DROP TABLE IF EXISTS responsable_deposito CASCADE;
 DROP TABLE IF EXISTS control_lote_almacen CASCADE;
 DROP TABLE IF EXISTS lote CASCADE;
 DROP TABLE IF EXISTS deposito CASCADE;
@@ -247,6 +255,112 @@ GROUP BY responsable_control_id
 HAVING COUNT(DISTINCT deposito_id) > 1;
 
 ROLLBACK TO SAVEPOINT anom_actualizacion;
+
+-- ============================================================
+-- e) DESCOMPOSICIÓN EN FNBC — sin pérdida de información
+-- ============================================================
+-- Se aplica descomposición de Boyce-Codd a partir de la DF que
+-- violaba FNBC (F2: {responsable_control_id} → {deposito_id}):
+--
+--   R1: responsable_deposito (responsable_control_id PK, deposito_id)
+--       DF que rige en R1: F2 ({responsable_control_id} → {deposito_id}).
+--       Única clave candidata: {responsable_control_id}.
+--       El único determinante no trivial es superclave → R1 está en FNBC.
+--
+--   R2: control_lote (lote_id, responsable_control_id) — PK compuesta
+--       No tiene DFs no triviales propias (su única clave candidata es
+--       la tupla completa {lote_id, responsable_control_id}) → R2 está en FNBC.
+--
+-- ¿Por qué la descomposición es SIN PÉRDIDA (Teorema de Heath)?
+--   R1 ∩ R2 = {responsable_control_id}, y en R1 se cumple
+--   {responsable_control_id} → {deposito_id}, por lo que el atributo
+--   común (R1 ∩ R2) es superclave de R1. Eso garantiza que
+--   R1 ⋈ R2 reconstruye exactamente R sin tuplas espurias.
+--
+-- ¿Se preservan las dependencias funcionales?
+--   - F2 ({responsable_control_id} → {deposito_id}) SÍ se preserva:
+--     la impone la PK de responsable_deposito.
+--   - F1 ({lote_id, deposito_id} → {responsable_control_id}) NO se
+--     preserva en una sola tabla porque lote_id quedó en R2 y
+--     deposito_id en R1. Es el trade-off clásico de FNBC: dos
+--     responsables distintos del mismo depósito podrían registrar el
+--     mismo lote en control_lote sin que las PKs individuales lo impidan.
+-- ============================================================
+
+DROP VIEW IF EXISTS v_control_lote_almacen;
+DROP TABLE IF EXISTS control_lote CASCADE;
+DROP TABLE IF EXISTS responsable_deposito CASCADE;
+
+-- R1: Depósito asignado a cada responsable (impone F2 por PK)
+CREATE TABLE responsable_deposito (
+    responsable_control_id BIGINT PRIMARY KEY REFERENCES usuario(id),
+    deposito_id BIGINT NOT NULL REFERENCES deposito(id)
+);
+
+-- R2: Control de cada lote por su responsable
+CREATE TABLE control_lote (
+    lote_id BIGINT NOT NULL REFERENCES lote(id),
+    responsable_control_id BIGINT NOT NULL REFERENCES responsable_deposito(responsable_control_id),
+    PRIMARY KEY (lote_id, responsable_control_id)
+);
+
+-- ============================================================
+-- f) MIGRACIÓN, VISTA DE COMPATIBILIDAD Y VERIFICACIÓN (EXCEPT)
+-- ============================================================
+
+-- f.1) Migración de datos desde la tabla original control_lote_almacen
+-- En R1 usamos DISTINCT porque cada responsable puede aparecer en
+-- varios lotes dentro de control_lote_almacen (ej. 801 en 501 y 502).
+INSERT INTO responsable_deposito (responsable_control_id, deposito_id)
+SELECT DISTINCT responsable_control_id, deposito_id
+FROM control_lote_almacen;
+
+INSERT INTO control_lote (lote_id, responsable_control_id)
+SELECT lote_id, responsable_control_id
+FROM control_lote_almacen;
+
+-- f.2) Vista de compatibilidad con NATURAL JOIN
+-- La única columna con el mismo nombre entre control_lote y
+-- responsable_deposito es responsable_control_id (superclave de R1).
+CREATE OR REPLACE VIEW v_control_lote_almacen AS
+SELECT lote_id, deposito_id, responsable_control_id
+FROM control_lote
+NATURAL JOIN responsable_deposito;
+
+-- f.3) Inspección de las tablas nuevas y de la vista reconstruida
+SELECT responsable_control_id, deposito_id
+FROM responsable_deposito
+ORDER BY responsable_control_id;
+
+SELECT lote_id, responsable_control_id
+FROM control_lote
+ORDER BY lote_id, responsable_control_id;
+
+SELECT lote_id, deposito_id, responsable_control_id
+FROM v_control_lote_almacen
+ORDER BY lote_id, deposito_id;
+
+-- f.4) Verificación de conteo de filas
+SELECT
+    (SELECT COUNT(*) FROM control_lote_almacen)   AS filas_original,
+    (SELECT COUNT(*) FROM responsable_deposito)   AS filas_r1_responsable_deposito,
+    (SELECT COUNT(*) FROM control_lote)           AS filas_r2_control_lote,
+    (SELECT COUNT(*) FROM v_control_lote_almacen) AS filas_vista_reconstruida;
+
+-- f.5) Verificación de equivalencia en ambas direcciones con EXCEPT
+-- Dirección 1: original EXCEPT vista (esperado: 0 filas)
+SELECT lote_id, deposito_id, responsable_control_id
+FROM control_lote_almacen
+EXCEPT
+SELECT lote_id, deposito_id, responsable_control_id
+FROM v_control_lote_almacen;
+
+-- Dirección 2: vista EXCEPT original (esperado: 0 filas)
+SELECT lote_id, deposito_id, responsable_control_id
+FROM v_control_lote_almacen
+EXCEPT
+SELECT lote_id, deposito_id, responsable_control_id
+FROM control_lote_almacen;
 
 -- ============================================================
 -- Cierre: nada de lo anterior queda en la base. Cambiar por COMMIT
