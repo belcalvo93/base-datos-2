@@ -115,9 +115,32 @@ GROUP BY c.nombre ORDER BY total_vendido DESC LIMIT 5;
 
 **Nodo dominante.** El plan no usa ningún índice: hay tres `Seq Scan` encadenados por `Hash Join`. El nodo hoja más costoso es el `Parallel Seq Scan on detalle_pedido` (costo 6658 de 14480): recorre las ~519.000 filas de la tabla para quedarse con las ~20.000 del día. Le sigue el `Parallel Seq Scan on pedido`, que lee 210.005 filas y descarta 200.005 por no existir un índice sobre `pedido.fecha`, y el `Seq Scan on producto`, que se vuelve a leer y a hashear (50.011 filas) en cada uno de los 3 procesos del plan paralelo. El costo crece con el histórico de la base, no con el volumen del día.
 
+Plan "antes" (corrida 3, resumido; el plan completo está en `food-store/medicion_antes_salida.txt`):
+
+```text
+Limit (actual time=63.898..68.237 rows=5 loops=1)
+  Buffers: shared hit=6173 read=1537
+  ->  Sort  Sort Key: (sum(dp.cantidad * dp.precio_unitario)) DESC
+        ->  Finalize GroupAggregate  Group Key: c.nombre
+              ->  Gather Merge  (Workers Planned: 2, Workers Launched: 2)
+                    ->  Sort  Sort Key: c.nombre
+                          ->  Partial HashAggregate  Group Key: c.nombre
+                                ->  Hash Join  Hash Cond: (pr.id_categoria = c.id_categoria)
+                                      ->  Hash Join  Hash Cond: (dp.id_producto = pr.id_producto)
+                                            ->  Parallel Hash Join  Hash Cond: (dp.id_pedido = ped.id_pedido)
+                                                  ->  Parallel Seq Scan on detalle_pedido dp  (rows=173092 loops=3)
+                                                  ->  Parallel Hash
+                                                        ->  Parallel Seq Scan on pedido ped  (rows=10000)
+                                                              Filter: (fecha >= CURRENT_DATE) AND (fecha < CURRENT_DATE + 1)
+                                                              Rows Removed by Filter: 200005
+                                            ->  Hash  ->  Seq Scan on producto pr  (rows=50011 loops=3)
+                                      ->  Hash  ->  Seq Scan on categoria c  (rows=5)
+Execution Time: 68.483 ms
+```
+
 ## Parte 2 b — Patrón de desnormalización elegido
 
-**Elección: tabla resumen `resumen_ventas_categoria_dia(id_categoria, fecha, total_vendido)` mantenida por un trigger sobre `detalle_pedido`.** La medición del punto 2a muestra una mediana de 71,0 ms con tres recorridos secuenciales (`detalle_pedido`, `pedido` y `producto`) que leen cientos de miles de filas para devolver 5, y ese trabajo crece con el histórico aunque lo vendido hoy sea poco; para un panel que consulta "muchas veces por minuto" es un costo repetido sin necesidad. El dato redundante se mantiene sincronizado con un único mecanismo, un trigger `AFTER INSERT/UPDATE/DELETE` sobre `detalle_pedido` que suma o resta `cantidad * precio_unitario` en la fila de su categoría y día (el día se deriva siempre de `pedido.fecha` con la zona `America/Argentina/Mendoza`, nunca de `CURRENT_DATE`), y un script de auditoría que recalcula desde las tablas fuente con `INNER JOIN` y compara con `EXCEPT` en ambos sentidos, cuyo resultado debe ser vacío. Es reversible sin pérdida: bastan `DROP TRIGGER`, `DROP FUNCTION` y `DROP TABLE`, porque la fuente de verdad (`detalle_pedido`, con su `precio_unitario` histórico congelado) no se modifica y el resumen siempre puede reconstruirse. Se prefiere el trigger a la vista materializada porque el panel requiere tiempo real: la vista queda desactualizada entre refrescos, mientras que el trigger da consistencia inmediata a cambio de un costo en cada escritura, que se mide en la Parte 2 c–e.
+**Elección: tabla resumen `resumen_ventas_categoria_dia(id_categoria, fecha, total_vendido)` mantenida por un trigger sobre `detalle_pedido`.** La medición del punto 2a muestra una mediana de 71,0 ms con tres recorridos secuenciales (`detalle_pedido`, `pedido` y `producto`) que leen cientos de miles de filas para devolver 5, y ese trabajo crece con el histórico aunque lo vendido hoy sea poco; para un panel que consulta "muchas veces por minuto" es un costo repetido sin necesidad. El dato redundante se mantiene sincronizado con un único mecanismo, un trigger `AFTER INSERT/UPDATE/DELETE` sobre `detalle_pedido` que suma o resta `cantidad * precio_unitario` en la fila de su categoría y día (el día se deriva siempre de `pedido.fecha` con la zona `America/Argentina/Mendoza`, nunca de `CURRENT_DATE`), y un script de auditoría que recalcula desde las tablas fuente con `INNER JOIN` y compara con `EXCEPT` en ambos sentidos, cuyo resultado debe ser vacío. Es reversible sin pérdida: bastan `DROP TRIGGER`, `DROP FUNCTION` y `DROP TABLE`, porque la fuente de verdad (`detalle_pedido`, con su `precio_unitario` histórico congelado) no se modifica y el resumen siempre puede reconstruirse. Se prefiere el trigger a la vista materializada porque el panel requiere tiempo real: la vista queda desactualizada entre refrescos, mientras que el trigger da consistencia inmediata a cambio de un costo en cada escritura, que se mide en la Parte 2 c–e. La implementación final agrega a lo descrito acá la columna `cantidad_lineas` y un segundo trigger `BEFORE DELETE` sobre `pedido`; el detalle está en 2c.
 
 **Respuestas a las 5 preguntas del profesor** (los puntos marcados como *supuesto* hay que confirmarlos con el dominio):
 
