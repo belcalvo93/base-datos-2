@@ -133,7 +133,7 @@ GROUP BY c.nombre ORDER BY total_vendido DESC LIMIT 5;
 
 ## Parte 2 c–e — Implementación, antes/después y auditoría
 
-Script: `food-store/tp_desnormalizacion_top_categorias.sql`, ejecutado sobre `bd2_tp4u4` primero con `ROLLBACK` y después con `COMMIT`. La salida está en `food-store/tp_desnormalizacion_salida_rollback.txt`. Specs: `spec_top_categorias_desnormalizacion.md` (spec 5) y `spec_top_categorias_auditoria.md` (spec 6).
+Script: `food-store/tp_desnormalizacion_top_categorias.sql`, ejecutado sobre `bd2_tp4u4` primero con `ROLLBACK` y después con `COMMIT`. Las salidas están en `food-store/tp_desnormalizacion_salida_rollback.txt` y `food-store/tp_desnormalizacion_salida_commit.txt`. En el repositorio el script termina en `ROLLBACK`, para que quien lo corra por primera vez no aplique cambios sin querer: para aplicarlo hay que cambiar ese `ROLLBACK` final por `COMMIT`. Lo mismo vale para `tp_desnormalizacion_reversion.sql`. Specs: `spec_top_categorias_desnormalizacion.md` (spec 5) y `spec_top_categorias_auditoria.md` (spec 6).
 
 ### c) Implementación del patrón
 
@@ -214,7 +214,7 @@ Cada venta cuesta el doble, pero en valores absolutos es menos de una décima de
 
 La auditoría recalcula el resumen desde las tablas fuente, con `INNER JOIN` y para todos los días, y lo compara con lo guardado mediante `EXCEPT` en ambos sentidos. Compara también `cantidad_lineas`. Una columna `lado` indica de qué lado sobra cada fila, así una desincronización aparece como dos filas, una con el valor del resumen y otra con el de la fuente.
 
-**Sobre la base migrada: 0 filas.**
+**Sobre la base ya migrada: 0 filas.** Se corrió aparte, después del `COMMIT`, con `food-store/auditoria_top_categorias.sql` (salida en `food-store/auditoria_salida_bruno.txt`): 3.665 filas del resumen, 733 días, y ninguna diferencia con la fuente.
 
 Para mostrar que la auditoría efectivamente detecta errores (una auditoría que siempre da 0 no prueba nada), el script incluye pruebas que se deshacen con `ROLLBACK TO SAVEPOINT`:
 

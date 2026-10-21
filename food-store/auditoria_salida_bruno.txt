@@ -1,0 +1,14 @@
+ current_database 
+------------------
+ bd2_tp4u4
+(1 fila)
+
+ filas_resumen | dias | ultimo_dia 
+---------------+------+------------
+          3665 |  733 | 2026-10-21
+(1 fila)
+
+ lado | fecha | id_categoria | total_vendido | cantidad_lineas 
+------+-------+--------------+---------------+-----------------
+(0 filas)
+
