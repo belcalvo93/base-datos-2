@@ -89,7 +89,7 @@ No aplica (depende de spec 4).
 2. **Mecanismo de sincronización**:
    
    **Si es Patrón 1 (trigger)**:
-   - Una sola función, la única que escribe en `resumen_ventas_categoria_dia`, aplica el aporte de una línea con signo `+1` o `-1`. Hace `INSERT … ON CONFLICT (fecha, id_categoria) DO UPDATE` sumando `cantidad * precio_unitario` a `total_vendido` y el signo a `cantidad_lineas`. Después borra la fila si `cantidad_lineas` quedó en 0.
+   - Una sola función, la única que escribe en `resumen_ventas_categoria_dia`, aplica el aporte de una línea con signo `+1` o `-1`. Para sumar hace `INSERT … ON CONFLICT (fecha, id_categoria) DO UPDATE`, que suma `cantidad * precio_unitario` a `total_vendido` y 1 a `cantidad_lineas`. Para restar, si es la última línea de ese día y categoría (`cantidad_lineas = 1`), borra la fila; si no, hace un `UPDATE` que resta. No se puede actualizar a 0 y borrar después, porque la tabla tiene `CHECK (cantidad_lineas > 0)` y el paso intermedio lo violaría.
    - Trigger `AFTER INSERT OR UPDATE OR DELETE ON detalle_pedido FOR EACH ROW`:
      - INSERT: suma el aporte de `NEW`.
      - DELETE: resta el aporte de `OLD`.
@@ -98,7 +98,7 @@ No aplica (depende de spec 4).
      - Trigger `BEFORE DELETE ON pedido FOR EACH ROW`, que llama a la misma función con `-1` por cada línea del pedido. En ese momento las líneas y el pedido todavía existen.
      - En la función: si no encuentra el pedido, no hace nada, porque esa línea ya la restó el trigger de `pedido`. Así no se resta dos veces.
      - Esto no rompe la regla del único dueño: los dos triggers son puntos de entrada a la misma función, y es la única que escribe en el resumen.
-   - El día de cada línea se deriva siempre de `pedido.fecha`, nunca de `CURRENT_DATE`: `(fecha AT TIME ZONE 'America/Argentina/Mendoza')::date`. El trigger, la consulta nueva y la auditoría usan la misma expresión (zona horaria a confirmar con el profesor).
+   - El día de cada línea se deriva siempre de `pedido.fecha`, nunca de `CURRENT_DATE`: `(fecha AT TIME ZONE 'America/Argentina/Mendoza')::date`. El trigger, la consulta nueva y la auditoría usan la misma expresión.
    - **Fuera de alcance** (se documenta en el informe y la auditoría lo detecta; ver spec 6):
      - Cambiar `pedido.fecha` de un pedido ya cargado.
      - Cambiar `producto.id_categoria`. Movería todas las ventas históricas del producto a otra categoría, y la decisión de negocio sobre si eso corresponde no es parte de este TP.
@@ -162,13 +162,15 @@ Si el "después" NO mejora de forma medible (dentro del margen de error), se des
 
 ## 8. Resultado de la medición
 
-*Pendiente de medición.*  
-*Fecha: —*  
-*Estado: —*  
-*Tiempo antes (mediana): — ms*  
-*Tiempo después (mediana): — ms*  
-*Mejora: — %*  
-*Costo de escritura adicional: — ms*
+- **Fecha:** 21/10/2026, sobre `bd2_tp4u4` (220.005 pedidos, 539.286 detalles). Antes y después medidos el mismo día.
+- **Estado:** aceptado. Implementado en `food-store/tp_desnormalizacion_top_categorias.sql` y confirmado con `COMMIT`.
+- **Tiempo antes (mediana de 5):** 78,077 ms. Nodo dominante: `Parallel Seq Scan on detalle_pedido`.
+- **Tiempo después (mediana de 5):** 0,037 ms. Nodo dominante: `Bitmap Index Scan` sobre la PK del resumen.
+- **Mejora:** unas 2.100 veces; de 7.770 buffers a 8.
+- **Mismo top 5 que la consulta original:** sí, `EXCEPT` en los dos sentidos da 0 filas.
+- **Costo de escritura (500 INSERT, mediana de 5):** 22,653 ms sin trigger y 46,591 ms con trigger (+23,9 ms, 0,048 ms por línea); WAL de 182.576 a 254.056 bytes (+39 %).
+- **Reversión:** probada dentro de un `SAVEPOINT`; el resumen desaparece y `pedido` y `detalle_pedido` no cambian.
+- **Salidas:** `medicion_antes_salida_bruno.txt`, `medicion_despues_salida_bruno.txt`, `medicion_escritura_salida_bruno.txt` y `tp_desnormalizacion_salida_rollback.txt`.
 
 ---
 

@@ -133,7 +133,103 @@ GROUP BY c.nombre ORDER BY total_vendido DESC LIMIT 5;
 
 ## Parte 2 c–e — Implementación, antes/después y auditoría
 
-*Pendiente: Bruno.*
+Script: `food-store/tp_desnormalizacion_top_categorias.sql`, ejecutado sobre `bd2_tp4u4` primero con `ROLLBACK` y después con `COMMIT`. La salida está en `food-store/tp_desnormalizacion_salida_rollback.txt`. Specs: `spec_top_categorias_desnormalizacion.md` (spec 5) y `spec_top_categorias_auditoria.md` (spec 6).
+
+### c) Implementación del patrón
+
+**Tabla resumen.** `resumen_ventas_categoria_dia(fecha, id_categoria, total_vendido, cantidad_lineas)`, con PK `(fecha, id_categoria)` y FK a `categoria`. Respecto de lo descrito en 2b se agregaron dos cosas que aparecieron al revisar la spec:
+
+- `cantidad_lineas` cuenta cuántas líneas respaldan cada fila. Cuando una categoría se queda sin líneas en un día, la fila se borra. No alcanza con mirar si el total llegó a 0, porque `precio_unitario` admite 0 (`CHECK (precio_unitario >= 0)`) y puede haber ventas reales que sumen 0.
+- La PK empieza por `fecha` porque la consulta del panel filtra por un día. Con eso no hace falta otro índice. No se indexó `total_vendido`: cambia en cada venta y el índice solo ahorraría ordenar 5 filas.
+
+**Sincronización: un único dueño.** La única función que escribe en el resumen es `fn_resumen_ventas_aplicar_linea`, que recibe una línea y un signo (+1 suma, −1 resta) y deriva el día de `pedido.fecha` con `AT TIME ZONE 'America/Argentina/Mendoza'`. La llaman dos triggers:
+
+- `trg_resumen_ventas_detalle`, `AFTER INSERT OR UPDATE OR DELETE` sobre `detalle_pedido`. En un `UPDATE` resta la línea vieja y suma la nueva, porque la línea puede haber cambiado de producto (otra categoría) o de pedido (otro día).
+- `trg_resumen_ventas_pedido_borrado`, `BEFORE DELETE` sobre `pedido`. Hace falta por el `ON DELETE CASCADE` de `detalle_pedido`: cuando se borra un pedido, el trigger de las líneas se dispara pero ya no encuentra el pedido y no sabe de qué día restar. Lo comprobamos en una base aparte antes de escribir la spec. Por eso las líneas se restan antes de que el pedido desaparezca, y la función ignora las líneas cuyo pedido ya no existe para no restarlas dos veces.
+
+Los dos triggers son puntos de entrada a la misma función, así que la regla del único dueño se mantiene: nadie más escribe el resumen.
+
+**Carga inicial.** Cubre todos los días, no solo hoy: 3.665 filas (733 días × 5 categorías). Va en la misma transacción que los triggers, y los triggers se crean primero: `CREATE TRIGGER` bloquea las escrituras sobre la tabla hasta el final de la transacción, así que ninguna venta queda entre la carga y el momento en que el trigger empieza a funcionar.
+
+**Fuera de alcance.** Cambiar `pedido.fecha` o `producto.id_categoria` de líneas ya registradas no se propaga al resumen. No se cubrió porque cambiar la categoría de un producto movería todas sus ventas históricas, y esa es una decisión de negocio que no forma parte del TP. La auditoría lo detecta (prueba 3 del punto e).
+
+### d) Consulta sobre la estructura desnormalizada y comparación
+
+```sql
+SELECT c.nombre AS categoria, r.total_vendido
+FROM resumen_ventas_categoria_dia r
+JOIN categoria c ON c.id_categoria = r.id_categoria
+WHERE r.fecha = (now() AT TIME ZONE 'America/Argentina/Mendoza')::date
+ORDER BY r.total_vendido DESC LIMIT 5;
+```
+
+Devuelve lo mismo que la consulta original: el script compara las dos con `EXCEPT` en ambos sentidos y da 0 filas.
+
+**Medición.** El antes y el después se midieron el mismo día (21/10/2026) y sobre la misma base, con el mismo formato que en 2a: seis corridas de `EXPLAIN (ANALYZE, BUFFERS)`, la primera descartada. Por eso el "antes" no es el 71,044 ms de 2a: esta base es la de Elías más los pedidos cargados hoy, con 220.005 pedidos y 539.286 detalles. Scripts: `medicion_top_categorias_antes.sql` y `medicion_top_categorias_despues.sql`; salidas en `medicion_antes_salida_bruno.txt` y `medicion_despues_salida_bruno.txt`.
+
+| Corrida | Antes (ms) | Después (ms) |
+|---|---|---|
+| 1 (warm-up, descartada) | 76,892 | 0,112 |
+| 2 | 77,002 | 0,044 |
+| 3 | 78,077 | 0,037 |
+| 4 | 146,603 | 0,034 |
+| 5 | 141,057 | 0,033 |
+| 6 | 77,422 | 0,038 |
+| **Mediana (corridas 2–6)** | **78,077** | **0,037** |
+
+Las corridas 4 y 5 del "antes" tardaron casi el doble con el mismo plan; lo atribuimos a carga de la máquina en ese momento, y la mediana lo absorbe.
+
+| | Antes | Después |
+|---|---|---|
+| Tiempo de ejecución (mediana) | 78,077 ms | 0,037 ms |
+| Nodo dominante | `Parallel Seq Scan on detalle_pedido`: recorre 539.286 líneas para quedarse con las ~20.000 de hoy | `Bitmap Index Scan` sobre `resumen_ventas_categoria_dia_pkey`: trae solo las 5 filas de hoy |
+| Buffers leídos | 7.770 (6.672 en memoria + 1.098 de disco) | 8 |
+
+La consulta pasa a ser unas 2.100 veces más rápida y, sobre todo, deja de depender del tamaño del histórico: lee 5 filas por más pedidos que se acumulen.
+
+Plan después (corrida 6):
+
+```text
+Limit (actual time=0.025..0.026 rows=5 loops=1)
+  Buffers: shared hit=8
+  ->  Sort  Sort Key: r.total_vendido DESC
+        ->  Hash Join  Hash Cond: (r.id_categoria = c.id_categoria)
+              ->  Bitmap Heap Scan on resumen_ventas_categoria_dia r (rows=5)
+                    ->  Bitmap Index Scan on resumen_ventas_categoria_dia_pkey
+                          Index Cond: (fecha = ((now() AT TIME ZONE 'America/Argentina/Mendoza'))::date)
+              ->  Hash  ->  Seq Scan on categoria c (rows=5)
+Execution Time: 0.038 ms
+```
+
+**Costo de escritura.** La mejora en la lectura se paga en cada venta. Se midieron 500 `INSERT` individuales en `detalle_pedido`, con el trigger apagado y encendido, cinco rondas de cada caso dentro de `BEGIN … ROLLBACK` (`medicion_escritura_top_categorias.sql`, salida en `medicion_escritura_salida_bruno.txt`):
+
+| 500 INSERT (mediana de 5) | Sin trigger | Con trigger | Diferencia |
+|---|---|---|---|
+| Tiempo | 22,653 ms | 46,591 ms | +106 % (0,048 ms más por línea) |
+| WAL generado | 182.576 bytes | 254.056 bytes | +39 % |
+
+Cada venta cuesta el doble, pero en valores absolutos es menos de una décima de milisegundo por línea. Cada consulta del panel ahorra unos 78 ms, así que una sola consulta compensa el costo extra de unas 1.600 líneas vendidas. Con un panel que consulta muchas veces por minuto, el balance es claramente favorable. El costo que no se ve en esta medición es la concurrencia: todas las ventas de un día actualizan las mismas 5 filas, así que dos ventas simultáneas de la misma categoría se esperan una a la otra hasta que la primera confirma.
+
+### e) Auditoría de desincronización
+
+La auditoría recalcula el resumen desde las tablas fuente, con `INNER JOIN` y para todos los días, y lo compara con lo guardado mediante `EXCEPT` en ambos sentidos. Compara también `cantidad_lineas`. Una columna `lado` indica de qué lado sobra cada fila, así una desincronización aparece como dos filas, una con el valor del resumen y otra con el de la fuente.
+
+**Sobre la base migrada: 0 filas.**
+
+Para mostrar que la auditoría efectivamente detecta errores (una auditoría que siempre da 0 no prueba nada), el script incluye pruebas que se deshacen con `ROLLBACK TO SAVEPOINT`:
+
+| Prueba | Qué se hace | Resultado de la auditoría |
+|---|---|---|
+| Mecanismo funcionando | Insertar una línea, cambiar una cantidad, mover una línea a un producto de otra categoría, borrar una línea y borrar un pedido entero | 0 filas |
+| 1. Mecanismo apagado | Se apaga solo `trg_resumen_ventas_detalle` y se inserta una venta | 2 filas |
+| 2. Escritura a mano | `UPDATE` directo sobre el resumen (rompe la regla del único dueño) | 2 filas |
+| 3. Caso fuera de alcance | Cambiar la categoría de un producto con ventas | 52 filas: en los 13 días en que se vendió ese producto, cambian las dos categorías involucradas |
+
+Si la auditoría da filas, no se corrige el valor a mano: se revisa el mecanismo.
+
+**Reversión.** `food-store/tp_desnormalizacion_reversion.sql` borra los dos triggers, las tres funciones y la tabla resumen. Las tablas fuente no se tocan, porque son la fuente de verdad y el resumen siempre se puede reconstruir desde ellas. El script principal incluye una prueba: después de revertir dentro de un `SAVEPOINT`, la tabla resumen ya no existe y `pedido` y `detalle_pedido` tienen la misma cantidad de filas que antes.
+
+**Sobre cómo se escribió el SQL.** Por la regla del grupo, el SQL lo propone OpenCode. En esta parte OpenCode no devolvió propuesta (los modelos Gemini estaban saturados o cortaban con un error), así que el SQL lo escribió Claude Code siguiendo las specs 5 y 6, y lo revisamos y ejecutamos nosotros. Está declarado como apartamiento del flujo en `docs/duia/duia_tp_u4.md`.
 
 ## Uso de IA
 

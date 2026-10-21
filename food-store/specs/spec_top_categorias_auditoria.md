@@ -150,13 +150,13 @@ Si la auditoría no detecta las diferencias en la prueba, se descarta y se docum
 
 ## 8. Resultado de la medición
 
-*Pendiente de medición.*  
-*Fecha: —*  
-*Estado: —*  
-*Filas devueltas por auditoría (sincronizado): —*  
-*Filas devueltas por auditoría (trigger deshabilitado): —*  
-*Filas devueltas por auditoría (escritura a mano en el resumen): —*  
-*Filas devueltas por auditoría (cambio de categoría de un producto): —*
+- **Fecha:** 21/10/2026, sobre `bd2_tp4u4`.
+- **Estado:** aceptado. La auditoría y sus pruebas están en `food-store/tp_desnormalizacion_top_categorias.sql`.
+- **Filas devueltas por auditoría (sincronizado):** 0, también después de insertar, modificar, mover y borrar líneas y de borrar un pedido entero.
+- **Filas devueltas por auditoría (trigger deshabilitado):** 2.
+- **Filas devueltas por auditoría (escritura a mano en el resumen):** 2.
+- **Filas devueltas por auditoría (cambio de categoría de un producto):** 52 (13 días × 2 categorías × 2 lados).
+- **Salida:** `food-store/tp_desnormalizacion_salida_rollback.txt`.
 
 ---
 

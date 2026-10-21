@@ -1,0 +1,89 @@
+ current_database 
+------------------
+ bd2_tp4u4
+(1 fila)
+
+SET
+CREATE FUNCTION
+BEGIN
+     caso      |   ms   | wal_bytes 
+---------------+--------+-----------
+ calentamiento | 56.919 |    420208
+(1 fila)
+
+ROLLBACK
+BEGIN
+ALTER TABLE
+    caso     |   ms   | wal_bytes 
+-------------+--------+-----------
+ sin trigger | 22.956 |    210008
+(1 fila)
+
+ROLLBACK
+BEGIN
+    caso     |   ms   | wal_bytes 
+-------------+--------+-----------
+ con trigger | 46.450 |    253576
+(1 fila)
+
+ROLLBACK
+BEGIN
+ALTER TABLE
+    caso     |   ms   | wal_bytes 
+-------------+--------+-----------
+ sin trigger | 22.629 |    180664
+(1 fila)
+
+ROLLBACK
+BEGIN
+    caso     |   ms   | wal_bytes 
+-------------+--------+-----------
+ con trigger | 46.457 |    254280
+(1 fila)
+
+ROLLBACK
+BEGIN
+ALTER TABLE
+    caso     |   ms   | wal_bytes 
+-------------+--------+-----------
+ sin trigger | 23.147 |    182664
+(1 fila)
+
+ROLLBACK
+BEGIN
+    caso     |   ms   | wal_bytes 
+-------------+--------+-----------
+ con trigger | 46.591 |    254056
+(1 fila)
+
+ROLLBACK
+BEGIN
+ALTER TABLE
+    caso     |   ms   | wal_bytes 
+-------------+--------+-----------
+ sin trigger | 22.381 |    181344
+(1 fila)
+
+ROLLBACK
+BEGIN
+    caso     |   ms   | wal_bytes 
+-------------+--------+-----------
+ con trigger | 46.869 |    254888
+(1 fila)
+
+ROLLBACK
+BEGIN
+ALTER TABLE
+    caso     |   ms   | wal_bytes 
+-------------+--------+-----------
+ sin trigger | 22.653 |    182576
+(1 fila)
+
+ROLLBACK
+BEGIN
+    caso     |   ms   | wal_bytes 
+-------------+--------+-----------
+ con trigger | 47.619 |    253984
+(1 fila)
+
+ROLLBACK
