@@ -100,9 +100,12 @@ Si la equivalencia no se verifica (EXCEPT devuelve filas), se descarta y se docu
 
 ## 8. Resultado de la medición
 
-*Pendiente de medición.*  
-*Fecha: —*  
-*Estado: —*
+- **Fecha**: 2026-10-20
+- **Estado**: Aceptado (verificado en `bd2_tp4u4` dentro de `BEGIN; … ROLLBACK;`)
+- **Resultados obtenidos**:
+  - Creación limpia de `responsable_deposito` (2 filas migradas: `801 → 30`, `802 → 31`) y `control_lote` (3 filas migradas: `(501, 801)`, `(502, 801)`, `(503, 802)`).
+  - La vista `v_control_lote_almacen` (`control_lote NATURAL JOIN responsable_deposito`) reconstruye las 3 filas originales (`filas_original = 3`, `filas_vista_reconstruida = 3`).
+  - Equivalencia verificada con `EXCEPT` en ambas direcciones: `control_lote_almacen EXCEPT v_control_lote_almacen` devuelve **0 filas** y `v_control_lote_almacen EXCEPT control_lote_almacen` devuelve **0 filas**.
 
 ---
 

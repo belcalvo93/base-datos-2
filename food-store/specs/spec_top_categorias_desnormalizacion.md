@@ -2,7 +2,7 @@
 
 **Responsable**: Bruno  
 **Fecha de creación**: 2026-10-18  
-**Última revisión**: 2026-10-18 — Corrección 2: trigger deriva día de pedido.fecha, carga completa para auditoría
+**Última revisión**: 2026-10-20 — Patrón elegido actualizado en la sección 3. Antes (2026-10-19), corrección 3: PK `(fecha, id_categoria)` sin índice extra, columna `cantidad_lineas`, UPDATE como resta + suma, borrado en cascada de `pedido`, casos fuera de alcance
 
 ---
 
@@ -17,18 +17,22 @@ Implementar el patrón elegido (trigger o vista materializada) con un único due
 ### 2.1. Estructura propuesta (Patrón 1: tabla resumen con trigger)
 
 ```sql
--- Tabla resumen por categoría y día
+-- Tabla resumen por día y categoría
 CREATE TABLE IF NOT EXISTS resumen_ventas_categoria_dia (
-    id_categoria BIGINT NOT NULL,
-    fecha DATE NOT NULL,
-    total_vendido NUMERIC(12,2) NOT NULL DEFAULT 0,
-    PRIMARY KEY (id_categoria, fecha)
+    fecha           DATE          NOT NULL,
+    id_categoria    BIGINT        NOT NULL REFERENCES categoria (id_categoria) ON DELETE RESTRICT,
+    total_vendido   NUMERIC(12,2) NOT NULL,
+    cantidad_lineas INTEGER       NOT NULL CHECK (cantidad_lineas > 0),
+    PRIMARY KEY (fecha, id_categoria)
 );
-
--- Índice para la consulta optimizada
-CREATE INDEX IF NOT EXISTS idx_resumen_ventas_fecha 
-    ON resumen_ventas_categoria_dia (fecha DESC, total_vendido DESC);
 ```
+
+Decisiones de esta estructura:
+
+- **La PK empieza por `fecha`.** La consulta nueva filtra por un día, y con la PK en ese orden el filtro se resuelve con el índice de la PK. No hace falta otro índice: por día hay tantas filas como categorías (hoy 5), y ordenarlas por `total_vendido` no cuesta nada.
+- **No hay índice sobre `total_vendido`.** El trigger modifica esa columna en cada venta. Si estuviera indexada, cada actualización tendría que escribir también en el índice y PostgreSQL no podría hacer actualizaciones HOT. Sería un costo en cada venta para ahorrar un ordenamiento de 5 filas.
+- **`cantidad_lineas` decide cuándo se borra una fila.** Cuando una categoría se queda sin líneas en un día, la fila tiene que desaparecer, porque el recálculo de la auditoría no la genera. No alcanza con mirar si `total_vendido` llegó a 0: `precio_unitario` admite 0 (`CHECK (precio_unitario >= 0)`), así que puede haber un día con ventas reales que suman 0. La fila se borra cuando `cantidad_lineas` llega a 0.
+- **Sin `DEFAULT 0`.** Una fila solo existe si tiene al menos una línea que la respalde.
 
 ### 2.2. Estructura propuesta (Patrón 2: vista materializada)
 
@@ -55,7 +59,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_resumen_categoria_dia
 
 - **Frecuencia de lectura**: "muchas veces por minuto" (según spec 4).
 - **Frecuencia de escritura**: depende del volumen de pedidos nuevos por minuto.
-- **Patrón elegido**: se definirá en spec 4 según las mediciones.
+- **Patrón elegido**: Patrón 1, tabla resumen mantenida por trigger. Lo eligió Elías con la medición basal de la spec 4 (mediana 71,0 ms); la justificación está en el punto 2b del informe.
+- **Costo del Patrón 1 en concurrencia**: todas las ventas de un día actualizan las mismas filas, una por categoría. Dos transacciones que venden en la misma categoría se esperan una a la otra hasta que la primera confirma. Con el volumen del TP no se nota, pero es el precio del patrón y se menciona en la justificación.
+- **Costo del Patrón 2**: `REFRESH MATERIALIZED VIEW CONCURRENTLY` recalcula todos los días, no solo el de hoy. Si el panel necesita el dato "en tiempo real", habría que refrescar muchas veces por minuto, y cada refresco cuesta más que la consulta original. Este dato sirve para la justificación de Elías (punto 5.2b).
 
 ---
 
@@ -63,7 +69,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_resumen_categoria_dia
 
 | Tabla resumen | Columnas |
 |---------------|----------|
-| resumen_ventas_categoria_dia | id_categoria (PK), fecha (PK), total_vendido |
+| resumen_ventas_categoria_dia | fecha (PK), id_categoria (PK, FK), total_vendido, cantidad_lineas |
 | mv_resumen_ventas_categoria_dia | id_categoria, categoria, fecha, total_vendido |
 
 ---
@@ -83,17 +89,26 @@ No aplica (depende de spec 4).
 2. **Mecanismo de sincronización**:
    
    **Si es Patrón 1 (trigger)**:
-   - Función trigger que ejecuta en cada INSERT/UPDATE/DELETE sobre `detalle_pedido`.
-   - Debe actualizar `resumen_ventas_categoria_dia` sumando o restando `cantidad * precio_unitario`.
-   - Considerar: ¿qué pasa si cambia `pedido.fecha`? ¿Qué pasa si cambia `producto.id_categoria`? Documentar como "fuera de alcance" si no se cubre.
-   - El día de cada línea se deriva siempre de `pedido.fecha`, nunca de `CURRENT_DATE`. El trigger, la consulta nueva y la auditoría calculan el día con la misma zona horaria escrita explícitamente (`America/Argentina/Mendoza`, a confirmar por el autor).
+   - Una sola función, la única que escribe en `resumen_ventas_categoria_dia`, aplica el aporte de una línea con signo `+1` o `-1`. Hace `INSERT … ON CONFLICT (fecha, id_categoria) DO UPDATE` sumando `cantidad * precio_unitario` a `total_vendido` y el signo a `cantidad_lineas`. Después borra la fila si `cantidad_lineas` quedó en 0.
+   - Trigger `AFTER INSERT OR UPDATE OR DELETE ON detalle_pedido FOR EACH ROW`:
+     - INSERT: suma el aporte de `NEW`.
+     - DELETE: resta el aporte de `OLD`.
+     - UPDATE: resta el aporte de `OLD` y suma el de `NEW`. No alcanza con sumar la diferencia, porque si la línea cambia de `id_producto` o de `id_pedido` puede pasar a otra categoría o a otro día.
+   - **Borrado de un pedido.** `detalle_pedido.id_pedido` es `ON DELETE CASCADE`. Cuando se borra un pedido, el trigger de `detalle_pedido` se dispara por cada línea, pero **ya no encuentra el pedido**: la consulta a `pedido` devuelve NULL y no hay forma de saber de qué día restar. Se comprobó en una base descartable (PostgreSQL 17) con un trigger `BEFORE` y otro `AFTER` en `detalle_pedido`, y los dos ven NULL. Se pide:
+     - Trigger `BEFORE DELETE ON pedido FOR EACH ROW`, que llama a la misma función con `-1` por cada línea del pedido. En ese momento las líneas y el pedido todavía existen.
+     - En la función: si no encuentra el pedido, no hace nada, porque esa línea ya la restó el trigger de `pedido`. Así no se resta dos veces.
+     - Esto no rompe la regla del único dueño: los dos triggers son puntos de entrada a la misma función, y es la única que escribe en el resumen.
+   - El día de cada línea se deriva siempre de `pedido.fecha`, nunca de `CURRENT_DATE`: `(fecha AT TIME ZONE 'America/Argentina/Mendoza')::date`. El trigger, la consulta nueva y la auditoría usan la misma expresión (zona horaria a confirmar con el profesor).
+   - **Fuera de alcance** (se documenta en el informe y la auditoría lo detecta; ver spec 6):
+     - Cambiar `pedido.fecha` de un pedido ya cargado.
+     - Cambiar `producto.id_categoria`. Movería todas las ventas históricas del producto a otra categoría, y la decisión de negocio sobre si eso corresponde no es parte de este TP.
    
    **Si es Patrón 2 (vista materializada)**:
    - Función de refresco con `REFRESH MATERIALIZED VIEW CONCURRENTLY`.
 
-3. **Carga inicial**: popular la estructura desnormalizada con todos los días existentes en `pedido` y `detalle_pedido` (carga completa, una sola vez, para que el resumen coincida con lo recalculado por la auditoría).
+3. **Carga inicial**: poblar la estructura desnormalizada con todos los días existentes en `pedido` y `detalle_pedido` (carga completa, una sola vez, para que el resumen coincida con lo recalculado por la auditoría). En el Patrón 1 se calcula también `cantidad_lineas` (`COUNT(*)` de líneas por día y categoría). La carga y la creación de los triggers van en la misma transacción, para que ninguna venta quede entre la carga y el momento en que el trigger empieza a funcionar.
 
-4. **Reversión**: script que borre trigger, función y tabla (o vista materializada) sin afectar los datos fuente.
+4. **Reversión**: script que borre los dos triggers, la función y la tabla (o la vista materializada) sin afectar los datos fuente. Para probarlo, se cuentan las filas de `pedido` y `detalle_pedido` antes y después de revertir y tienen que coincidir.
 
 5. **Nueva consulta** (punto 5.2d):
    ```sql
@@ -121,8 +136,11 @@ No aplica (depende de spec 4).
 
 - Modificar la estructura de `pedido`, `detalle_pedido`, `producto` o `categoria`.
 - Eliminar la restricción UNIQUE en detalle_pedido.
-- Usar más de un trigger/único mecanismo para mantener la redundancia (regla del steering).
+- Que más de una función escriba en el resumen (regla del único dueño del steering). Los dos triggers del Patrón 1 se aceptan porque llaman a la misma función; está justificado en 6.1, punto 2.
 - Proponer vistas materializadas sin índice único (necesario para REFRESH CONCURRENTLY).
+- Agregar índices sobre `total_vendido` o sobre `(fecha, total_vendido)` sin medir antes y después que se necesitan (ver 2.1).
+- Borrar una fila del resumen porque `total_vendido` llegó a 0. Se borra solo cuando `cantidad_lineas` llega a 0 (ver 2.1).
+- Usar `CURRENT_DATE` o `now()` para decidir a qué día pertenece una línea. El día sale de `pedido.fecha`.
 
 ---
 
@@ -130,7 +148,8 @@ No aplica (depende de spec 4).
 
 ### 7.1. Condiciones medibles
 
-- La nueva consulta devuelve el mismo top 5 que la consulta original.
+- La nueva consulta devuelve el mismo top 5 que la consulta original (comparado con `EXCEPT` en los dos sentidos, categoría y monto).
+- En el Patrón 1, la auditoría de la spec 6 da 0 filas después de cada uno de estos casos, probados dentro de `BEGIN … ROLLBACK`: insertar líneas, cambiar la cantidad de una línea, mover una línea a otro producto de otra categoría, borrar una línea y borrar un pedido completo (cascada).
 - El tiempo de lectura mejora de forma medible respecto a la basal (spec 4).
 - El costo de escritura (500 INSERT) se mide antes y después, y se documenta.
 - El script de reversión funciona (puede eliminarse la estructura sin perder datos fuente).

@@ -61,7 +61,28 @@ La descomposición que corrige esto se desarrolla en los puntos e y f, en la sec
 
 ## Parte 1 — Descomposición sin pérdida (puntos e–f)
 
-*Pendiente: Hernán.*
+### e) Descomposición en FNBC
+
+A partir de la dependencia que violaba FNBC (**F2:** ResponsableControlID → DepositoID), se descompone `control_lote_almacen` en dos relaciones:
+
+| Relación | Tabla SQL | Esquema y restricciones | ¿Cumple FNBC? |
+| --- | --- | --- | --- |
+| **R₁** | `responsable_deposito` | `(responsable_control_id PK, deposito_id)` con FK a `usuario(id)` y `deposito(id)` | **Sí:** la única DF no trivial es F2 y su determinante (`responsable_control_id`) es la clave primaria (superclave de R₁). |
+| **R₂** | `control_lote` | `(lote_id, responsable_control_id)` con PK compuesta y FK a `lote(id)` y `responsable_deposito(responsable_control_id)` | **Sí:** no tiene DFs no triviales propias; su única clave candidata es la tupla completa `{lote_id, responsable_control_id}`. |
+
+- **Unión sin pérdida (Teorema de Heath):** el atributo común entre ambas relaciones es $R_1 \cap R_2 = \{\text{responsable\_control\_id}\}$. Como en $R_1$ se cumple $\text{responsable\_control\_id} \rightarrow \text{deposito\_id}$, el atributo común es **superclave de $R_1$**, lo que garantiza que $R_1 \bowtie R_2$ reconstruye exactamente la relación original sin generar tuplas espurias ni perder información.
+- **Preservación de dependencias funcionales:** **F2** queda impuesta estructuralmente por la PK de `responsable_deposito` (lo que elimina las tres anomalías del punto d). En cambio, **F1** ($\{\text{LoteID}, \text{DepositoID}\} \rightarrow \text{ResponsableControlID}$) **no se preserva** en una sola tabla, porque `lote_id` quedó en `control_lote` y `deposito_id` en `responsable_deposito`. Este es el *trade-off* clásico al pasar de 3FN a FNBC: validar F1 requeriría un *join* entre ambas tablas.
+
+### f) Migración, vista de compatibilidad y verificación con `EXCEPT`
+
+En la segunda mitad de `food-store/tp_fnbc_control_lote.sql` se migran los datos desde `control_lote_almacen` y se crea la vista de compatibilidad mediante `NATURAL JOIN` (cuya única columna homónima es `responsable_control_id`):
+
+- **`responsable_deposito` (R₁):** recibe `SELECT DISTINCT responsable_control_id, deposito_id FROM control_lote_almacen` → **2 filas** (`(801, 30)` y `(802, 31)`), eliminando la repetición del depósito 30 para el responsable 801.
+- **`control_lote` (R₂):** recibe `SELECT lote_id, responsable_control_id FROM control_lote_almacen` → **3 filas** (`(501, 801)`, `(502, 801)` y `(503, 802)`).
+- **Vista `v_control_lote_almacen`:** `SELECT lote_id, deposito_id, responsable_control_id FROM control_lote NATURAL JOIN responsable_deposito` → reconstruye las **3 filas** originales (`(501, 30, 801)`, `(502, 30, 801)`, `(503, 31, 802)`).
+- **Verificación de equivalencia de conjuntos ($R = V \iff R \setminus V = \emptyset \land V \setminus R = \emptyset$):**
+  1. `SELECT ... FROM control_lote_almacen EXCEPT SELECT ... FROM v_control_lote_almacen` → **0 filas** (no se perdieron tuplas).
+  2. `SELECT ... FROM v_control_lote_almacen EXCEPT SELECT ... FROM control_lote_almacen` → **0 filas** (no aparecieron tuplas espurias).
 
 ## Parte 2 a — Consulta y medición antes
 
