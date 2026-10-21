@@ -61,7 +61,7 @@ GROUP BY c.nombre ORDER BY total_vendido DESC LIMIT 5;
 
 ## 5. Estado actual medido
 
-*Pendiente de medición.* Se ejecutará con `EXPLAIN (ANALYZE, BUFFERS)` al menos 5 veces.
+Medido el 19/10/2026 con `EXPLAIN (ANALYZE, BUFFERS)`, 6 corridas (la primera descartada): mediana de 71,044 ms. Ver sección 8.
 
 ---
 
@@ -107,11 +107,10 @@ GROUP BY c.nombre ORDER BY total_vendido DESC LIMIT 5;
 
 ## 8. Resultado de la medición
 
-*Pendiente de medición.*  
-*Fecha: —*  
-*Estado: —*  
-*Tiempo basal (mediana): — ms*  
-*Nodo dominante: —*
+*Fecha: 19/10/2026*  
+*Estado: Medido con `food-store/medicion_top_categorias_antes.sql` en `bd2_tp4u4` (salida en `food-store/medicion_antes_salida.txt`). El tiempo supera los 10 ms de la salida de descarte, así que se justifica desnormalizar.*  
+*Tiempo basal (mediana de las corridas 2 a 6): 71,044 ms (rango 68,483 a 72,302 ms)*  
+*Nodo dominante: `Parallel Seq Scan on detalle_pedido` (~519.000 filas leídas para quedarse con ~20.000), sin índice sobre `pedido.fecha`*
 
 ---
 

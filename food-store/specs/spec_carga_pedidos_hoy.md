@@ -112,6 +112,10 @@ Si la consulta adaptada no devuelve 5 filas, se descarta y se documenta el motiv
 
 ## 8. Resultado de la medición
 
-*Pendiente de medición.*  
-*Fecha: —*  
-*Estado: —*
+*Fecha: 19/10/2026*  
+*Estado: Aceptado. Script `food-store/carga_pedidos_hoy.sql` ejecutado en `bd2_tp4u4`, primero con ROLLBACK y después con COMMIT, seguido de `VACUUM ANALYZE`.*  
+*Pedidos de hoy: 10.000.*  
+*Detalles de hoy: 20.012 (la corrida de prueba con ROLLBACK dio 20.054; el sorteo es aleatorio).*  
+*Productos distintos vendidos: 16.484.*  
+*Reparto de forma_pago: 3.290 / 3.329 / 3.381.*  
+*Consulta del 5.1 adaptada: 5 filas.*
