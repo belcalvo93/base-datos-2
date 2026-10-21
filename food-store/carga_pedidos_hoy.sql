@@ -18,7 +18,7 @@
 -- Verificar que estamos en la base correcta (debe decir bd2_tp4u4)
 SELECT current_database();
 
--- Zona horaria explícita: define qué es "hoy" (a confirmar con el profesor)
+-- Zona horaria explícita: define qué es "hoy" (Argentina)
 SET timezone = 'America/Argentina/Mendoza';
 
 BEGIN;
