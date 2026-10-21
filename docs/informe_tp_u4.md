@@ -256,4 +256,29 @@ Si la auditoría da filas, no se corrige el valor a mano: se revisa el mecanismo
 
 ## Uso de IA
 
-*Pendiente. El registro completo está en `docs/duia/duia_tp_u4.md`.*
+El registro completo, con cada uso aceptado o descartado y su motivo, está en `docs/duia/duia_tp_u4.md`. Acá se resume cómo se usó la IA en este trabajo.
+
+**Flujo.** Se usaron tres herramientas con roles distintos: Kiro escribe y revisa las specs (`food-store/specs/`), OpenCode propone y escribe el SQL a partir de una spec (empezando en modo Plan) y Claude Code revisa, mide y ayuda con el informe. El principio fue delegar la escritura y no la decisión: cada integrante lee cada línea, ejecuta el script contra `bd2_tp4u4` (primero dentro de `BEGIN … ROLLBACK`, con la base confirmada con `SELECT current_database();`) y decide. Toda propuesta de la IA se trató como una hipótesis.
+
+**Qué decidimos nosotros.**
+
+- Parte 1: las dependencias funcionales, las claves candidatas y la conclusión de que la tabla está en 3FN pero no en FNBC, que se verificaron a mano contra la definición formal.
+- Parte 2: la alternativa para cargar los pedidos de hoy (generar con `generate_series`, sin usar `registrar_pedido`), el volumen (10.000 pedidos) y el patrón de desnormalización (tabla resumen con trigger y no vista materializada, porque el panel exige tiempo real).
+- Que el precio histórico `precio_unitario` no se toca, y que la zona horaria del día de negocio es `America/Argentina/Mendoza`.
+
+**Errores de la IA que detectamos.**
+
+- Kiro escribió la primera spec sin recibir el texto de la consigna y reconstruyó un esquema y una instancia distintos de los reales (columnas, clave primaria y datos). Se corrigió con el texto de la consigna.
+- Kiro reescribió archivos enteros al corregir las specs y les quitó las tildes. Se descartó, se restauraron los archivos con git y las correcciones se rehicieron como ediciones puntuales.
+- OpenCode, ante una instancia que le parecía violar la dependencia funcional, ofreció cambiar la instancia de la consigna. Se descartó: el error estaba en la spec.
+- Una propuesta de las pruebas de detección buscaba datos de "hoy" y fallaba en un día sin pedidos. Se cambió para usar el último pedido y la fila más reciente del resumen.
+- La consulta del punto 5.1 de la consigna no corre tal cual sobre nuestro esquema (no existen `subtotal` ni `eliminado`, y `fecha` es `TIMESTAMPTZ`); se adaptó y se declaró.
+
+**Apartamientos del flujo.** En cuatro ocasiones se usó una herramienta distinta de la que prevé el flujo:
+
+- Las correcciones a las specs 1 y 2 las aplicó OpenCode en lugar de Kiro, porque Kiro quedó sin herramientas de edición y su reescritura degradó los archivos.
+- El SQL de las specs 3 y 4 (carga de pedidos y medición) y la redacción de 2a y 2b los propuso Claude Code en lugar de OpenCode, trabajando en una sola sesión.
+- Las correcciones a las specs 5 y 6 las hizo Claude Code en lugar de Kiro, porque salieron de una prueba ejecutada en el motor (el borrado en cascada) y Kiro no ejecuta SQL.
+- El SQL de las specs 5 y 6 lo escribió Claude Code en lugar de OpenCode, porque OpenCode no devolvió propuesta (los modelos disponibles estaban saturados o cortaban con un error).
+
+En todos los casos el autor leyó el script, lo ejecutó en `bd2_tp4u4` y verificó la salida en el motor. La tabla completa está en la DUIA, sección "Apartamientos del flujo".
