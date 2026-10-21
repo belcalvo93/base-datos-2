@@ -1,0 +1,147 @@
+ current_database 
+------------------
+ bd2_tp4u4
+(1 fila)
+
+SET
+BEGIN
+DROP TRIGGER
+DROP TRIGGER
+DROP FUNCTION
+DROP FUNCTION
+DROP FUNCTION
+DROP TABLE
+CREATE TABLE
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE TRIGGER
+INSERT 0 3665
+ filas_resumen | dias 
+---------------+------
+          3665 |  733
+(1 fila)
+
+  categoria  | total_vendido 
+-------------+---------------
+ Congelados  |    4203751.22
+ AlmacÃ©n    |    4173907.76
+ Panificados |    4091284.51
+ LÃ¡cteos    |    4025926.65
+ Bebidas     |    3909630.52
+(5 filas)
+
+ lado | categoria | total_vendido 
+------+-----------+---------------
+(0 filas)
+
+CREATE VIEW
+ lado | fecha | id_categoria | total_vendido | cantidad_lineas 
+------+-------+--------------+---------------+-----------------
+(0 filas)
+
+SAVEPOINT
+INSERT 0 1
+UPDATE 1
+UPDATE 1
+DELETE 1
+DELETE 1
+ lado | fecha | id_categoria | total_vendido | cantidad_lineas 
+------+-------+--------------+---------------+-----------------
+(0 filas)
+
+ROLLBACK
+SAVEPOINT
+ALTER TABLE
+INSERT 0 1
+        lado        |   fecha    | id_categoria | total_vendido | cantidad_lineas 
+--------------------+------------+--------------+---------------+-----------------
+ solo en el resumen | 2026-08-01 |            1 |     149262.39 |             105
+ solo en la fuente  | 2026-08-01 |            1 |     152462.39 |             106
+(2 filas)
+
+ROLLBACK
+SAVEPOINT
+UPDATE 1
+        lado        |   fecha    | id_categoria | total_vendido | cantidad_lineas 
+--------------------+------------+--------------+---------------+-----------------
+ solo en el resumen | 2026-10-21 |            1 |    4091285.51 |            3965
+ solo en la fuente  | 2026-10-21 |            1 |    4091284.51 |            3965
+(2 filas)
+
+ROLLBACK
+SAVEPOINT
+UPDATE 1
+        lado        |   fecha    | id_categoria | total_vendido | cantidad_lineas 
+--------------------+------------+--------------+---------------+-----------------
+ solo en el resumen | 2024-09-28 |            1 |     163287.19 |             132
+ solo en la fuente  | 2024-09-28 |            1 |     163972.32 |             133
+ solo en el resumen | 2024-09-28 |            4 |     202868.95 |             149
+ solo en la fuente  | 2024-09-28 |            4 |     202183.82 |             148
+ solo en el resumen | 2025-03-30 |            1 |     170947.18 |             137
+ solo en la fuente  | 2025-03-30 |            1 |     173687.70 |             138
+ solo en el resumen | 2025-03-30 |            4 |     181585.36 |             148
+ solo en la fuente  | 2025-03-30 |            4 |     178844.84 |             147
+ solo en el resumen | 2025-05-17 |            1 |     170486.56 |             133
+ solo en la fuente  | 2025-05-17 |            1 |     172541.95 |             134
+ solo en el resumen | 2025-05-17 |            4 |     164999.57 |             150
+ solo en la fuente  | 2025-05-17 |            4 |     162944.18 |             149
+ solo en el resumen | 2025-08-15 |            1 |     157885.69 |             122
+ solo en la fuente  | 2025-08-15 |            1 |     159941.08 |             123
+ solo en el resumen | 2025-08-15 |            4 |     182501.56 |             135
+ solo en la fuente  | 2025-08-15 |            4 |     180446.17 |             134
+ solo en el resumen | 2025-09-23 |            1 |     193516.06 |             146
+ solo en la fuente  | 2025-09-23 |            1 |     196256.58 |             147
+ solo en el resumen | 2025-09-23 |            4 |     202229.14 |             144
+ solo en la fuente  | 2025-09-23 |            4 |     199488.62 |             143
+ solo en el resumen | 2025-09-24 |            1 |     184183.26 |             140
+ solo en la fuente  | 2025-09-24 |            1 |     185553.52 |             141
+ solo en el resumen | 2025-09-24 |            4 |     174935.32 |             150
+ solo en la fuente  | 2025-09-24 |            4 |     173565.06 |             149
+ solo en el resumen | 2025-11-20 |            1 |     147048.44 |             118
+ solo en la fuente  | 2025-11-20 |            1 |     148418.70 |             119
+ solo en el resumen | 2025-11-20 |            4 |     162949.74 |             138
+ solo en la fuente  | 2025-11-20 |            4 |     161579.48 |             137
+ solo en el resumen | 2026-02-11 |            1 |     173785.36 |             144
+ solo en la fuente  | 2026-02-11 |            1 |     175155.62 |             145
+ solo en el resumen | 2026-02-11 |            4 |     163470.52 |             131
+ solo en la fuente  | 2026-02-11 |            4 |     162100.26 |             130
+ solo en el resumen | 2026-02-18 |            1 |     154036.52 |             129
+ solo en la fuente  | 2026-02-18 |            1 |     154721.65 |             130
+ solo en el resumen | 2026-02-18 |            4 |     176273.06 |             151
+ solo en la fuente  | 2026-02-18 |            4 |     175587.93 |             150
+ solo en el resumen | 2026-05-16 |            1 |     176251.70 |             148
+ solo en la fuente  | 2026-05-16 |            1 |     177621.96 |             149
+ solo en el resumen | 2026-05-16 |            4 |     208992.66 |             169
+ solo en la fuente  | 2026-05-16 |            4 |     207622.40 |             168
+ solo en el resumen | 2026-07-25 |            1 |     206585.10 |             148
+ solo en la fuente  | 2026-07-25 |            1 |     207955.36 |             149
+ solo en el resumen | 2026-07-25 |            4 |     196983.83 |             151
+ solo en la fuente  | 2026-07-25 |            4 |     195613.57 |             150
+ solo en el resumen | 2026-10-19 |            1 |    4110453.05 |            4009
+ solo en la fuente  | 2026-10-19 |            1 |    4111138.18 |            4010
+ solo en el resumen | 2026-10-19 |            4 |    3935978.49 |            4026
+ solo en la fuente  | 2026-10-19 |            4 |    3935293.36 |            4025
+ solo en el resumen | 2026-10-21 |            1 |    4091284.51 |            3965
+ solo en la fuente  | 2026-10-21 |            1 |    4093339.90 |            3966
+ solo en el resumen | 2026-10-21 |            4 |    4173907.76 |            4093
+ solo en la fuente  | 2026-10-21 |            4 |    4171852.37 |            4092
+(52 filas)
+
+ROLLBACK
+SAVEPOINT
+DROP TRIGGER
+DROP TRIGGER
+DROP FUNCTION
+DROP FUNCTION
+DROP FUNCTION
+DROP VIEW
+DROP TABLE
+ resumen_existe | pedidos_iguales | detalles_iguales 
+----------------+-----------------+------------------
+ f              | t               | t
+(1 fila)
+
+ROLLBACK
+COMMIT
