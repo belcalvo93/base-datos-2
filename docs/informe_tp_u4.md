@@ -86,7 +86,7 @@ En la segunda mitad de `food-store/tp_fnbc_control_lote.sql` se migran los datos
 
 ## Parte 2 a — Consulta y medición antes
 
-**Datos de la medición.** Base `bd2_tp4u4` (copia de `bd2_tp3`) con 200.005 + 10.000 pedidos, 499.263 + 20.012 detalles y 50.011 productos; los 10.000 pedidos y ~20.000 detalles de hoy se cargaron con `food-store/carga_pedidos_hoy.sql`, seguido de `VACUUM ANALYZE`. La base tiene solo 5 categorías, por lo que el top 5 las devuelve todas.
+**Datos de la medición.** Base `bd2_tp4u4` (copia de `bd2_tp3`) con 200.005 + 10.000 pedidos, 499.263 + 20.012 detalles y 50.011 productos; los 10.000 pedidos y ~20.000 detalles de "hoy" (19/10/2026) se cargaron con `food-store/carga_pedidos_hoy.sql`, seguido de `VACUUM ANALYZE`. La base tiene solo 5 categorías, por lo que el top 5 las devuelve todas. La base que se usa en 2d parte de esta misma y suma otra carga del 21/10/2026, por eso los tiempos de 2a y de 2d no son directamente comparables (se explica en 2d).
 
 **Consulta medida.** La del punto 5.1, adaptada al esquema real: el monto es `cantidad * precio_unitario` (el subtotal no se almacena), el filtro de hoy es un rango sobre `pedido.fecha` (es `TIMESTAMPTZ`, no `DATE`) y no hay columnas `eliminado`.
 
