@@ -1,0 +1,187 @@
+ current_database 
+------------------
+ bd2_tp4u4
+(1 fila)
+
+SET
+BEGIN
+ filas_resumen | detalles_total 
+---------------+----------------
+          3665 |         539286
+(1 fila)
+
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=19.17..19.18 rows=5 width=18) (actual time=0.081..0.082 rows=5 loops=1)
+   Buffers: shared hit=11
+   ->  Sort  (cost=19.17..19.18 rows=5 width=18) (actual time=0.080..0.081 rows=5 loops=1)
+         Sort Key: r.total_vendido DESC
+         Sort Method: quicksort  Memory: 25kB
+         Buffers: shared hit=11
+         ->  Hash Join  (cost=5.44..19.11 rows=5 width=18) (actual time=0.048..0.054 rows=5 loops=1)
+               Hash Cond: (r.id_categoria = c.id_categoria)
+               Buffers: shared hit=8
+               ->  Bitmap Heap Scan on resumen_ventas_categoria_dia r  (cost=4.33..17.97 rows=5 width=16) (actual time=0.023..0.028 rows=5 loops=1)
+                     Recheck Cond: (fecha = ((now() AT TIME ZONE 'America/Argentina/Mendoza'::text))::date)
+                     Heap Blocks: exact=5
+                     Buffers: shared hit=7
+                     ->  Bitmap Index Scan on resumen_ventas_categoria_dia_pkey  (cost=0.00..4.33 rows=5 width=0) (actual time=0.017..0.017 rows=5 loops=1)
+                           Index Cond: (fecha = ((now() AT TIME ZONE 'America/Argentina/Mendoza'::text))::date)
+                           Buffers: shared hit=2
+               ->  Hash  (cost=1.05..1.05 rows=5 width=18) (actual time=0.012..0.012 rows=5 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                     Buffers: shared hit=1
+                     ->  Seq Scan on categoria c  (cost=0.00..1.05 rows=5 width=18) (actual time=0.009..0.010 rows=5 loops=1)
+                           Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=174
+ Planning Time: 1.804 ms
+ Execution Time: 0.112 ms
+(25 filas)
+
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=19.17..19.18 rows=5 width=18) (actual time=0.030..0.032 rows=5 loops=1)
+   Buffers: shared hit=8
+   ->  Sort  (cost=19.17..19.18 rows=5 width=18) (actual time=0.030..0.031 rows=5 loops=1)
+         Sort Key: r.total_vendido DESC
+         Sort Method: quicksort  Memory: 25kB
+         Buffers: shared hit=8
+         ->  Hash Join  (cost=5.44..19.11 rows=5 width=18) (actual time=0.024..0.028 rows=5 loops=1)
+               Hash Cond: (r.id_categoria = c.id_categoria)
+               Buffers: shared hit=8
+               ->  Bitmap Heap Scan on resumen_ventas_categoria_dia r  (cost=4.33..17.97 rows=5 width=16) (actual time=0.010..0.012 rows=5 loops=1)
+                     Recheck Cond: (fecha = ((now() AT TIME ZONE 'America/Argentina/Mendoza'::text))::date)
+                     Heap Blocks: exact=5
+                     Buffers: shared hit=7
+                     ->  Bitmap Index Scan on resumen_ventas_categoria_dia_pkey  (cost=0.00..4.33 rows=5 width=0) (actual time=0.007..0.007 rows=5 loops=1)
+                           Index Cond: (fecha = ((now() AT TIME ZONE 'America/Argentina/Mendoza'::text))::date)
+                           Buffers: shared hit=2
+               ->  Hash  (cost=1.05..1.05 rows=5 width=18) (actual time=0.009..0.009 rows=5 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                     Buffers: shared hit=1
+                     ->  Seq Scan on categoria c  (cost=0.00..1.05 rows=5 width=18) (actual time=0.006..0.006 rows=5 loops=1)
+                           Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=4
+ Planning Time: 0.096 ms
+ Execution Time: 0.044 ms
+(25 filas)
+
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=19.17..19.18 rows=5 width=18) (actual time=0.022..0.023 rows=5 loops=1)
+   Buffers: shared hit=8
+   ->  Sort  (cost=19.17..19.18 rows=5 width=18) (actual time=0.022..0.023 rows=5 loops=1)
+         Sort Key: r.total_vendido DESC
+         Sort Method: quicksort  Memory: 25kB
+         Buffers: shared hit=8
+         ->  Hash Join  (cost=5.44..19.11 rows=5 width=18) (actual time=0.016..0.020 rows=5 loops=1)
+               Hash Cond: (r.id_categoria = c.id_categoria)
+               Buffers: shared hit=8
+               ->  Bitmap Heap Scan on resumen_ventas_categoria_dia r  (cost=4.33..17.97 rows=5 width=16) (actual time=0.007..0.009 rows=5 loops=1)
+                     Recheck Cond: (fecha = ((now() AT TIME ZONE 'America/Argentina/Mendoza'::text))::date)
+                     Heap Blocks: exact=5
+                     Buffers: shared hit=7
+                     ->  Bitmap Index Scan on resumen_ventas_categoria_dia_pkey  (cost=0.00..4.33 rows=5 width=0) (actual time=0.004..0.004 rows=5 loops=1)
+                           Index Cond: (fecha = ((now() AT TIME ZONE 'America/Argentina/Mendoza'::text))::date)
+                           Buffers: shared hit=2
+               ->  Hash  (cost=1.05..1.05 rows=5 width=18) (actual time=0.007..0.007 rows=5 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                     Buffers: shared hit=1
+                     ->  Seq Scan on categoria c  (cost=0.00..1.05 rows=5 width=18) (actual time=0.005..0.006 rows=5 loops=1)
+                           Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=4
+ Planning Time: 0.089 ms
+ Execution Time: 0.037 ms
+(25 filas)
+
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=19.17..19.18 rows=5 width=18) (actual time=0.022..0.023 rows=5 loops=1)
+   Buffers: shared hit=8
+   ->  Sort  (cost=19.17..19.18 rows=5 width=18) (actual time=0.022..0.022 rows=5 loops=1)
+         Sort Key: r.total_vendido DESC
+         Sort Method: quicksort  Memory: 25kB
+         Buffers: shared hit=8
+         ->  Hash Join  (cost=5.44..19.11 rows=5 width=18) (actual time=0.016..0.019 rows=5 loops=1)
+               Hash Cond: (r.id_categoria = c.id_categoria)
+               Buffers: shared hit=8
+               ->  Bitmap Heap Scan on resumen_ventas_categoria_dia r  (cost=4.33..17.97 rows=5 width=16) (actual time=0.007..0.009 rows=5 loops=1)
+                     Recheck Cond: (fecha = ((now() AT TIME ZONE 'America/Argentina/Mendoza'::text))::date)
+                     Heap Blocks: exact=5
+                     Buffers: shared hit=7
+                     ->  Bitmap Index Scan on resumen_ventas_categoria_dia_pkey  (cost=0.00..4.33 rows=5 width=0) (actual time=0.004..0.004 rows=5 loops=1)
+                           Index Cond: (fecha = ((now() AT TIME ZONE 'America/Argentina/Mendoza'::text))::date)
+                           Buffers: shared hit=2
+               ->  Hash  (cost=1.05..1.05 rows=5 width=18) (actual time=0.007..0.007 rows=5 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                     Buffers: shared hit=1
+                     ->  Seq Scan on categoria c  (cost=0.00..1.05 rows=5 width=18) (actual time=0.005..0.005 rows=5 loops=1)
+                           Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=4
+ Planning Time: 0.087 ms
+ Execution Time: 0.034 ms
+(25 filas)
+
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=19.17..19.18 rows=5 width=18) (actual time=0.021..0.022 rows=5 loops=1)
+   Buffers: shared hit=8
+   ->  Sort  (cost=19.17..19.18 rows=5 width=18) (actual time=0.021..0.022 rows=5 loops=1)
+         Sort Key: r.total_vendido DESC
+         Sort Method: quicksort  Memory: 25kB
+         Buffers: shared hit=8
+         ->  Hash Join  (cost=5.44..19.11 rows=5 width=18) (actual time=0.016..0.019 rows=5 loops=1)
+               Hash Cond: (r.id_categoria = c.id_categoria)
+               Buffers: shared hit=8
+               ->  Bitmap Heap Scan on resumen_ventas_categoria_dia r  (cost=4.33..17.97 rows=5 width=16) (actual time=0.007..0.009 rows=5 loops=1)
+                     Recheck Cond: (fecha = ((now() AT TIME ZONE 'America/Argentina/Mendoza'::text))::date)
+                     Heap Blocks: exact=5
+                     Buffers: shared hit=7
+                     ->  Bitmap Index Scan on resumen_ventas_categoria_dia_pkey  (cost=0.00..4.33 rows=5 width=0) (actual time=0.004..0.004 rows=5 loops=1)
+                           Index Cond: (fecha = ((now() AT TIME ZONE 'America/Argentina/Mendoza'::text))::date)
+                           Buffers: shared hit=2
+               ->  Hash  (cost=1.05..1.05 rows=5 width=18) (actual time=0.007..0.007 rows=5 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                     Buffers: shared hit=1
+                     ->  Seq Scan on categoria c  (cost=0.00..1.05 rows=5 width=18) (actual time=0.005..0.005 rows=5 loops=1)
+                           Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=4
+ Planning Time: 0.086 ms
+ Execution Time: 0.033 ms
+(25 filas)
+
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=19.17..19.18 rows=5 width=18) (actual time=0.025..0.026 rows=5 loops=1)
+   Buffers: shared hit=8
+   ->  Sort  (cost=19.17..19.18 rows=5 width=18) (actual time=0.025..0.026 rows=5 loops=1)
+         Sort Key: r.total_vendido DESC
+         Sort Method: quicksort  Memory: 25kB
+         Buffers: shared hit=8
+         ->  Hash Join  (cost=5.44..19.11 rows=5 width=18) (actual time=0.018..0.022 rows=5 loops=1)
+               Hash Cond: (r.id_categoria = c.id_categoria)
+               Buffers: shared hit=8
+               ->  Bitmap Heap Scan on resumen_ventas_categoria_dia r  (cost=4.33..17.97 rows=5 width=16) (actual time=0.007..0.010 rows=5 loops=1)
+                     Recheck Cond: (fecha = ((now() AT TIME ZONE 'America/Argentina/Mendoza'::text))::date)
+                     Heap Blocks: exact=5
+                     Buffers: shared hit=7
+                     ->  Bitmap Index Scan on resumen_ventas_categoria_dia_pkey  (cost=0.00..4.33 rows=5 width=0) (actual time=0.004..0.004 rows=5 loops=1)
+                           Index Cond: (fecha = ((now() AT TIME ZONE 'America/Argentina/Mendoza'::text))::date)
+                           Buffers: shared hit=2
+               ->  Hash  (cost=1.05..1.05 rows=5 width=18) (actual time=0.008..0.008 rows=5 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                     Buffers: shared hit=1
+                     ->  Seq Scan on categoria c  (cost=0.00..1.05 rows=5 width=18) (actual time=0.006..0.007 rows=5 loops=1)
+                           Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=4
+ Planning Time: 0.085 ms
+ Execution Time: 0.038 ms
+(25 filas)
+
+ROLLBACK
