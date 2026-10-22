@@ -129,6 +129,11 @@ Si el script no corre limpio, o las anomalías no se demuestran, se descarta y s
 
 ## 8. Resultado de la medición
 
-*Pendiente de medición.*  
-*Fecha: —*  
-*Estado: —*
+*Fecha: 21/10/2026*  
+*Estado: Aceptado. `food-store/tp_fnbc_control_lote.sql` ejecutado completo en `bd2_tp4u4` con ROLLBACK final; salida en `food-store/tp_fnbc_salida_rollback.txt`. Sin errores.*  
+*Restricciones declaradas de `control_lote_almacen`: la PK `(lote_id, deposito_id)` y las tres FK; no hay ninguna que haga cumplir `responsable_control_id → deposito_id`.*  
+*Verificación de la DF con la instancia de la consigna: 0 filas (ningún responsable figura en dos depósitos).*  
+*Anomalía de inserción: se registra `(501, 31, 801)` y el responsable 801 queda en dos depósitos.*  
+*Anomalía de borrado: se borra `(503, 31, 802)` y la tabla pasa de 3 a 2 filas; se pierde que 802 pertenece al depósito 31.*  
+*Anomalía de actualización: al cambiar solo una fila de 801, el responsable queda en dos depósitos.*  
+*Descomposición y migración: `responsable_deposito` = 2 filas, `control_lote` = 3 filas, `v_control_lote_almacen` = 3 filas; los dos `EXCEPT` entre la vista y la tabla original devuelven 0 filas.*
