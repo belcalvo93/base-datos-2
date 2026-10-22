@@ -1,0 +1,105 @@
+BEGIN
+ current_database 
+------------------
+ bd2_tp4u4
+(1 fila)
+
+DROP VIEW
+DROP TABLE
+DROP TABLE
+DROP TABLE
+DROP TABLE
+DROP TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 3
+INSERT 0 2
+INSERT 0 2
+INSERT 0 3
+                    restriccion_declarada                    
+-------------------------------------------------------------
+ PRIMARY KEY (lote_id, deposito_id)
+ FOREIGN KEY (deposito_id) REFERENCES deposito(id)
+ FOREIGN KEY (lote_id) REFERENCES lote(id)
+ FOREIGN KEY (responsable_control_id) REFERENCES usuario(id)
+(4 filas)
+
+ responsable_control_id 
+------------------------
+(0 filas)
+
+SAVEPOINT
+INSERT 0 1
+ responsable_control_id 
+------------------------
+                    801
+(1 fila)
+
+ROLLBACK
+SAVEPOINT
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+     501 |          30 |                    801
+     502 |          30 |                    801
+     503 |          31 |                    802
+(3 filas)
+
+DELETE 1
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+     501 |          30 |                    801
+     502 |          30 |                    801
+(2 filas)
+
+ROLLBACK
+SAVEPOINT
+UPDATE 1
+ responsable_control_id 
+------------------------
+                    801
+(1 fila)
+
+ROLLBACK
+DROP VIEW
+DROP TABLE
+DROP TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 2
+INSERT 0 3
+CREATE VIEW
+ responsable_control_id | deposito_id 
+------------------------+-------------
+                    801 |          30
+                    802 |          31
+(2 filas)
+
+ lote_id | responsable_control_id 
+---------+------------------------
+     501 |                    801
+     502 |                    801
+     503 |                    802
+(3 filas)
+
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+     501 |          30 |                    801
+     502 |          30 |                    801
+     503 |          31 |                    802
+(3 filas)
+
+ filas_original | filas_r1_responsable_deposito | filas_r2_control_lote | filas_vista_reconstruida 
+----------------+-------------------------------+-----------------------+--------------------------
+              3 |                             2 |                     3 |                        3
+(1 fila)
+
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+ROLLBACK
