@@ -8,11 +8,12 @@ Requisitos del enunciado: un registro por cada parte en la que se usó OpenCode,
 
 | Prompt enviado a la IA | Respuesta relevante recibida | Validación o corrección humana aplicada |
 |---|---|---|
-| | | |
+| (Kiro) Prompt con la consigna A.1, el inventario real de la base y 5 puntos a resolver: fn_autenticar INVOKER vs DEFINER, celular en soporte, objetos de rol_reportes, falla del escalamiento en el simulacro y roles de login adicionales. Se le indicó explícitamente no escribir SQL. | Antes de escribir hizo 3 preguntas de diseño. Respondimos: mv_ventas_categoria_mes para reportes, fn_autenticar SECURITY DEFINER, y permiso por columna sobre usuario para soporte en vez de una vista nueva. Generó `requirements.md` y `design.md` en `docs/kiro_roles_spec/`. | **IA de más / incorrecta:** escribió SQL pese a la instrucción. Ese SQL de la vista materializada inventaba columnas (`c.activo`) y filtraba por productos activos, lo que habría borrado del reporte las ventas históricas de productos dados de baja. También le dio a `rol_app_escritura` SELECT sobre una vista inexistente (`vista_productos_videntes`), redundante además. Le faltaba definir quién es dueño de los objetos y su explicación del escalamiento era imprecisa (en PostgreSQL 16+ hace falta ADMIN sobre el rol, no solo CREATEROLE). Se le pidió corregir los 5 puntos. |
+| (Kiro) Prompt de corrección de los 5 puntos anteriores. | Reportó todo corregido "en ambos archivos" y agregó R7 (ownership de admin_datos) y la regla de DEFAULT PRIVILEGES para funciones. | **IA reporta algo que no hizo:** el typo `vista_productos_videntes` seguía en `requirements.md`, aunque Kiro dijo haberlo corregido. Se detectó leyendo el archivo línea por línea y se corrigió a mano junto con otros dos detalles menores (un typo y una fila del resumen incompleta). |
 
 ### Parte 0 — Reconstrucción previa (roles.sql y funciones de la Clase 2)
 
-Los artefactos de clase no estaban en el repo, así que se reconstruyeron antes de la Parte A, como pide la consigna. Se uso Claude chat en el navegador 
+Los artefactos de clase no estaban en el repo, así que se reconstruyeron antes de la Parte A, como pide la consigna. Herramienta usada: Claude (chat en el navegador)
 
 | Prompt enviado a la IA | Respuesta relevante recibida | Validación o corrección humana aplicada |
 |---|---|---|
