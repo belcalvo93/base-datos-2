@@ -36,6 +36,8 @@ Diseñar y documentar un sistema de control de acceso basado en roles (RBAC) par
 | `detalle_pedido` | - | SELECT, INSERT, UPDATE | - | - |
 | `registrar_pedido()` | - | EXECUTE | - | - |
 | `usuario` (columnas) | - | - | SELECT (id, nombre, apellido, mail, rol) | - |
+| `vista_pedidos_cliente` | - | - | SELECT | - |
+| `fn_resetear_password()` | - | - | EXECUTE | - |
 | `mv_ventas_categoria_mes` *(nueva)* | - | - | - | SELECT |
 | `vista_usuario_reportes` | - | - | - | (quitado: exponía datos personales) |
 
@@ -72,7 +74,7 @@ El diseño debe garantizar que el siguiente escenario falle como se indica:
 
 ### R7: Ownership de admin_datos
 
-`admin_datos` debe ser OWNER del esquema `public` y de todos los objetos existentes (tablas, vistas, vista materializada, funciones).
+`admin_datos` debe ser OWNER del esquema `public` y de todos los objetos existentes (tablas, vistas, vista materializada, funciones y el procedimiento `registrar_pedido`).
 
 **Justificación:** Sin esta cesión de propiedad, ALTER DEFAULT PRIVILEGES no aplica y las funciones SECURITY DEFINER ejecutarían como postgres (superusuario).
 
@@ -94,3 +96,4 @@ El diseño debe garantizar que el siguiente escenario falle como se indica:
 - La tabla `usuario` tiene un ENUM `rol` de negocio (USUARIO/ADMIN), **no** es un rol de PostgreSQL.
 - El permiso a nivel de columna sobre `usuario` para `rol_soporte` cumple el requisito de la consigna.
 - La vista materializada `mv_ventas_categoria_mes` es nueva y debe crearse como parte del script derivado de esta spec.
+- Ajustes posteriores a la revisión del SQL (Parte A.2): se restauraron `SELECT` de `rol_soporte` sobre `vista_pedidos_cliente` (Clase 1, sección 4.3) y `EXECUTE` sobre `fn_resetear_password` (Clase 2, sección 2.3; la matriz inicial los omitió por error), y `registrar_pedido()` pasa a `SECURITY DEFINER` con `search_path = public, pg_temp` para operar sobre `producto` sin grants de tabla extra.

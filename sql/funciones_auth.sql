@@ -1,17 +1,20 @@
 -- =====================================================================
--- funciones_auth.sql — Food Store, TP Unidad 5
--- PARTE 0: reconstrucción de las funciones de la Clase 2
---   fn_autenticar        -> apunte Clase 2, sección 1.5
---   fn_resetear_password -> apunte Clase 2, sección 2.3
--- Requiere que roles.sql se haya ejecutado antes (usa rol_soporte).
+-- funciones_auth.sql — Food Store, TP Unidad 5 (Parte A.2)
+-- Orden: 1. Crea la extensión y las funciones. Sin GRANT/REVOKE:
+-- toda la política de permisos vive en roles.sql (se ejecuta último).
 -- =====================================================================
 
--- crypt() y gen_salt() vienen de esta extensión
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- pgcrypto debe quedar en public porque las funciones usan search_path = public, pg_temp.
+CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA public;
 
--- Login: compara el hash, nunca concatena texto (previene inyección SQL)
+-- Login: compara el hash sin concatenar texto; SECURITY DEFINER evita
+-- darle SELECT sobre usuario a app_web y el search_path fijo evita hijacking.
 CREATE OR REPLACE FUNCTION fn_autenticar(p_mail TEXT, p_pass TEXT)
-RETURNS TABLE(id BIGINT, rol rol) AS $$
+RETURNS TABLE(id BIGINT, rol rol)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
 BEGIN
     RETURN QUERY
     SELECT u.id, u.rol
@@ -20,13 +23,13 @@ BEGIN
     AND    u.contrasena = crypt(p_pass, u.contrasena)
     AND    u.eliminado = FALSE;
 END;
-$$ LANGUAGE plpgsql SECURITY INVOKER;
+$$;
 
--- Reseteo de contraseña acotado: corre con privilegios del dueño,
--- con search_path fijo para evitar suplantación de esquema
+-- Reseteo de contraseña: corre como admin_datos (dueño) y con search_path fijo.
 CREATE OR REPLACE FUNCTION fn_resetear_password(
     p_usuario_id BIGINT, p_nueva TEXT
 ) RETURNS VOID
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
@@ -35,7 +38,4 @@ BEGIN
     SET    contrasena = crypt(p_nueva, gen_salt('bf'))
     WHERE  id = p_usuario_id AND eliminado = FALSE;
 END;
-$$ LANGUAGE plpgsql;
-
-REVOKE ALL ON FUNCTION fn_resetear_password(BIGINT, TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION fn_resetear_password(BIGINT, TEXT) TO rol_soporte;
+$$;

@@ -6,7 +6,7 @@
 |-----|---------------|
 | `rol_app_lectura` | Permite a la aplicación web leer productos vigentes sin acceso a datos de clientes, pedidos ni usuarios. |
 | `rol_app_escritura` | Permite a la aplicación web registrar pedidos y sus detalles mediante el procedimiento transaccional, sin acceso directo a tablas sensibles. |
-| `rol_soporte` | Permite a personal de soporte ver identificación de usuarios (nombre, mail, rol) sin acceso a contraseña ni teléfono. |
+| `rol_soporte` | Permite a personal de soporte ver identificación de usuarios (nombre, mail, rol) y el resumen de pedidos, sin acceso a contraseña ni teléfono. |
 | `rol_reportes` | Permite a herramientas de BI leer datos agregados de ventas por categoría y mes, sin datos personales de clientes ni usuarios. |
 | `app_web` | Login para la aplicación web; hereda permisos de lectura y escritura para operar el negocio. |
 | `admin_datos` | Login con privilegios de creación de roles y bases de datos para administración, sin ser superusuario. |
@@ -26,6 +26,8 @@
 | `rol_app_escritura` | `registrar_pedido()` | EXECUTE | Procedimiento transaccional |
 | `rol_soporte` | `public` (esquema) | USAGE | Necesario para acceder a cualquier objeto |
 | `rol_soporte` | `usuario` (columnas: id, nombre, apellido, mail, rol) | SELECT | Ver identificación de usuarios sin datos sensibles |
+| `rol_soporte` | `vista_pedidos_cliente` | SELECT | Resumen de pedidos para soporte (Clase 1, sección 4.3) |
+| `rol_soporte` | `fn_resetear_password()` | EXECUTE | Reseteo de contraseña para soporte (Clase 2, sección 2.3) |
 | `rol_reportes` | `public` (esquema) | USAGE | Necesario para acceder a cualquier objeto |
 | `rol_reportes` | `mv_ventas_categoria_mes` | SELECT | Datos agregados para panel gerencial |
 | `app_web` | `public` (esquema) | USAGE | Heredado de grupos |
@@ -56,7 +58,7 @@
 
 **Justificación:** La consigna exige permiso a nivel de columna. Se otorgan solo las columnas necesarias (id, nombre, apellido, mail, rol), excluyendo celular y contrasena. Esto cumple con el principio de mínimo privilegio y evita la creación de objetos redundantes. Se revoca el SELECT que tenía sobre vista_usuario_reportes.
 
-**Consecuencia:** rol_soporte puede ver identificación básica de usuarios para soporte, pero no datos personales como celular ni contraseña.
+**Consecuencia:** rol_soporte puede ver identificación básica de usuarios y el resumen de pedidos (Clase 1, sección 4.3), pero no datos personales como celular ni contraseña.
 
 ---
 
@@ -99,7 +101,7 @@
 
 **Justificación:** Sin esta cesión de propiedad, ALTER DEFAULT PRIVILEGES FOR ROLE admin_datos no aplica a ningún objeto (solo aplica a los creados por ese rol). Además, las funciones SECURITY DEFINER ejecutarían como postgres (superusuario), lo cual es un riesgo de seguridad. Al hacer a admin_datos dueño, esas funciones corren con privilegios de admin_datos, no de superusuario.
 
-**Consecuencia:** Las funciones fn_autenticar y fn_resetear_password ejecutarán como admin_datos, no como postgres.
+**Consecuencia:** Las funciones fn_autenticar y fn_resetear_password y el procedimiento registrar_pedido ejecutarán como admin_datos, no como postgres. registrar_pedido se pasa a SECURITY DEFINER con search_path fijo para leer/actualizar producto y disparar sus triggers sin otorgar permisos de tabla a rol_app_escritura.
 
 ---
 
@@ -128,7 +130,9 @@ Esto asegura que cualquier tabla nueva que admin_datos cree sea automáticamente
 |--------|----------|-------|
 | fn_autenticar | SECURITY INVOKER | SECURITY DEFINER + search_path |
 | app_web sobre usuario | SELECT (implícito por INVOKER) | Ninguno (solo EXECUTE en función) |
-| rol_soporte | SELECT en vista_usuario_reportes | SELECT (columnas) en tabla usuario |
+| rol_soporte | SELECT en vista_usuario_reportes | SELECT (columnas) en tabla usuario + SELECT en vista_pedidos_cliente (Clase 1, sección 4.3); se revoca vista_usuario_reportes |
+| registrar_pedido | SECURITY INVOKER | SECURITY DEFINER + search_path |
+| fn_resetear_password | EXECUTE en funciones_auth | EXECUTE para rol_soporte (restaurado) |
 | rol_reportes | Sin objeto dedicado | SELECT en mv_ventas_categoria_mes |
 | DEFAULT PRIVILEGES | No definido | SELECT en tablas futuras para rol_reportes; funciones futuras sin EXECUTE para PUBLIC |
 | Rol login adicional | Solo app_web, admin_datos | Agregado rol_reportes_login |
@@ -161,3 +165,7 @@ SELECT grantee, table_name
 FROM information_schema.role_table_grants
 WHERE grantee = 'app_web' AND table_name = 'usuario';
 ```
+
+## Ajustes posteriores a la revisión del SQL (Parte A.2)
+
+Estos ajustes se agregaron después de revisar el SQL propuesto porque la matriz inicial omitió el resumen de pedidos de soporte (Clase 1, sección 4.3) y el reseteo de contraseña (Clase 2, sección 2.3), y porque `registrar_pedido` necesita operar sobre `producto` sin grants de tabla extra.
