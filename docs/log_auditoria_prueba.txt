@@ -1,0 +1,16 @@
+2026-10-23 20:34:31.953 -03 [18652] [desconocido]@[desconocido] ::1(52673) [desconocido] LOG:  conexión recibida: host=::1 port=52673
+2026-10-23 20:34:31.962 -03 [18652] postgres@bd2_tp5u5 ::1(52673) [desconocido] LOG:  conexión autenticada: identidad=«postgres» método=scram-sha-256 (C:/Program Files/PostgreSQL/18/data/pg_hba.conf:117)
+2026-10-23 20:34:31.962 -03 [18652] postgres@bd2_tp5u5 ::1(52673) [desconocido] LOG:  conexión autorizada: usuario=postgres base_de_datos=bd2_tp5u5 nombre_de_aplicación=psql
+2026-10-23 20:34:32.141 -03 [18652] postgres@bd2_tp5u5 ::1(52673) psql LOG:  statement: SELECT id, mail, rol, eliminado
+	FROM usuario
+	WHERE id = 1;
+2026-10-23 20:34:32.164 -03 [18652] postgres@bd2_tp5u5 ::1(52673) psql LOG:  statement: SET LOCAL log_statement = 'mod';
+2026-10-23 20:34:32.165 -03 [18652] postgres@bd2_tp5u5 ::1(52673) psql LOG:  statement: INSERT INTO categoria (nombre, activo)
+	VALUES ('Auditoria Prueba U5', TRUE);
+2026-10-23 20:34:32.166 -03 [18652] postgres@bd2_tp5u5 ::1(52673) psql LOG:  statement: UPDATE categoria
+	SET activo = FALSE
+	WHERE nombre = 'Auditoria Prueba U5';
+2026-10-23 20:34:32.167 -03 [18652] postgres@bd2_tp5u5 ::1(52673) psql LOG:  disconnection: session time: 0:00:00.240 user=postgres database=bd2_tp5u5 host=::1 port=52673
+2026-10-23 20:35:13.891 -03 [41436] [desconocido]@[desconocido] ::1(52682) [desconocido] LOG:  conexión recibida: host=::1 port=52682
+2026-10-23 20:35:13.902 -03 [41436] postgres@bd2_tp5u5 ::1(52682) [desconocido] FATAL:  la autentificación password falló para el usuario «postgres»
+2026-10-23 20:35:13.902 -03 [41436] postgres@bd2_tp5u5 ::1(52682) [desconocido] DETALLE:  La conexión coincidió con el archivo «C:/Program Files/PostgreSQL/18/data/pg_hba.conf» línea 117: «host    all             all             ::1/128                 scram-sha-256»
