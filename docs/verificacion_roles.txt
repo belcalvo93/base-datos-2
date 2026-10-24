@@ -1,0 +1,125 @@
+=== Verificación de roles y permisos — TP U5, Parte A.3 ===
+Base: bd2_tp5u5, después de aplicar funciones_auth.sql, mv_ventas_categoria_mes.sql y roles.sql.
+Nota: information_schema.role_table_grants no lista vistas materializadas (mv_ventas_categoria_mes)
+ni permisos por columna (usuario para rol_soporte). Por eso se complementa con role_column_grants,
+\dp, routine_privileges y \ddp. Se compara contra la matriz de docs/kiro_roles_spec/design.md.
+
+--- 1. Roles y atributos (\du) ---
+                                  List of roles
+     Role name      |                         Attributes                         
+--------------------+------------------------------------------------------------
+ admin_datos        | Create role, Create DB
+ app_web            | 
+ postgres           | Superuser, Create role, Create DB, Replication, Bypass RLS
+ rol_app_escritura  | Cannot login
+ rol_app_lectura    | Cannot login
+ rol_reportes       | Cannot login
+ rol_reportes_login | 
+ rol_soporte        | Cannot login
+
+--- 2. Membresías ---
+        rol         |    miembro_de     
+--------------------+-------------------
+ app_web            | rol_app_escritura
+ app_web            | rol_app_lectura
+ rol_reportes_login | rol_reportes
+(3 rows)
+
+--- 3. Privilegios sobre tablas y vistas (role_table_grants) ---
+      grantee      |        table_name        | privilege_type 
+-------------------+--------------------------+----------------
+ rol_app_escritura | detalle_pedido           | INSERT
+ rol_app_escritura | detalle_pedido           | SELECT
+ rol_app_escritura | detalle_pedido           | UPDATE
+ rol_app_escritura | pedido                   | INSERT
+ rol_app_escritura | pedido                   | SELECT
+ rol_app_escritura | pedido                   | UPDATE
+ rol_app_lectura   | vista_productos_vigentes | SELECT
+ rol_soporte       | vista_pedidos_cliente    | SELECT
+(8 rows)
+
+--- 4. Privilegios por columna sobre usuario (role_column_grants) ---
+   grantee   | table_name | column_name | privilege_type 
+-------------+------------+-------------+----------------
+ rol_soporte | usuario    | apellido    | SELECT
+ rol_soporte | usuario    | id          | SELECT
+ rol_soporte | usuario    | mail        | SELECT
+ rol_soporte | usuario    | nombre      | SELECT
+ rol_soporte | usuario    | rol         | SELECT
+(5 rows)
+
+--- 5. Vista materializada (\dp) ---
+                                                   Access privileges
+ Schema |          Name           |       Type        |        Access privileges         | Column privileges | Policies 
+--------+-------------------------+-------------------+----------------------------------+-------------------+----------
+ public | mv_ventas_categoria_mes | materialized view | admin_datos=arwdDxtm/admin_datos+|                   | 
+        |                         |                   | rol_reportes=r/admin_datos       |                   | 
+(1 row)
+
+--- 6. EXECUTE sobre funciones y procedimiento ---
+(Las funciones de trigger conservan EXECUTE para PUBLIC: solo se pueden invocar como trigger.)
+         routine_name          |      grantee      | privilege_type 
+-------------------------------+-------------------+----------------
+ fn_autenticar                 | app_web           | EXECUTE
+ fn_resetear_password          | rol_soporte       | EXECUTE
+ fn_verificar_producto_activo  | PUBLIC            | EXECUTE
+ fn_verificar_stock_suficiente | PUBLIC            | EXECUTE
+ registrar_pedido              | rol_app_escritura | EXECUTE
+(5 rows)
+
+--- 7. Privilegios por defecto (\ddp) ---
+                  Default access privileges
+    Owner    | Schema |   Type   |     Access privileges      
+-------------+--------+----------+----------------------------
+ admin_datos | public | table    | rol_reportes=r/admin_datos
+ admin_datos |        | function | admin_datos=X/admin_datos
+(2 rows)
+
+--- 8. Dueño de los objetos ---
+            objeto             | tipo |    dueno    
+-------------------------------+------+-------------
+ mv_ventas_categoria_mes       | m    | admin_datos
+ categoria                     | r    | admin_datos
+ cliente                       | r    | admin_datos
+ detalle_pedido                | r    | admin_datos
+ pedido                        | r    | admin_datos
+ producto                      | r    | admin_datos
+ usuario                       | r    | admin_datos
+ vista_cliente_completo        | v    | admin_datos
+ vista_detalle_pedido_producto | v    | admin_datos
+ vista_pedidos_cliente         | v    | admin_datos
+ vista_productos_vigentes      | v    | admin_datos
+ vista_usuario_reportes        | v    | admin_datos
+(12 rows)
+
+--- 9. Pruebas funcionales con SET ROLE (los ERROR son esperados) ---
+app_web: fn_autenticar debe funcionar (0 filas con credenciales inválidas)
+SET
+ id | rol 
+----+-----
+(0 rows)
+
+app_web: leer usuario debe fallar
+psql:sql/verificacion_roles.sql:59: ERROR:  permiso denegado a la tabla usuario
+app_web: otorgar admin_datos a un rol de bajo privilegio debe fallar
+psql:sql/verificacion_roles.sql:61: ERROR:  se ha denegado el permiso para otorgar el rol «admin_datos»
+DETAIL:  Sólo los roles con la opción ADMIN en el rol «admin_datos» pueden otorgar este rol.
+RESET
+rol_soporte: columnas permitidas deben funcionar
+SET
+ count | count 
+-------+-------
+     3 |     3
+(1 row)
+
+rol_soporte: contrasena debe fallar
+psql:sql/verificacion_roles.sql:67: ERROR:  permiso denegado a la tabla usuario
+RESET
+rol_reportes_login: la vista materializada debe funcionar
+SET
+ count 
+-------
+   125
+(1 row)
+
+RESET
