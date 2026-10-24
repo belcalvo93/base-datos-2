@@ -9,7 +9,7 @@
 
 ## 1. Parámetros de auditoría configurados en el servidor
 
-Se activaron los parámetros de auditoría nativa a nivel de instancia mediante `ALTER SYSTEM` (que persiste los cambios en `postgresql.auto.conf`) y se aplicaron en caliente con `SELECT pg_reload_conf();`, sin reiniciar el servicio:
+Se activaron los parámetros de auditoría nativa a nivel de instancia mediante `ALTER SYSTEM` (que persiste los cambios en `postgresql.auto.conf`) y se aplicaron con `SELECT pg_reload_conf();`, sin reiniciar el servicio, salvo `logging_collector`: es un parámetro de arranque del servidor, y cambiarlo exige reiniciar el servicio (no alcanza con recargar la configuración). En la instancia de prueba el colector estaba activo al ejecutar la secuencia, como lo muestra que `pg_current_logfile()` devuelva el archivo de log:
 
 | Parámetro | Valor configurado | Propósito en la auditoría |
 | --- | --- | --- |
