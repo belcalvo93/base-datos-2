@@ -84,7 +84,10 @@ GRANT USAGE ON SCHEMA public
 -- 6) Permisos de los roles de grupo, uno por uno según la matriz del design.md.
 GRANT SELECT ON vista_productos_vigentes TO rol_app_lectura;
 
-GRANT SELECT, INSERT, UPDATE ON pedido, detalle_pedido TO rol_app_escritura;
+-- Escritura solo vía registrar_pedido (auditoría Parte A.4): el INSERT/UPDATE directo permitía
+-- crear pedidos vacíos o cambiar fecha/cliente. El REVOKE limpia el GRANT ya aplicado en la base.
+REVOKE INSERT, UPDATE ON pedido, detalle_pedido FROM rol_app_escritura;
+GRANT SELECT ON pedido, detalle_pedido TO rol_app_escritura;
 
 GRANT SELECT ON mv_ventas_categoria_mes TO rol_reportes;
 

@@ -5,7 +5,7 @@
 | Rol | Justificación |
 |-----|---------------|
 | `rol_app_lectura` | Permite a la aplicación web leer productos vigentes sin acceso a datos de clientes, pedidos ni usuarios. |
-| `rol_app_escritura` | Permite a la aplicación web registrar pedidos y sus detalles mediante el procedimiento transaccional, sin acceso directo a tablas sensibles. |
+| `rol_app_escritura` | Permite a la aplicación web registrar pedidos y sus detalles solo mediante el procedimiento transaccional, con consulta directa (SELECT) de pedidos y líneas pero sin INSERT ni UPDATE directo. |
 | `rol_soporte` | Permite a personal de soporte ver identificación de usuarios (nombre, mail, rol) y el resumen de pedidos, sin acceso a contraseña ni teléfono. |
 | `rol_reportes` | Permite a herramientas de BI leer datos agregados de ventas por categoría y mes, sin datos personales de clientes ni usuarios. |
 | `app_web` | Login para la aplicación web; hereda permisos de lectura y escritura para operar el negocio. |
@@ -21,13 +21,13 @@
 | `rol_app_lectura` | `public` (esquema) | USAGE | Necesario para acceder a cualquier objeto |
 | `rol_app_lectura` | `vista_productos_vigentes` | SELECT | Catálogo público de productos |
 | `rol_app_escritura` | `public` (esquema) | USAGE | Necesario para acceder a cualquier objeto |
-| `rol_app_escritura` | `pedido` | SELECT, INSERT, UPDATE | Alta y consulta de pedidos |
-| `rol_app_escritura` | `detalle_pedido` | SELECT, INSERT, UPDATE | Alta y consulta de líneas |
+| `rol_app_escritura` | `pedido` | SELECT | Consulta de pedidos; el alta es solo vía `registrar_pedido()` |
+| `rol_app_escritura` | `detalle_pedido` | SELECT | Consulta de líneas; el alta es solo vía `registrar_pedido()` |
 | `rol_app_escritura` | `registrar_pedido()` | EXECUTE | Procedimiento transaccional |
 | `rol_soporte` | `public` (esquema) | USAGE | Necesario para acceder a cualquier objeto |
 | `rol_soporte` | `usuario` (columnas: id, nombre, apellido, mail, rol) | SELECT | Ver identificación de usuarios sin datos sensibles |
 | `rol_soporte` | `vista_pedidos_cliente` | SELECT | Resumen de pedidos para soporte (Clase 1, sección 4.3) |
-| `rol_soporte` | `fn_resetear_password()` | EXECUTE | Reseteo de contraseña para soporte (Clase 2, sección 2.3) |
+| `rol_soporte` | `fn_resetear_password()` | EXECUTE | Reseteo de contraseña para soporte (Clase 2, sección 2.3); nunca sobre usuarios ADMIN |
 | `rol_reportes` | `public` (esquema) | USAGE | Necesario para acceder a cualquier objeto |
 | `rol_reportes` | `mv_ventas_categoria_mes` | SELECT | Datos agregados para panel gerencial |
 | `app_web` | `public` (esquema) | USAGE | Heredado de grupos |
@@ -132,7 +132,8 @@ Esto asegura que cualquier tabla nueva que admin_datos cree sea automáticamente
 | app_web sobre usuario | SELECT (implícito por INVOKER) | Ninguno (solo EXECUTE en función) |
 | rol_soporte | SELECT en vista_usuario_reportes | SELECT (columnas) en tabla usuario + SELECT en vista_pedidos_cliente (Clase 1, sección 4.3); se revoca vista_usuario_reportes |
 | registrar_pedido | SECURITY INVOKER | SECURITY DEFINER + search_path |
-| fn_resetear_password | EXECUTE en funciones_auth | EXECUTE para rol_soporte (restaurado) |
+| fn_resetear_password | EXECUTE en funciones_auth | EXECUTE para rol_soporte (restaurado); no resetea ADMIN, mínimo 8 caracteres, error si no aplica (Parte A.4) |
+| rol_app_escritura sobre pedido/detalle_pedido | SELECT, INSERT, UPDATE | Solo SELECT; el alta es vía registrar_pedido (Parte A.4) |
 | rol_reportes | Sin objeto dedicado | SELECT en mv_ventas_categoria_mes |
 | DEFAULT PRIVILEGES | No definido | SELECT en tablas futuras para rol_reportes; funciones futuras sin EXECUTE para PUBLIC |
 | Rol login adicional | Solo app_web, admin_datos | Agregado rol_reportes_login |
@@ -169,3 +170,14 @@ WHERE grantee = 'app_web' AND table_name = 'usuario';
 ## Ajustes posteriores a la revisión del SQL (Parte A.2)
 
 Estos ajustes se agregaron después de revisar el SQL propuesto porque la matriz inicial omitió el resumen de pedidos de soporte (Clase 1, sección 4.3) y el reseteo de contraseña (Clase 2, sección 2.3), y porque `registrar_pedido` necesita operar sobre `producto` sin grants de tabla extra.
+
+## Ajustes posteriores a la auditoría (Parte A.4)
+
+Estos cambios vienen de la auditoría de la Parte A.4 (`docs/auditoria_roles_ia.md`).
+
+**rol_app_escritura: solo SELECT sobre `pedido` y `detalle_pedido`.** La matriz original le daba INSERT y UPDATE, lo que contradecía la justificación del rol ("mediante el procedimiento transaccional"). Con ese grant, `app_web` podía insertar pedidos vacíos o con fecha arbitraria y cambiar `fecha` o `id_cliente` de cualquier pedido, lo que altera `mv_ventas_categoria_mes`. Sobre `detalle_pedido` el INSERT/UPDATE directo ya fallaba (los triggers son SECURITY INVOKER y leen `producto`), pero quedaba latente un `UPDATE` de `precio_unitario` que rompería R4 si la app recibiera SELECT sobre `producto`. Toda alta pasa por `registrar_pedido()` (SECURITY DEFINER). Como la base ya tenía aplicado el GRANT anterior, `roles.sql` hace primero `REVOKE INSERT, UPDATE`.
+
+**fn_resetear_password: reglas de uso.**
+- No resetea usuarios con `rol = 'ADMIN'`: si no, soporte podría fijar la contraseña de un administrador y entrar a la aplicación web como ADMIN (escalada a nivel de aplicación).
+- La nueva contraseña debe tener al menos 8 caracteres (y no puede ser NULL).
+- Si el usuario no existe, está eliminado o es ADMIN, la función lanza `RAISE EXCEPTION` en lugar de no hacer nada en silencio.

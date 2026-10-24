@@ -26,6 +26,8 @@ END;
 $$;
 
 -- Reseteo de contraseña: corre como admin_datos (dueño) y con search_path fijo.
+-- Auditoría Parte A.4: soporte no puede resetear cuentas ADMIN (evita tomarlas)
+-- y la función falla en vez de no hacer nada si el usuario no aplica.
 CREATE OR REPLACE FUNCTION fn_resetear_password(
     p_usuario_id BIGINT, p_nueva TEXT
 ) RETURNS VOID
@@ -34,8 +36,16 @@ SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
 BEGIN
+    IF p_nueva IS NULL OR length(p_nueva) < 8 THEN
+        RAISE EXCEPTION 'La nueva contraseña debe tener al menos 8 caracteres';
+    END IF;
+
     UPDATE usuario
     SET    contrasena = crypt(p_nueva, gen_salt('bf'))
-    WHERE  id = p_usuario_id AND eliminado = FALSE;
+    WHERE  id = p_usuario_id AND eliminado = FALSE AND rol <> 'ADMIN';
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Usuario % inexistente, eliminado o ADMIN: no se resetea', p_usuario_id;
+    END IF;
 END;
 $$;

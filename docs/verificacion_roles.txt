@@ -28,15 +28,11 @@ ni permisos por columna (usuario para rol_soporte). Por eso se complementa con r
 --- 3. Privilegios sobre tablas y vistas (role_table_grants) ---
       grantee      |        table_name        | privilege_type 
 -------------------+--------------------------+----------------
- rol_app_escritura | detalle_pedido           | INSERT
  rol_app_escritura | detalle_pedido           | SELECT
- rol_app_escritura | detalle_pedido           | UPDATE
- rol_app_escritura | pedido                   | INSERT
  rol_app_escritura | pedido                   | SELECT
- rol_app_escritura | pedido                   | UPDATE
  rol_app_lectura   | vista_productos_vigentes | SELECT
  rol_soporte       | vista_pedidos_cliente    | SELECT
-(8 rows)
+(4 rows)
 
 --- 4. Privilegios por columna sobre usuario (role_column_grants) ---
    grantee   | table_name | column_name | privilege_type 
@@ -93,6 +89,9 @@ ni permisos por columna (usuario para rol_soporte). Por eso se complementa con r
 (12 rows)
 
 --- 9. Pruebas funcionales con SET ROLE (los ERROR son esperados) ---
+(Todo dentro de BEGIN … ROLLBACK: si una prueba que debe fallar no falla, no deja cambios.
+ ON_ERROR_ROLLBACK hace que cada ERROR vuelva a un savepoint y la transacción siga.)
+BEGIN
 app_web: fn_autenticar debe funcionar (0 filas con credenciales inválidas)
 SET
  id | rol 
@@ -100,10 +99,12 @@ SET
 (0 rows)
 
 app_web: leer usuario debe fallar
-psql:sql/verificacion_roles.sql:59: ERROR:  permiso denegado a la tabla usuario
+psql:sql/verificacion_roles.sql:63: ERROR:  permiso denegado a la tabla usuario
 app_web: otorgar admin_datos a un rol de bajo privilegio debe fallar
-psql:sql/verificacion_roles.sql:61: ERROR:  se ha denegado el permiso para otorgar el rol «admin_datos»
+psql:sql/verificacion_roles.sql:65: ERROR:  se ha denegado el permiso para otorgar el rol «admin_datos»
 DETAIL:  Sólo los roles con la opción ADMIN en el rol «admin_datos» pueden otorgar este rol.
+app_web: INSERT directo en pedido debe fallar (solo vía registrar_pedido, Parte A.4)
+psql:sql/verificacion_roles.sql:67: ERROR:  permiso denegado a la tabla pedido
 RESET
 rol_soporte: columnas permitidas deben funcionar
 SET
@@ -113,7 +114,11 @@ SET
 (1 row)
 
 rol_soporte: contrasena debe fallar
-psql:sql/verificacion_roles.sql:67: ERROR:  permiso denegado a la tabla usuario
+psql:sql/verificacion_roles.sql:73: ERROR:  permiso denegado a la tabla usuario
+rol_soporte: resetear la contraseña de un ADMIN debe fallar (Parte A.4)
+(Si el mensaje dice "Usuario <NULL>", no hay ningún ADMIN cargado y la prueba no es concluyente.)
+psql:sql/verificacion_roles.sql:77: ERROR:  Usuario 1 inexistente, eliminado o ADMIN: no se resetea
+CONTEXT:  función PL/pgSQL fn_resetear_password(bigint,text) en la línea 12 en RAISE
 RESET
 rol_reportes_login: la vista materializada debe funcionar
 SET
@@ -123,3 +128,4 @@ SET
 (1 row)
 
 RESET
+ROLLBACK

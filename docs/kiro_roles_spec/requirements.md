@@ -11,7 +11,7 @@ Diseñar y documentar un sistema de control de acceso basado en roles (RBAC) par
 | Rol | Propósito |
 |-----|-----------|
 | `rol_app_lectura` | Permite solo lectura de datos de negocio públicos (productos) |
-| `rol_app_escritura` | Permite lectura + escritura en pedidos y detalles; ejecución de procedimientos transaccionales |
+| `rol_app_escritura` | Permite lectura de pedidos y detalles; la escritura es solo mediante el procedimiento transaccional `registrar_pedido()` |
 | `rol_soporte` | Permite consultar datos de usuarios (sin datos sensibles como contraseña) para tareas de soporte |
 | `rol_reportes` | Permite acceder a datos agregados para panel gerencial, sin datos personales de clientes ni usuarios |
 
@@ -32,8 +32,8 @@ Diseñar y documentar un sistema de control de acceso basado en roles (RBAC) par
 | Objeto | `rol_app_lectura` | `rol_app_escritura` | `rol_soporte` | `rol_reportes` |
 |--------|-------------------|---------------------|---------------|----------------|
 | `vista_productos_vigentes` | SELECT | (heredado) | - | - |
-| `pedido` | - | SELECT, INSERT, UPDATE | - | - |
-| `detalle_pedido` | - | SELECT, INSERT, UPDATE | - | - |
+| `pedido` | - | SELECT | - | - |
+| `detalle_pedido` | - | SELECT | - | - |
 | `registrar_pedido()` | - | EXECUTE | - | - |
 | `usuario` (columnas) | - | - | SELECT (id, nombre, apellido, mail, rol) | - |
 | `vista_pedidos_cliente` | - | - | SELECT | - |
@@ -41,7 +41,7 @@ Diseñar y documentar un sistema de control de acceso basado en roles (RBAC) par
 | `mv_ventas_categoria_mes` *(nueva)* | - | - | - | SELECT |
 | `vista_usuario_reportes` | - | - | - | (quitado: exponía datos personales) |
 
-**Criterio de aceptación:** Verificable con `information_schema.role_table_grants` y `role_column_grants`.
+**Criterio de aceptación:** Verificable con `information_schema.role_table_grants` y `role_column_grants`. `app_web` no puede hacer INSERT ni UPDATE directo sobre `pedido` ni `detalle_pedido`; el alta de pedidos solo funciona con `CALL registrar_pedido(...)`.
 
 ### R4: Función de autenticación
 
@@ -80,6 +80,16 @@ El diseño debe garantizar que el siguiente escenario falle como se indica:
 
 **Criterio de aceptacion:** Verificable consultando `pg_class.relowner` y `information_schema.schema_privileges`.
 
+### R8: Función de reseteo de contraseña
+
+- `fn_resetear_password(p_usuario_id BIGINT, p_nueva TEXT)` se ejecuta con privilegios del propietario (SECURITY DEFINER) y `search_path` fijo a `public, pg_temp`
+- Solo `rol_soporte` tiene EXECUTE; `PUBLIC` tiene REVOKE ALL
+- No resetea usuarios con `rol = 'ADMIN'`
+- La nueva contraseña debe tener al menos 8 caracteres (NULL se rechaza)
+- Si el usuario no existe, está eliminado o es ADMIN, la función lanza `RAISE EXCEPTION` (no termina en silencio)
+
+**Criterio de aceptación:** `rol_soporte` puede resetear la contraseña de un usuario `USUARIO` vigente; el intento sobre un usuario ADMIN o con una contraseña de menos de 8 caracteres falla con error.
+
 ---
 
 ## Definiciones
@@ -97,3 +107,4 @@ El diseño debe garantizar que el siguiente escenario falle como se indica:
 - El permiso a nivel de columna sobre `usuario` para `rol_soporte` cumple el requisito de la consigna.
 - La vista materializada `mv_ventas_categoria_mes` es nueva y debe crearse como parte del script derivado de esta spec.
 - Ajustes posteriores a la revisión del SQL (Parte A.2): se restauraron `SELECT` de `rol_soporte` sobre `vista_pedidos_cliente` (Clase 1, sección 4.3) y `EXECUTE` sobre `fn_resetear_password` (Clase 2, sección 2.3; la matriz inicial los omitió por error), y `registrar_pedido()` pasa a `SECURITY DEFINER` con `search_path = public, pg_temp` para operar sobre `producto` sin grants de tabla extra.
+- Estos cambios vienen de la auditoría de la Parte A.4 (`docs/auditoria_roles_ia.md`): `rol_app_escritura` queda solo con SELECT sobre `pedido` y `detalle_pedido` (R1, R3), y `fn_resetear_password` incorpora la regla R8 (sin ADMIN, mínimo 8 caracteres, error si no aplica).

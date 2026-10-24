@@ -52,6 +52,10 @@ WHERE n.nspname = 'public' AND c.relkind IN ('r', 'v', 'm')
 ORDER BY 2, 1;
 
 \echo '--- 9. Pruebas funcionales con SET ROLE (los ERROR son esperados) ---'
+\echo '(Todo dentro de BEGIN … ROLLBACK: si una prueba que debe fallar no falla, no deja cambios.'
+\echo ' ON_ERROR_ROLLBACK hace que cada ERROR vuelva a un savepoint y la transacción siga.)'
+\set ON_ERROR_ROLLBACK on
+BEGIN;
 \echo 'app_web: fn_autenticar debe funcionar (0 filas con credenciales inválidas)'
 SET ROLE app_web;
 SELECT * FROM fn_autenticar('nadie@test.com', 'x');
@@ -59,14 +63,22 @@ SELECT * FROM fn_autenticar('nadie@test.com', 'x');
 SELECT count(*) FROM usuario;
 \echo 'app_web: otorgar admin_datos a un rol de bajo privilegio debe fallar'
 GRANT admin_datos TO rol_soporte;
+\echo 'app_web: INSERT directo en pedido debe fallar (solo vía registrar_pedido, Parte A.4)'
+INSERT INTO pedido (fecha, forma_pago, id_cliente) VALUES (now(), 'EFECTIVO', 1);
 RESET ROLE;
 \echo 'rol_soporte: columnas permitidas deben funcionar'
 SET ROLE rol_soporte;
 SELECT count(id), count(mail) FROM usuario;
 \echo 'rol_soporte: contrasena debe fallar'
 SELECT count(contrasena) FROM usuario;
+\echo 'rol_soporte: resetear la contraseña de un ADMIN debe fallar (Parte A.4)'
+\echo '(Si el mensaje dice "Usuario <NULL>", no hay ningún ADMIN cargado y la prueba no es concluyente.)'
+SELECT fn_resetear_password((SELECT id FROM usuario WHERE rol = 'ADMIN' ORDER BY id LIMIT 1),
+                            'clave_nueva_123');
 RESET ROLE;
 \echo 'rol_reportes_login: la vista materializada debe funcionar'
 SET ROLE rol_reportes_login;
 SELECT count(*) FROM mv_ventas_categoria_mes;
 RESET ROLE;
+ROLLBACK;
+\set ON_ERROR_ROLLBACK off
