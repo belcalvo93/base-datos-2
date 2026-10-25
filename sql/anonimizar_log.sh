@@ -15,7 +15,10 @@
 #
 # Qué reemplaza:
 #   * mails                      -> usuario_NNN@ejemplo.test (mismo mail = mismo valor)
-#   * 2.º argumento de fn_autenticar (la contraseña) -> CLAVE_REDACTADA
+#   * 2.º argumento de fn_autenticar (la contraseña) -> CLAVE_REDACTADA_N (una contraseña
+#     distinta recibe un N distinto: se oculta el secreto pero se conserva que los
+#     intentos no son todos iguales; sin eso el log no permite reconstruir la secuencia)
+#   * caracteres con tilde mezclados en el log (UTF-8 leído como WIN1252) -> se reparan
 #   * puertos del cliente        -> PUERTO
 #   * IPv4 distintas de 127.0.0.1 -> IP_ANONIMA
 #   * rutas de Windows al archivo pg_hba.conf -> <RUTA>/pg_hba.conf
@@ -43,26 +46,48 @@ else
     TRAMO=$(cat "$ENTRADA")
 fi
 
-# Paso 1 (sed): contraseña, puertos, IPv4 y ruta del pg_hba.conf.
-#   - contraseña: segundo argumento de fn_autenticar(mail, clave)
+# Paso 1 (sed): puertos, IPv4, ruta del pg_hba.conf y reparación de tildes.
 #   - IPv4: se protege 127.0.0.1, se reemplaza el resto y se restaura
-# Paso 2 (awk): mails, con numeración estable (el mismo mail recibe siempre el mismo valor).
+#   - tildes: el log mezcla mensajes en UTF-8 y en WIN1252; al leerlo todo como
+#     WIN1252 algunos quedan como "Ã³" o "Â«". Se reparan por bytes.
+# Paso 2 (awk): contraseña de fn_autenticar y mails, con numeración estable
+#   (el mismo valor recibe siempre el mismo alias).
 printf '%s\n' "$TRAMO" | LC_ALL=C sed -E \
-    -e "s/(fn_autenticar\('[^']*', *')[^']*('\))/\1CLAVE_REDACTADA\2/g" \
+    -e 's/\xc3\x83\xc2\xb3/ó/g' -e 's/\xc3\x83\xc2\xa9/é/g' -e 's/\xc3\x83\xc2\xad/í/g' \
+    -e 's/\xc3\x83\xc2\xa1/á/g' -e 's/\xc3\x83\xc2\xba/ú/g' -e 's/\xc3\x83\xc2\xb1/ñ/g' \
+    -e 's/\xc3\x82\xc2\xab/«/g' -e 's/\xc3\x82\xc2\xbb/»/g' \
     -e 's/\([0-9]+\)/(PUERTO)/g' \
     -e 's/port=[0-9]+/port=PUERTO/g' \
     -e 's/127\.0\.0\.1/LOOPBACK_TMP/g' \
     -e 's/([0-9]{1,3}\.){3}[0-9]{1,3}/IP_ANONIMA/g' \
     -e 's/LOOPBACK_TMP/127.0.0.1/g' \
     -e 's#[A-Za-z]:/[^»)]*pg_hba\.conf#<RUTA>/pg_hba.conf#g' \
-| LC_ALL=C awk '
+| LC_ALL=C awk -v q="'" '
 function anon_mail(m) {
     if (!(m in mapa)) { n++; mapa[m] = sprintf("usuario_%03d@ejemplo.test", n) }
     return mapa[m]
 }
+function anon_clave(c) {
+    if (!(c in claves)) { k++; claves[c] = "CLAVE_REDACTADA_" k }
+    return claves[c]
+}
 {
+    # contraseña: fn_autenticar(mail, clave). split por comilla simple da
+    # p[1]="fn_autenticar(", p[2]=mail, p[3]=", ", p[4]=clave, p[5]=")"
+    re = "fn_autenticar\\(" q "[^" q "]*" q ", *" q "[^" q "]*" q "\\)"
     resultado = ""
     resto = $0
+    while (match(resto, re)) {
+        trozo = substr(resto, RSTART, RLENGTH)
+        antes = substr(resto, 1, RSTART - 1)
+        resto = substr(resto, RSTART + RLENGTH)
+        split(trozo, p, q)
+        resultado = resultado antes p[1] q p[2] q p[3] q anon_clave(p[4]) q p[5]
+    }
+    linea = resultado resto
+
+    resultado = ""
+    resto = linea
     # un mail se reconoce por tener punto en el dominio, así no toca usuario@base
     while (match(resto, /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+/)) {
         resultado = resultado substr(resto, 1, RSTART - 1) anon_mail(substr(resto, RSTART, RLENGTH))
