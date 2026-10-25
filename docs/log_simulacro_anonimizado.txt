@@ -1,0 +1,39 @@
+2026-10-25 19:46:48.258 -03 [13536] postgres@bd2_tp5u5 ::1(PUERTO) psql LOG:  sentencia: SELECT 'INICIO_SIMULACRO_U5' AS marca;
+2026-10-25 19:46:48.283 -03 [2568] [desconocido]@[desconocido] ::1(PUERTO) [desconocido] LOG:  conexión recibida: host=::1 port=PUERTO
+2026-10-25 19:46:48.291 -03 [2568] app_web@bd2_tp5u5 ::1(PUERTO) [desconocido] LOG:  conexión autenticada: identidad=«app_web» método=scram-sha-256 (<RUTA>/pg_hba.conf:117)
+2026-10-25 19:46:48.291 -03 [2568] app_web@bd2_tp5u5 ::1(PUERTO) [desconocido] LOG:  conexión autorizada: usuario=app_web base_de_datos=bd2_tp5u5 nombre_de_aplicación=psql
+2026-10-25 19:46:48.293 -03 [13536] postgres@bd2_tp5u5 ::1(PUERTO) psql LOG:  desconexión: duración de sesión: 0:00:00.307 usuario=postgres base=bd2_tp5u5 host=::1 port=PUERTO
+2026-10-25 19:46:48.293 -03 [2568] app_web@bd2_tp5u5 ::1(PUERTO) psql LOG:  sentencia: SELECT * FROM fn_autenticar('usuario_001@ejemplo.test', 'CLAVE_REDACTADA_1');
+2026-10-25 19:46:48.322 -03 [20820] [desconocido]@[desconocido] ::1(PUERTO) [desconocido] LOG:  conexión recibida: host=::1 port=PUERTO
+2026-10-25 19:46:48.331 -03 [20820] app_web@bd2_tp5u5 ::1(PUERTO) [desconocido] LOG:  conexión autenticada: identidad=«app_web» método=scram-sha-256 (<RUTA>/pg_hba.conf:117)
+2026-10-25 19:46:48.331 -03 [20820] app_web@bd2_tp5u5 ::1(PUERTO) [desconocido] LOG:  conexión autorizada: usuario=app_web base_de_datos=bd2_tp5u5 nombre_de_aplicación=psql
+2026-10-25 19:46:48.332 -03 [2568] app_web@bd2_tp5u5 ::1(PUERTO) psql LOG:  desconexión: duración de sesión: 0:00:00.059 usuario=app_web base=bd2_tp5u5 host=::1 port=PUERTO
+2026-10-25 19:46:48.333 -03 [20820] app_web@bd2_tp5u5 ::1(PUERTO) psql LOG:  sentencia: SELECT * FROM fn_autenticar('usuario_001@ejemplo.test', 'CLAVE_REDACTADA_2');
+2026-10-25 19:46:48.362 -03 [408] [desconocido]@[desconocido] ::1(PUERTO) [desconocido] LOG:  conexión recibida: host=::1 port=PUERTO
+2026-10-25 19:46:48.371 -03 [408] app_web@bd2_tp5u5 ::1(PUERTO) [desconocido] LOG:  conexión autenticada: identidad=«app_web» método=scram-sha-256 (<RUTA>/pg_hba.conf:117)
+2026-10-25 19:46:48.371 -03 [408] app_web@bd2_tp5u5 ::1(PUERTO) [desconocido] LOG:  conexión autorizada: usuario=app_web base_de_datos=bd2_tp5u5 nombre_de_aplicación=psql
+2026-10-25 19:46:48.373 -03 [20820] app_web@bd2_tp5u5 ::1(PUERTO) psql LOG:  desconexión: duración de sesión: 0:00:00.059 usuario=app_web base=bd2_tp5u5 host=::1 port=PUERTO
+2026-10-25 19:46:48.373 -03 [408] app_web@bd2_tp5u5 ::1(PUERTO) psql LOG:  sentencia: SELECT * FROM fn_autenticar('usuario_001@ejemplo.test', 'CLAVE_REDACTADA_3');
+2026-10-25 19:46:48.402 -03 [7024] [desconocido]@[desconocido] ::1(PUERTO) [desconocido] LOG:  conexión recibida: host=::1 port=PUERTO
+2026-10-25 19:46:48.410 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) [desconocido] LOG:  conexión autenticada: identidad=«app_web» método=scram-sha-256 (<RUTA>/pg_hba.conf:117)
+2026-10-25 19:46:48.410 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) [desconocido] LOG:  conexión autorizada: usuario=app_web base_de_datos=bd2_tp5u5 nombre_de_aplicación=psql
+2026-10-25 19:46:48.411 -03 [408] app_web@bd2_tp5u5 ::1(PUERTO) psql LOG:  desconexión: duración de sesión: 0:00:00.058 usuario=app_web base=bd2_tp5u5 host=::1 port=PUERTO
+2026-10-25 19:46:48.411 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql LOG:  sentencia: SELECT * FROM fn_autenticar('usuario_001@ejemplo.test', 'CLAVE_REDACTADA_4');
+2026-10-25 19:46:48.419 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql LOG:  sentencia: SELECT * FROM usuario;
+2026-10-25 19:46:48.419 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql ERROR:  permiso denegado a la tabla usuario
+2026-10-25 19:46:48.419 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql SENTENCIA:  SELECT * FROM usuario;
+2026-10-25 19:46:48.419 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql LOG:  sentencia: SELECT count(*) FROM usuario;
+2026-10-25 19:46:48.419 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql ERROR:  permiso denegado a la tabla usuario
+2026-10-25 19:46:48.419 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql SENTENCIA:  SELECT count(*) FROM usuario;
+2026-10-25 19:46:48.420 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql LOG:  sentencia: GRANT admin_datos TO app_web;
+2026-10-25 19:46:48.420 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql ERROR:  se ha denegado el permiso para otorgar el rol «admin_datos»
+2026-10-25 19:46:48.420 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql DETALLE:  Sólo los roles con la opción ADMIN en el rol «admin_datos» pueden otorgar este rol.
+2026-10-25 19:46:48.420 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql SENTENCIA:  GRANT admin_datos TO app_web;
+2026-10-25 19:46:48.420 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql LOG:  sentencia: SET ROLE admin_datos;
+2026-10-25 19:46:48.420 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql ERROR:  se ha denegado el permiso para definir el rol «admin_datos»
+2026-10-25 19:46:48.420 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql SENTENCIA:  SET ROLE admin_datos;
+2026-10-25 19:46:48.442 -03 [21388] [desconocido]@[desconocido] ::1(PUERTO) [desconocido] LOG:  conexión recibida: host=::1 port=PUERTO
+2026-10-25 19:46:48.450 -03 [21388] postgres@bd2_tp5u5 ::1(PUERTO) [desconocido] LOG:  conexión autenticada: identidad=«postgres» método=scram-sha-256 (<RUTA>/pg_hba.conf:117)
+2026-10-25 19:46:48.450 -03 [21388] postgres@bd2_tp5u5 ::1(PUERTO) [desconocido] LOG:  conexión autorizada: usuario=postgres base_de_datos=bd2_tp5u5 nombre_de_aplicación=psql
+2026-10-25 19:46:48.452 -03 [7024] app_web@bd2_tp5u5 ::1(PUERTO) psql LOG:  desconexión: duración de sesión: 0:00:00.059 usuario=app_web base=bd2_tp5u5 host=::1 port=PUERTO
+2026-10-25 19:46:48.452 -03 [21388] postgres@bd2_tp5u5 ::1(PUERTO) psql LOG:  sentencia: SELECT 'FIN_SIMULACRO_U5' AS marca;
