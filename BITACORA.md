@@ -36,9 +36,13 @@ Los artefactos de clase no estaban en el repo, así que se reconstruyeron antes 
 
 ## Parte C — Simulacro de incidente de acceso indebido
 
+*Desvío declarado:* el SQL del simulacro y el anonimizador los escribió Claude Code en lugar de OpenCode, trabajando en una sola sesión. Elías leyó los scripts, los ejecutó en `bd2_tp5u5` y verificó la salida. La reconstrucción del incidente (punto 4 del enunciado) sí se hizo con OpenCode.
+
 | Prompt enviado a la IA | Respuesta relevante recibida | Validación o corrección humana aplicada |
 |---|---|---|
-| | | |
+| (Claude Code) Escribir `sql/simulacro_incidente.sql` con la secuencia del enunciado: intentos fallidos contra `fn_autenticar`, login exitoso, lectura masiva de `usuario` e intento de escalamiento a `admin_datos`. | Script que arma las conexiones con variables de `psql` (`\c :'conn_app'`). | **IA incorrecta:** al ejecutarlo falló en el primer `\c` con "opción de conexión no válida", porque `:'var'` agrega comillas al valor. Se detectó al correrlo y se corrigió con cadenas de conexión literales entre comillas dobles, usando `PGPASSWORD` solo para `postgres`. Además se alineó a 3 los intentos fallidos con la especificación de Kiro (R5), que decía 3 y el script traía 5. |
+| (Claude Code) Escribir `sql/anonimizar_log.sh` para anonimizar el log antes de dárselo a la IA. | Primera versión: una contraseña redactada igual en todas las llamadas (`CLAVE_REDACTADA`). | **IA imprecisa:** al revisar el log anonimizado, los 4 intentos quedaban idénticos y se perdía que el último era distinto, información necesaria para reconstruir la secuencia; también quedaron tildes rotas. Se cambió a un alias por contraseña distinta (`CLAVE_REDACTADA_N`) y se agregó la reparación de tildes. (La primera implementación en `awk` se colgó con un bucle y se rehízo con `sed`.) |
+| (OpenCode, modo Plan, sesión nueva) Se pegó solo `docs/log_simulacro_anonimizado.txt` con el pedido: reconstruir qué ocurrió, paso a paso, y proponer una hipótesis de contención. | Reconstrucción cronológica correcta (horas, PID, lecturas denegadas, `GRANT` y `SET ROLE` rechazados) y 4 medidas de contención: terminar sesiones y rotar credenciales de `app_web`, limitar intentos, auditar `fn_autenticar` y alertas. | **IA afirmó de más y propuso medidas que el log no sustenta** (detalle en `docs/informe_incidente.md`, punto 6): habló de "fuerza bruta / credential stuffing" con solo 4 intentos contra una cuenta, dio por comprometida la sesión sin que el log muestre un login exitoso, propuso terminar sesiones de `app_web` que el log muestra ya cerradas y rotar la contraseña de `app_web` cuando el log apunta a `usuario_001`. No se ejecutó nada de lo que sugirió: el equipo decidió la contención a partir de la evidencia. |
 
 ## Parte D — Anonimización y verificación de equivalencia
 
