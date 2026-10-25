@@ -15,10 +15,10 @@
 --   * Backup hecho: pg_dump -U postgres -F c -f "food-store/backups/bd2_tp5u5_antes_c.dump" bd2_tp5u5
 --
 -- Ejecución (Git Bash, desde la raíz del repo). La contraseña de postgres va en
--- una variable de entorno de ESA terminal y se le pasa a psql con -v: no se
--- escribe en ningún archivo del repositorio.
+-- una variable de entorno de ESA terminal (PGPASSWORD): psql la usa solo cuando
+-- se conecta como postgres, y no se escribe en ningún archivo del repositorio.
 --   export PGPASSWORD='<contraseña de postgres>'
---   psql -U postgres -d bd2_tp5u5 -X -v pw_postgres="$PGPASSWORD" -f sql/simulacro_incidente.sql > "$TEMP/salida_simulacro.txt" 2>&1
+--   psql -U postgres -d bd2_tp5u5 -X -f sql/simulacro_incidente.sql > "$TEMP/salida_simulacro.txt" 2>&1
 -- Al terminar: sql/anonimizar_log.sh y después sql/simulacro_limpieza.sql.
 --
 -- Las contraseñas de los roles de login son las de roles.sql (marcador de desarrollo).
@@ -29,16 +29,9 @@
 -- Protocolo de seguridad: confirmar contra qué base estamos conectados
 SELECT current_database();
 
--- La clave de postgres tiene que llegar con -v pw_postgres=... (ver arriba)
-\if :{?pw_postgres}
-\else
-    \echo 'Falta -v pw_postgres="$PGPASSWORD". Abortando antes de tocar nada.'
-    \quit
-\endif
-
--- Cadenas de conexión
-\set conn_postgres 'host=localhost dbname=bd2_tp5u5 user=postgres password=' :pw_postgres
-\set conn_app      'host=localhost dbname=bd2_tp5u5 user=app_web password=cambiar_en_produccion'
+-- Conexiones: cadena entre comillas dobles, escrita literal. Como postgres no lleva
+-- password: libpq usa PGPASSWORD. Como app_web lleva la clave de roles.sql
+-- (marcador de desarrollo), que tiene prioridad sobre PGPASSWORD.
 
 -- =====================================================================
 -- 0. PREPARACIÓN (como postgres)
@@ -49,7 +42,7 @@ SELECT current_database();
 ALTER SYSTEM SET log_statement = 'all';
 SELECT pg_reload_conf();
 SELECT pg_sleep(1);
-\c :'conn_postgres'
+\c "host=localhost dbname=bd2_tp5u5 user=postgres"
 
 -- 0.2 Usuario de prueba con hash bcrypt real. Los usuarios de data.sql tienen
 --     hashes de relleno y no sirven para un login exitoso con crypt().
@@ -81,15 +74,15 @@ SELECT 'INICIO_SIMULACRO_U5' AS marca;
 -- 1) Tres intentos fallidos contra fn_autenticar (R5 de docs/kiro_roles_spec/requirements.md),
 --    cada uno en una conexión nueva (como lo haría un atacante probando claves
 --    a través de la aplicación).
-\c :'conn_app'
+\c "host=localhost dbname=bd2_tp5u5 user=app_web password=cambiar_en_produccion"
 SELECT * FROM fn_autenticar('victima.prueba@example.test', 'clave_incorrecta_1');
-\c :'conn_app'
+\c "host=localhost dbname=bd2_tp5u5 user=app_web password=cambiar_en_produccion"
 SELECT * FROM fn_autenticar('victima.prueba@example.test', 'clave_incorrecta_2');
-\c :'conn_app'
+\c "host=localhost dbname=bd2_tp5u5 user=app_web password=cambiar_en_produccion"
 SELECT * FROM fn_autenticar('victima.prueba@example.test', 'clave_incorrecta_3');
 
 -- 2) Inicio de sesión exitoso: devuelve una fila (id, rol)
-\c :'conn_app'
+\c "host=localhost dbname=bd2_tp5u5 user=app_web password=cambiar_en_produccion"
 SELECT * FROM fn_autenticar('victima.prueba@example.test', 'Clave-Correcta-U5!');
 
 -- 3) Lectura masiva de usuario con la misma sesión de la aplicación.
@@ -107,7 +100,7 @@ SET ROLE admin_datos;
 -- CONSTANCIA (como postgres)
 -- =====================================================================
 \set ON_ERROR_STOP on
-\c :'conn_postgres'
+\c "host=localhost dbname=bd2_tp5u5 user=postgres"
 
 SELECT 'FIN_SIMULACRO_U5' AS marca;
 
