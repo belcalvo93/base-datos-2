@@ -17,6 +17,39 @@ El script `sql/usuario_anon.sql` construye de forma idempotente la tabla `usuari
 - **`rol`, `eliminado` y `created_at`:** se copian sin alteración porque son los atributos analíticos sobre los que operan las consultas de agregación.
 - **Propiedad y mínimo privilegio:** la tabla queda con `OWNER TO admin_datos` (alineada con `sql/roles.sql`) y sin `GRANT` adicionales.
 
+### Salida de control de `sql/usuario_anon.sql` en `bd2_tp5u5`
+
+Primera corrida con `ROLLBACK` y corrida definitiva con `COMMIT`:
+
+```text
+ current_database 
+------------------
+ bd2_tp5u5
+(1 row)
+
+BEGIN
+DROP TABLE
+CREATE TABLE
+ALTER TABLE
+INSERT 0 3
+ filas_usuario | filas_usuario_anon 
+---------------+--------------------
+             3 |                  3
+(1 row)
+
+ filas_con_datos_reales_o_hash_invalido 
+----------------------------------------
+                                      0
+(1 row)
+
+ mails_duplicados 
+------------------
+                0
+(1 row)
+
+COMMIT
+```
+
 ---
 
 ## 2. Consultas de agregación generadas con OpenCode (Parte D, punto 2)
@@ -61,11 +94,80 @@ ORDER BY
 
 ## 3. Ejecución y verificación de equivalencia (Parte D, punto 3)
 
-Como la carga inicial de `data.sql` contiene únicamente 3 filas en `usuario` dadas de alta en la misma fecha (2 activas y 1 con `eliminado = TRUE`), probar la agregación solo sobre esas 3 filas produciría un único mes de alta. Para que la demostración no sea trivial y sin contaminar la base ni recurrir a borrados físicos posteriores, dentro de una transacción controlada (`BEGIN; … ROLLBACK;`) se insertaron 300 usuarios sintéticos de prueba (dominio `@example.test`) distribuidos en 6 meses (`2026-05` a `2026-10`), alternando ambos roles (`USUARIO` y `ADMIN`) y bajas lógicas (`eliminado = TRUE`), se reconstruyó `usuario_anon` y se ejecutaron ambas consultas junto con la prueba de conjuntos `EXCEPT` en ambos sentidos.
+Como la carga inicial de `data.sql` contiene únicamente 3 filas en `usuario` dadas de alta en el mismo mes (`2026-09`, con 2 activas y 1 con `eliminado = TRUE`), probar la agregación solo sobre esas 3 filas produciría un único mes de alta. Para que la demostración no sea trivial y sin contaminar la base ni recurrir a borrados físicos posteriores, dentro de una transacción controlada (`BEGIN; … ROLLBACK;`) se insertaron 300 usuarios sintéticos de prueba (dominio `@example.test`) distribuidos en 6 meses (`2026-05` a `2026-10`), alternando ambos roles (`USUARIO` y `ADMIN`) y bajas lógicas (`eliminado = TRUE`, 30 filas), se reconstruyó `usuario_anon` (303 filas totales, 272 activas) y se ejecutaron ambas consultas junto con la prueba de conjuntos `EXCEPT` en ambos sentidos.
 
-### Resultados lado a lado y salida de `EXCEPT`
+### Comparación lado a lado (`bd2_tp5u5`, 272 usuarios activos en 6 meses)
 
-*(Pendiente de pegar la salida real de `bd2_tp5u5` al ejecutar `prueba_equivalencia_d3.sql`).*
+| `mes_alta` | `rol` | `cantidad` en `usuario_anon` (Consulta 1) | `cantidad` en `usuario` (Consulta 2) | Coincide |
+|---|---|---:|---:|:---:|
+| `2026-05-01` | `USUARIO` | 34 | 34 | Sí |
+| `2026-05-01` | `ADMIN` | 6 | 6 | Sí |
+| `2026-06-01` | `USUARIO` | 43 | 43 | Sí |
+| `2026-06-01` | `ADMIN` | 7 | 7 | Sí |
+| `2026-07-01` | `USUARIO` | 34 | 34 | Sí |
+| `2026-07-01` | `ADMIN` | 6 | 6 | Sí |
+| `2026-08-01` | `USUARIO` | 43 | 43 | Sí |
+| `2026-08-01` | `ADMIN` | 7 | 7 | Sí |
+| `2026-09-01` | `USUARIO` | 36 | 36 | Sí |
+| `2026-09-01` | `ADMIN` | 6 | 6 | Sí |
+| `2026-10-01` | `USUARIO` | 43 | 43 | Sí |
+| `2026-10-01` | `ADMIN` | 7 | 7 | Sí |
+| **Total activos** | | **272** | **272** | **12/12 grupos idénticos** |
+
+### Salida literal de `psql` (Consultas 1 y 2 + `EXCEPT` en ambos sentidos)
+
+```text
+ total_usuario | total_usuario_anon | activos_usuario | activos_usuario_anon 
+---------------+--------------------+-----------------+----------------------
+           303 |                303 |             272 |                  272
+(1 row)
+
+=== CONSULTA 1: sobre usuario_anon ===
+   rol   |  mes_alta  | cantidad 
+---------+------------+----------
+ USUARIO | 2026-05-01 |       34
+ ADMIN   | 2026-05-01 |        6
+ USUARIO | 2026-06-01 |       43
+ ADMIN   | 2026-06-01 |        7
+ USUARIO | 2026-07-01 |       34
+ ADMIN   | 2026-07-01 |        6
+ USUARIO | 2026-08-01 |       43
+ ADMIN   | 2026-08-01 |        7
+ USUARIO | 2026-09-01 |       36
+ ADMIN   | 2026-09-01 |        6
+ USUARIO | 2026-10-01 |       43
+ ADMIN   | 2026-10-01 |        7
+(12 rows)
+
+=== CONSULTA 2: sobre usuario (tabla real) ===
+   rol   |  mes_alta  | cantidad 
+---------+------------+----------
+ USUARIO | 2026-05-01 |       34
+ ADMIN   | 2026-05-01 |        6
+ USUARIO | 2026-06-01 |       43
+ ADMIN   | 2026-06-01 |        7
+ USUARIO | 2026-07-01 |       34
+ ADMIN   | 2026-07-01 |        6
+ USUARIO | 2026-08-01 |       43
+ ADMIN   | 2026-08-01 |        7
+ USUARIO | 2026-09-01 |       36
+ ADMIN   | 2026-09-01 |        6
+ USUARIO | 2026-10-01 |       43
+ ADMIN   | 2026-10-01 |        7
+(12 rows)
+
+=== EXCEPT 1: usuario_anon EXCEPT usuario (esperado: 0 filas) ===
+ rol | mes_alta | cantidad 
+-----+----------+----------
+(0 rows)
+
+=== EXCEPT 2: usuario EXCEPT usuario_anon (esperado: 0 filas) ===
+ rol | mes_alta | cantidad 
+-----+----------+----------
+(0 rows)
+
+ROLLBACK
+```
 
 ---
 
