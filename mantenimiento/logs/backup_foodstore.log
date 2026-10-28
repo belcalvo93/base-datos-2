@@ -1,0 +1,2 @@
+2026-10-28 20:03:01 | OK | base=foodstore | archivo=foodstore_20261028_200259.dump | bytes=9428332 | segundos=2
+2026-10-28 20:04:36 | ERROR | base=base_inexistente | codigo=1 | detalle=pg_dump: error: falló la conexión al servidor en «localhost» (::1), puerto 5432: FATAL:  no existe la base de datos «base_inexistente» 

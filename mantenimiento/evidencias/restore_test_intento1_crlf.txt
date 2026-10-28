@@ -1,0 +1,16 @@
+=== Simulacro de restauración — 2026-10-28 20:10:51 ===
+Respaldo usado: foodstore_20261028_200259.dump (9428332 bytes)
+
+Validación 1 — filas por tabla (restaurada vs foodstore):
+  categoria       restaurada=5       foodstore=5        OK
+  cliente         restaurada=20005   foodstore=20005    OK
+  producto        restaurada=50011   foodstore=50011    OK
+  pedido          restaurada=200005  foodstore=200005   OK
+  detalle_pedido  restaurada=499263   foodstore=499263   OK
+Validación 2 — productos inválidos (precio<0 o stock<0): 0
+Validación 3 — detalles inválidos (cantidad<=0 o precio_unitario<0): 0
+
+Tiempo createdb + pg_restore: 3.16 s
+RTO observado (createdb -> validaciones OK): 3.72 s
+Antigüedad del respaldo (RPO observado): 478 s (~7 min)
+RESULTADO: OK
