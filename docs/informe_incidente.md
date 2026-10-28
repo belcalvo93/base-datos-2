@@ -2,7 +2,7 @@
 
 **Responsable:** Elías Tello
 **Base de prueba:** `bd2_tp5u5` (copia de `bd2_tp4u4`), instancia local de desarrollo
-**Versión del servidor:** *(completar con `SELECT version();`; el enunciado pide PostgreSQL 16 o superior)*
+**Versión del servidor:** PostgreSQL 17.11 sobre Windows 11 (el enunciado pide PostgreSQL 16 o superior)
 **Script del simulacro:** `sql/simulacro_incidente.sql`
 **Limpieza posterior:** `sql/simulacro_limpieza.sql`
 **Anonimizador del log:** `sql/anonimizar_log.sh`
@@ -59,43 +59,59 @@ Después del script se revisó a mano: no queda ningún mail, nombre, contraseñ
 
 ## 5. Respuesta completa de la IA
 
-Herramienta: OpenCode, modo Plan, sesión nueva. Modelo: *(completar)*.
+Herramienta: OpenCode, modo Plan. Modelo: `gemini-3.5-flash-lite` (Google, variante *medium*), 25/10/2026 a las 19:51. Datos tomados del historial local de OpenCode (sesión `ses_e8ad5261dffecES6XaqDC7uOjE`).
 
-Prompt: se le entregó únicamente el contenido de `docs/log_simulacro_anonimizado.txt`, con el pedido de reconstruir lo ocurrido paso a paso y de proponer una hipótesis de contención, sin agregar contexto adicional.
+**No fue una sesión nueva.** Se reutilizó una sesión abierta 25 minutos antes para otra tarea: comparar el repositorio local con GitHub. En esa primera parte OpenCode corrió 7 comandos `git` (`fetch`, `status`, `log`, `branch`, `diff`). No leyó ningún archivo del proyecto, pero en la salida de `git log` vio los títulos de los commits de esta parte: "script del simulacro, limpieza y anonimizador de log" y "borrador del informe de incidente". Es decir, cuando recibió el log ya sabía que se trataba de un simulacro de incidente.
 
-Respuesta, sin recortar:
+Prompt: un único mensaje con el contenido de `docs/log_simulacro_anonimizado.txt` pegado, **sin ningún texto adicional**. No se le escribió el pedido de reconstruir lo ocurrido ni de proponer una contención; la IA lo hizo por su cuenta.
+
+Respuesta, sin recortar (copiada del historial de OpenCode, con su formato original):
 
 ```text
-Reconstrucción Paso a Paso
+Reconstrucción paso a paso del incidente registrado en el log y propuesta de hipótesis de contención:
 
-1. Inicio del Simulacro (`19:46:48.258`):
-   * El usuario administrativo `postgres` se conecta a la base de datos `bd2_tp5u5` y deja constancia del inicio de la prueba: `SELECT 'INICIO_SIMULACRO_U5' AS marca;`.
-2. Fase de Fuerza Bruta / Credential Stuffing (`19:46:48.283` – `19:46:48.411`):
-   * El usuario de aplicación `app_web` abre múltiples conexiones consecutivas desde la IP local (`::1`) utilizando autenticación SCRAM-SHA-256.
-   * En cada sesión, ejecuta repetidamente la función de validación con diferentes credenciales (`SELECT * FROM fn_autenticar('usuario_001@ejemplo.test', 'CLAVE_REDACTADA_N');`). Esto evidencia un ataque automatizado de fuerza bruta o prueba de credenciales.
-3. Intento de Exfiltración y Exploración de Datos (`19:46:48.419`):
-   * Al comprometer o avanzar en la sesión (`pid 7024`), el atacante intenta consultar directamente información sensible de la tabla de usuarios:
-      * `SELECT * FROM usuario;` $\rightarrow$ Denegado por permisos.
-      * `SELECT count(*) FROM usuario;` $\rightarrow$ Denegado por permisos.
-4. Intento de Escalamiento de Privilegios (`19:46:48.420`):
-   * Ante el bloqueo de lectura directa, el actor intenta elevar sus privilegios en el motor de base de datos:
-      * `GRANT admin_datos TO app_web;` $\rightarrow$ Rechazado (requiere opción `ADMIN`).
-      * `SET ROLE admin_datos;` $\rightarrow$ Rechazado (permiso denegado para definir dicho rol).
-5. Finalización del Simulacro (`19:46:48.452`):
-   * Un usuario con privilegios elevados (`postgres`) se conecta al finalizar y registra la marca de cierre: `SELECT 'FIN_SIMULACRO_U5' AS marca;`.
+---
 
-Hipótesis de Contención y Mitigación
-Ante un escenario de fuerza bruta de autenticación combinada con intentos de escalamiento de privilegios, se proponen las siguientes medidas de contención:
+### Reconstrucción Paso a Paso
 
-1. Aislamiento y Revocación Inmediata:
-   * Terminar las sesiones activas del rol `app_web` sospechoso utilizando `pg_terminate_backend(pid)`.
-   * Rotar inmediatamente las credenciales (contraseña SCRAM) del usuario `app_web` en la base de datos y en los secretos de la aplicación.
-2. Limitación de Tasas (Rate Limiting) y Bloqueo de Origen:
-   * Implementar un mecanismo de bloqueo temporal por IP o cuenta en la capa de aplicación (o mediante extensiones/firewalls a nivel de red como `fail2ban`) tras detectar un umbral de llamadas fallidas consecutivas a `fn_autenticar`.
-3. Auditoría de Funciones (`SECURITY DEFINER`):
-   * Revisar que la función `fn_autenticar` no esté exponiendo información privilegiada (como hashes de contraseñas o datos de usuarios inactivos) mediante fugas de errores o tiempos de respuesta diferenciales.
-4. Monitoreo y Alertas en Tiempo Real (SIEM):
-   * Configurar alertas automáticas ante patrones anómalos en los logs de PostgreSQL, específicamente ante ráfagas de conexiones cortas seguidas de errores de permisos (`permiso denegado`) o intentos fallidos de comandos `GRANT` / `SET ROLE`.
+1. **Inicio del Simulacro (`19:46:48.258`):**
+   - El usuario administrativo `postgres` se conecta a la base de datos `bd2_tp5u5` y deja constancia del inicio de la prueba: `SELECT 'INICIO_SIMULACRO_U5' AS marca;`.
+
+2. **Fase de Fuerza Bruta / Credential Stuffing (`19:46:48.283` – `19:46:48.411`):**
+   - El usuario de aplicación `app_web` abre múltiples conexiones consecutivas desde la IP local (`::1`) utilizando autenticación SCRAM-SHA-256.
+   - En cada sesión, ejecuta repetidamente la función de validación con diferentes credenciales (`SELECT * FROM fn_autenticar('usuario_001@ejemplo.test', 'CLAVE_REDACTADA_N');`). Esto evidencia un ataque automatizado de **fuerza bruta o prueba de credenciales**.
+
+3. **Intento de Exfiltración y Exploración de Datos (`19:46:48.419`):**
+   - Al comprometer o avanzar en la sesión (`pid 7024`), el atacante intenta consultar directamente información sensible de la tabla de usuarios:
+     - `SELECT * FROM usuario;` $\rightarrow$ Denegado por permisos.
+     - `SELECT count(*) FROM usuario;` $\rightarrow$ Denegado por permisos.
+
+4. **Intento de Escalamiento de Privilegios (`19:46:48.420`):**
+   - Ante el bloqueo de lectura directa, el actor intenta elevar sus privilegios en el motor de base de datos:
+     - `GRANT admin_datos TO app_web;` $\rightarrow$ Rechazado (requiere opción `ADMIN`).
+     - `SET ROLE admin_datos;` $\rightarrow$ Rechazado (permiso denegado para definir dicho rol).
+
+5. **Finalización del Simulacro (`19:46:48.452`):**
+   - Un usuario con privilegios elevados (`postgres`) se conecta al finalizar y registra la marca de cierre: `SELECT 'FIN_SIMULACRO_U5' AS marca;`.
+
+---
+
+### Hipótesis de Contención y Mitigación
+
+Ante un escenario de **fuerza bruta de autenticación combinada con intentos de escalamiento de privilegios**, se proponen las siguientes medidas de contención:
+
+1. **Aislamiento y Revocación Inmediata:**
+   - Terminar las sesiones activas del rol `app_web` sospechoso utilizando `pg_terminate_backend(pid)`.
+   - Rotar inmediatamente las credenciales (contraseña SCRAM) del usuario `app_web` en la base de datos y en los secretos de la aplicación.
+
+2. **Limitación de Tasas (Rate Limiting) y Bloqueo de Origen:**
+   - Implementar un mecanismo de bloqueo temporal por IP o cuenta en la capa de aplicación (o mediante extensiones/firewalls a nivel de red como `fail2ban`) tras detectar un umbral de llamadas fallidas consecutivas a `fn_autenticar`.
+
+3. **Auditoría de Funciones (`SECURITY DEFINER`):**
+   - Revisar que la función `fn_autenticar` no esté exponiendo información privilegiada (como hashes de contraseñas o datos de usuarios inactivos) mediante fugas de errores o tiempos de respuesta diferenciales.
+
+4. **Monitoreo y Alertas en Tiempo Real (SIEM):**
+   - Configurar alertas automáticas ante patrones anómalos en los logs de PostgreSQL, específicamente ante ráfagas de conexiones cortas seguidas de errores de permisos (`permiso denegado`) o intentos fallidos de comandos `GRANT` / `SET ROLE`.
 ```
 
 ## 6. Contraste entre la reconstrucción de la IA y lo ejecutado
@@ -108,7 +124,7 @@ Ante un escenario de fuerza bruta de autenticación combinada con intentos de es
 | Las medidas de límite de intentos por cuenta u origen y las alertas sobre ráfagas de `permiso denegado`. | Las desconexiones y la duración de cada sesión (unos 59 ms), la fecha y la zona horaria. | **Contención que no cuadra con el log:** terminar con `pg_terminate_backend` sesiones de `app_web` que según el log **ya se habían cerrado** (el `pid 7024` se desconectó a las 19:46:48.452); **rotar la contraseña de `app_web`**, que es la cuenta que usa la propia aplicación (apuntaría a la cuenta equivocada y tumbaría la aplicación), cuando el log señala a `usuario_001`, un usuario de la aplicación; y auditar **fugas por errores o tiempos** en `fn_autenticar`, sin ninguna evidencia en el log. |
 | | Que los intentos apuntan a **una única cuenta** (`usuario_001`): mencionó el alias pero no sacó la consecuencia sobre el alcance. | |
 
-**Un detalle sobre el contexto.** Las marcas `INICIO_SIMULACRO_U5` y `FIN_SIMULACRO_U5` quedaron dentro del log y la IA las recogió ("Inicio del Simulacro", "Finalización del Simulacro"). Eso le dio contexto que el enunciado pide no darle. Se necesitaban para recortar el log, y quedó anotado como mejora (punto 8).
+**Un detalle sobre el contexto.** Las marcas `INICIO_SIMULACRO_U5` y `FIN_SIMULACRO_U5` quedaron dentro del log y la IA las recogió ("Inicio del Simulacro", "Finalización del Simulacro"). Eso le dio contexto que el enunciado pide no darle. Se necesitaban para recortar el log, y quedó anotado como mejora (punto 8). A eso se suma la sesión reutilizada (punto 5): por los títulos de los commits, la IA ya sabía que era un simulacro. Por eso la prueba no fue del todo "a ciegas". La cronología sí sale del log (horas y PID), pero el encuadre como simulacro pudo venir también de ese contexto. Los errores del contraste sí son atribuibles a la IA: ningún dato previo justificaba hablar de fuerza bruta ni dar por comprometida la sesión.
 
 ## 7. Decisión de contención
 
@@ -126,4 +142,5 @@ Esta decisión es del equipo, tomada a partir de la evidencia del log y del cont
 
 - Con `log_statement = 'mod'` las llamadas a `fn_autenticar` y las lecturas **no quedan registradas**. Para el simulacro hubo que subir a `all`, y aun así el log no distingue un intento fallido de uno exitoso.
 - Las marcas del script le dieron contexto a la IA. La próxima vez conviene reemplazarlas en el anonimizador por etiquetas neutras antes de entregar el log.
+- Abrir una sesión nueva de OpenCode para la prueba, en lugar de reutilizar una que ya tenía contexto del repositorio, y escribir el pedido de forma explícita en el mensaje.
 - Conviene registrar el resultado de la autenticación (éxito o fallo) en algún lugar que el motor sí deje en el log, por ejemplo con un `RAISE LOG` dentro de la función.
