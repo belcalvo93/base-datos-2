@@ -10,3 +10,6 @@ food-store/backups/*.backup
 # Dependencias y logs
 node_modules/
 *.log
+
+# TP6: los logs de mantenimiento SI se versionan (son evidencia)
+!mantenimiento/logs/*.log

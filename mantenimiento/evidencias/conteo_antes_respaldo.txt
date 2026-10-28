@@ -1,0 +1,14 @@
+ current_database |         fecha_conteo          
+------------------+-------------------------------
+ foodstore        | 2026-10-28 20:01:20.498305-03
+(1 fila)
+
+     tabla      | filas  
+----------------+--------
+ categoria      |      5
+ cliente        |  20005
+ producto       |  50011
+ pedido         | 200005
+ detalle_pedido | 499263
+(5 filas)
+
