@@ -1,0 +1,108 @@
+﻿=== 1. Configuracion de autovacuum ===
+              name               | setting | unit 
+---------------------------------+---------+------
+ autovacuum                      | on      | 
+ autovacuum_analyze_scale_factor | 0.1     | 
+ autovacuum_analyze_threshold    | 50      | 
+ autovacuum_naptime              | 60      | s
+ autovacuum_vacuum_scale_factor  | 0.2     | 
+ autovacuum_vacuum_threshold     | 50      | 
+(6 filas)
+
+=== 2. Estado ANTES: tuplas, cambios desde el ultimo analyze y fechas ===
+     tabla      | filas_estimadas | n_live_tup | n_dead_tup | n_mod_since_analyze | last_vacuum |        last_autovacuum        | last_analyze |       last_autoanalyze        
+----------------+-----------------+------------+------------+---------------------+-------------+-------------------------------+--------------+-------------------------------
+ detalle_pedido |          499263 |     499263 |          0 |                   0 |             | 2026-10-29 16:22:39.770922-03 |              | 2026-10-29 16:22:40.248629-03
+ pedido         |          200005 |     200005 |          0 |                   0 |             | 2026-10-29 16:22:40.486327-03 |              | 2026-10-29 16:22:40.634174-03
+ producto       |           50011 |      50011 |          0 |                   0 |             | 2026-10-29 16:22:40.718015-03 |              | 2026-10-29 16:22:40.92419-03
+ cliente        |           20005 |      20005 |          0 |                   0 |             | 2026-10-29 16:22:40.975911-03 |              | 2026-10-29 16:22:41.217275-03
+ categoria      |               5 |          5 |          0 |                   5 |             |                               |              | 
+ usuario        |               3 |          3 |          0 |                   3 |             |                               |              | 
+(6 filas)
+
+=== 3. Diagnostico: estado de estadisticas por tabla ===
+     tabla      | filas_estimadas | n_mod_since_analyze |        ultimo_analyze         | umbral_analyze |      estado      
+----------------+-----------------+---------------------+-------------------------------+----------------+------------------
+ detalle_pedido |          499263 |                   0 | 2026-10-29 16:22:40.248629-03 |        49976.3 | OK
+ pedido         |          200005 |                   0 | 2026-10-29 16:22:40.634174-03 |        20050.5 | OK
+ producto       |           50011 |                   0 | 2026-10-29 16:22:40.92419-03  |         5051.1 | OK
+ cliente        |           20005 |                   0 | 2026-10-29 16:22:41.217275-03 |         2050.5 | OK
+ categoria      |               5 |                   5 |                               |           50.5 | SIN ESTADISTICAS
+ usuario        |               3 |                   3 |                               |           50.3 | SIN ESTADISTICAS
+(6 filas)
+
+Decision: ANALYZE justificado (tablas pendientes: 2 de 6 )
+Motivo: alguna tabla esta SIN ESTADISTICAS o DESACTUALIZADA (ver seccion 3).
+ANALYZE solo toma muestras: no bloquea lecturas ni escrituras.
+--- Accion: ANALYZE VERBOSE de las 6 tablas de Food Store ---
+psql : psql:mantenimiento/maintenance.sql:77: INFO:  analyzing "public.categoria"
+En línea: 1 Carácter: 5
++ & { psql -h localhost -U postgres -d foodstore -X -f mantenimiento/ma ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql:mantenimie...blic.categoria":String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+psql:mantenimiento/maintenance.sql:77: INFO:  "categoria": scanned 1 of 1 pages, containing 5 live rows and 0 dead 
+rows; 5 rows in sample, 5 estimated total rows
+psql:mantenimiento/maintenance.sql:77: INFO:  finished analyzing table "foodstore.public.categoria"
+avg read rate: 0.000 MB/s, avg write rate: 0.000 MB/s
+buffer usage: 290 hits, 0 reads, 0 dirtied
+WAL usage: 8 records, 0 full page images, 1163 bytes, 0 buffers full
+system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+psql:mantenimiento/maintenance.sql:77: INFO:  analyzing "public.cliente"
+psql:mantenimiento/maintenance.sql:77: INFO:  "cliente": scanned 228 of 228 pages, containing 20005 live rows and 0 
+dead rows; 20005 rows in sample, 20005 estimated total rows
+psql:mantenimiento/maintenance.sql:77: INFO:  finished analyzing table "foodstore.public.cliente"
+avg read rate: 0.000 MB/s, avg write rate: 0.000 MB/s
+buffer usage: 320 hits, 0 reads, 0 dirtied
+WAL usage: 11 records, 0 full page images, 4374 bytes, 0 buffers full
+system usage: CPU: user: 0.21 s, system: 0.00 s, elapsed: 0.22 s
+psql:mantenimiento/maintenance.sql:77: INFO:  analyzing "public.producto"
+psql:mantenimiento/maintenance.sql:77: INFO:  "producto": scanned 536 of 536 pages, containing 50011 live rows and 0 
+dead rows; 30000 rows in sample, 50011 estimated total rows
+psql:mantenimiento/maintenance.sql:77: INFO:  finished analyzing table "foodstore.public.producto"
+avg read rate: 0.000 MB/s, avg write rate: 0.000 MB/s
+buffer usage: 765 hits, 0 reads, 0 dirtied
+WAL usage: 25 records, 0 full page images, 7331 bytes, 0 buffers full
+system usage: CPU: user: 0.15 s, system: 0.00 s, elapsed: 0.15 s
+psql:mantenimiento/maintenance.sql:77: INFO:  analyzing "public.pedido"
+psql:mantenimiento/maintenance.sql:77: INFO:  "pedido": scanned 1472 of 1472 pages, containing 200005 live rows and 0 
+dead rows; 30000 rows in sample, 200005 estimated total rows
+psql:mantenimiento/maintenance.sql:77: INFO:  finished analyzing table "foodstore.public.pedido"
+avg read rate: 0.000 MB/s, avg write rate: 0.000 MB/s
+buffer usage: 1634 hits, 0 reads, 0 dirtied
+WAL usage: 10 records, 0 full page images, 3889 bytes, 0 buffers full
+system usage: CPU: user: 0.03 s, system: 0.00 s, elapsed: 0.03 s
+psql:mantenimiento/maintenance.sql:77: INFO:  analyzing "public.detalle_pedido"
+psql:mantenimiento/maintenance.sql:77: INFO:  "detalle_pedido": scanned 4168 of 4168 pages, containing 499263 live 
+rows and 0 dead rows; 30000 rows in sample, 499263 estimated total rows
+psql:mantenimiento/maintenance.sql:77: INFO:  finished analyzing table "foodstore.public.detalle_pedido"
+avg read rate: 132.552 MB/s, avg write rate: 0.000 MB/s
+buffer usage: 3255 hits, 1018 reads, 0 dirtied
+WAL usage: 12 records, 0 full page images, 5016 bytes, 0 buffers full
+system usage: CPU: user: 0.06 s, system: 0.00 s, elapsed: 0.05 s
+psql:mantenimiento/maintenance.sql:77: INFO:  analyzing "public.usuario"
+psql:mantenimiento/maintenance.sql:77: INFO:  "usuario": scanned 1 of 1 pages, containing 3 live rows and 0 dead rows; 
+3 rows in sample, 3 estimated total rows
+psql:mantenimiento/maintenance.sql:77: INFO:  finished analyzing table "foodstore.public.usuario"
+avg read rate: 0.000 MB/s, avg write rate: 0.000 MB/s
+buffer usage: 163 hits, 0 reads, 0 dirtied
+WAL usage: 18 records, 0 full page images, 2755 bytes, 0 buffers full
+system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+ANALYZE
+=== 4. Estado DESPUES ===
+ pg_stat_clear_snapshot 
+------------------------
+ 
+(1 fila)
+
+     tabla      | filas_estimadas | n_live_tup | n_dead_tup | n_mod_since_analyze |         last_analyze          
+----------------+-----------------+------------+------------+---------------------+-------------------------------
+ detalle_pedido |          499263 |     499263 |          0 |                   0 | 2026-10-29 16:23:45.7702-03
+ pedido         |          200005 |     200005 |          0 |                   0 | 2026-10-29 16:23:45.709197-03
+ producto       |           50011 |      50011 |          0 |                   0 | 2026-10-29 16:23:45.670639-03
+ cliente        |           20005 |      20005 |          0 |                   0 | 2026-10-29 16:23:45.509549-03
+ categoria      |               5 |          5 |          0 |                   0 | 2026-10-29 16:23:45.281703-03
+ usuario        |               3 |          3 |          0 |                   0 | 2026-10-29 16:23:45.773479-03
+(6 filas)
+
