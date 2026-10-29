@@ -2,7 +2,8 @@
 # restore_test.sh — Simulacro de restauración contra reloj (TP Unidad 6)
 # Restaura el ÚLTIMO respaldo de foodstore en la base DESCARTABLE foodstore_restore_test,
 # valida tablas y restricciones lógicas y mide RTO y antigüedad del respaldo (RPO observado).
-# La base foodstore NUNCA se toca: solo se lee para comparar conteos.
+# La base foodstore NUNCA se toca ni se consulta: la validacion compara contra el .conteo
+# guardado junto al respaldo por backup_foodstore.sh.
 # La contraseña NO va acá: se toma de %APPDATA%\postgresql\pgpass.conf
 
 set -u -o pipefail
@@ -10,6 +11,7 @@ set -u -o pipefail
 PGHOST="${PGHOST:-localhost}"
 PGPORT="${PGPORT:-5432}"
 PGUSER="${PGUSER:-postgres}"
+# Nombre de la base de produccion: solo se usa para el guard de seguridad, nunca se conecta
 ORIGEN="foodstore"
 DESTINO="foodstore_restore_test"
 CONN=(-h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -w)
@@ -32,12 +34,20 @@ fallar() {
 # Seguridad: jamás restaurar sobre la base principal
 [ "$DESTINO" = "$ORIGEN" ] && { echo "ABORTADO: destino = origen"; exit 1; }
 
-# Último respaldo generado
+# Ultimo respaldo generado y su conteo de referencia (.conteo escrito por backup_foodstore.sh)
 DUMP="$(ls -t "$DIR"/backups/foodstore_*.dump 2>/dev/null | head -n 1)"
 [ -z "$DUMP" ] && fallar "no hay respaldos en $DIR/backups"
+CONTEO_FILE="${DUMP%.dump}.conteo"
+[ -f "$CONTEO_FILE" ] || fallar "falta el .conteo de este respaldo: generalo con backup_foodstore.sh"
 
 out "=== Simulacro de restauración — $(date '+%Y-%m-%d %H:%M:%S') ==="
 out "Respaldo usado: $(basename "$DUMP") ($(stat -c %s "$DUMP") bytes)"
+out "Conteo de referencia: $(basename "$CONTEO_FILE")"
+
+# Se lee ANTES de arrancar el cronometro: es lectura de archivo, no parte del RTO.
+# tr -d '\r' por si el .conteo viajo por Windows con CRLF.
+CONTEO_RESPALDO="$(tr -d '\r' < "$CONTEO_FILE")"
+[ -n "$CONTEO_RESPALDO" ] || fallar "el .conteo esta vacio: $CONTEO_FILE"
 
 # Limpieza de un ensayo anterior (solo la base descartable, fuera del cronómetro)
 dropdb "${CONN[@]}" --if-exists "$DESTINO" 2>/dev/null || fallar "no se pudo borrar $DESTINO anterior"
@@ -59,16 +69,15 @@ SQL_INVALIDOS="SELECT (SELECT COUNT(*) FROM producto WHERE precio < 0 OR stock <
        (SELECT COUNT(*) FROM detalle_pedido WHERE cantidad <= 0 OR precio_unitario < 0);"
 
 CONTEO_RESTORE="$(consulta -d "$DESTINO" -c "$SQL_CONTEO")" || fallar "conteo en $DESTINO"
-CONTEO_ORIGEN="$(consulta -d "$ORIGEN" -c "$SQL_CONTEO")" || fallar "conteo en $ORIGEN"
 read -r PROD_INV DET_INV <<< "$(consulta -d "$DESTINO" -c "$SQL_INVALIDOS")"
 
 T1=$(date +%s.%N)
 # ---- Cronómetro: termina cuando las validaciones mínimas terminaron ----
 
 out ""
-out "Validación 1 — filas por tabla (restaurada vs foodstore):"
-paste -d' ' <(echo "$CONTEO_RESTORE") <(echo "$CONTEO_ORIGEN" | cut -d' ' -f2) \
-  | awk '{ printf "  %-15s restaurada=%-8s foodstore=%-8s %s\n", $1, $2, $3, ($2==$3 ? "OK" : "DIFERENTE") }' \
+out "Validación 1 — filas por tabla (restaurada vs respaldo):"
+paste -d' ' <(echo "$CONTEO_RESTORE") <(echo "$CONTEO_RESPALDO" | cut -d' ' -f2) \
+  | awk '{ printf "  %-15s restaurada=%-8s respaldo=%-8s %s\n", $1, $2, $3, ($2==$3 ? "OK" : "DIFERENTE") }' \
   | tee -a "$EVID"
 out "Validación 2 — productos inválidos (precio<0 o stock<0): $PROD_INV"
 out "Validación 3 — detalles inválidos (cantidad<=0 o precio_unitario<0): $DET_INV"
@@ -88,7 +97,7 @@ out "Tiempo createdb + pg_restore: ${SEG_RESTORE} s"
 out "RTO observado (createdb -> validaciones OK): ${RTO} s"
 out "Antigüedad del respaldo (RPO observado): ${EDAD_SEG} s (~$(( EDAD_SEG / 60 )) min)"
 
-if [ "$CONTEO_RESTORE" = "$CONTEO_ORIGEN" ] && [ "$PROD_INV" = "0" ] && [ "$DET_INV" = "0" ]; then
+if [ "$CONTEO_RESTORE" = "$CONTEO_RESPALDO" ] && [ "$PROD_INV" = "0" ] && [ "$DET_INV" = "0" ]; then
     out "RESULTADO: OK"
     echo "$(date '+%Y-%m-%d %H:%M:%S') | OK | dump=$(basename "$DUMP") | rto_s=$RTO | edad_respaldo_s=$EDAD_SEG" >> "$LOG"
     exit 0

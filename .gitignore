@@ -7,6 +7,9 @@ food-store/backups/*.backup
 *.dump
 *.backup
 
+# Conteo de referencia del respaldo de mantenimiento (se regenera con backup_foodstore.sh)
+mantenimiento/backups/*.conteo
+
 # Dependencias y logs
 node_modules/
 *.log
