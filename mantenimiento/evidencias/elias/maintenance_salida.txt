@@ -1,0 +1,66 @@
+=== 1. Configuracion de autovacuum ===
+              name               | setting | unit 
+---------------------------------+---------+------
+ autovacuum                      | on      | 
+ autovacuum_analyze_scale_factor | 0.1     | 
+ autovacuum_analyze_threshold    | 50      | 
+ autovacuum_naptime              | 60      | s
+ autovacuum_vacuum_scale_factor  | 0.2     | 
+ autovacuum_vacuum_threshold     | 50      | 
+(6 filas)
+
+=== 2. Estado ANTES: tuplas, cambios desde el ultimo analyze y fechas ===
+     tabla      | filas_estimadas | n_live_tup | n_dead_tup | n_mod_since_analyze | last_vacuum | last_autovacuum | last_analyze | last_autoanalyze 
+----------------+-----------------+------------+------------+---------------------+-------------+-----------------+--------------+------------------
+ detalle_pedido |          499263 |     499263 |          0 |              499263 |             |                 |              | 
+ pedido         |          200005 |     200005 |          0 |              200005 |             |                 |              | 
+ producto       |           50011 |      50011 |          0 |               50011 |             |                 |              | 
+ cliente        |           20005 |      20005 |          0 |               20005 |             |                 |              | 
+ categoria      |               5 |          5 |          0 |                   5 |             |                 |              | 
+ usuario        |               3 |          3 |          0 |                   3 |             |                 |              | 
+(6 filas)
+
+=== 3. Diagnostico: estado de estadisticas por tabla ===
+     tabla      | filas_estimadas | n_mod_since_analyze | ultimo_analyze | umbral_analyze |      estado      
+----------------+-----------------+---------------------+----------------+----------------+------------------
+ detalle_pedido |          499263 |              499263 |                |        49976.3 | SIN ESTADISTICAS
+ pedido         |          200005 |              200005 |                |        20050.5 | SIN ESTADISTICAS
+ producto       |           50011 |               50011 |                |         5051.1 | SIN ESTADISTICAS
+ cliente        |           20005 |               20005 |                |         2050.5 | SIN ESTADISTICAS
+ categoria      |               5 |                   5 |                |           50.5 | SIN ESTADISTICAS
+ usuario        |               3 |                   3 |                |           50.3 | SIN ESTADISTICAS
+(6 filas)
+
+Decision: ANALYZE justificado (tablas pendientes: 6 de 6 )
+Motivo: alguna tabla esta SIN ESTADISTICAS o DESACTUALIZADA (ver seccion 3).
+ANALYZE solo toma muestras: no bloquea lecturas ni escrituras.
+--- Accion: ANALYZE VERBOSE de las 6 tablas de Food Store ---
+psql:mantenimiento/maintenance.sql:77: INFO:  analizando «public.categoria»
+psql:mantenimiento/maintenance.sql:77: INFO:  «categoria»: se procesaron 1 de 1 páginas, que contenían 5 filas vigentes y 0 filas no vigentes; 5 filas en la muestra, 5 total de filas estimadas
+psql:mantenimiento/maintenance.sql:77: INFO:  analizando «public.cliente»
+psql:mantenimiento/maintenance.sql:77: INFO:  «cliente»: se procesaron 272 de 272 páginas, que contenían 20005 filas vigentes y 0 filas no vigentes; 20005 filas en la muestra, 20005 total de filas estimadas
+psql:mantenimiento/maintenance.sql:77: INFO:  analizando «public.producto»
+psql:mantenimiento/maintenance.sql:77: INFO:  «producto»: se procesaron 536 de 536 páginas, que contenían 50011 filas vigentes y 0 filas no vigentes; 30000 filas en la muestra, 50011 total de filas estimadas
+psql:mantenimiento/maintenance.sql:77: INFO:  analizando «public.pedido»
+psql:mantenimiento/maintenance.sql:77: INFO:  «pedido»: se procesaron 1472 de 1472 páginas, que contenían 200005 filas vigentes y 0 filas no vigentes; 30000 filas en la muestra, 200005 total de filas estimadas
+psql:mantenimiento/maintenance.sql:77: INFO:  analizando «public.detalle_pedido»
+psql:mantenimiento/maintenance.sql:77: INFO:  «detalle_pedido»: se procesaron 4168 de 4168 páginas, que contenían 499263 filas vigentes y 0 filas no vigentes; 30000 filas en la muestra, 499263 total de filas estimadas
+psql:mantenimiento/maintenance.sql:77: INFO:  analizando «public.usuario»
+psql:mantenimiento/maintenance.sql:77: INFO:  «usuario»: se procesaron 1 de 1 páginas, que contenían 3 filas vigentes y 0 filas no vigentes; 3 filas en la muestra, 3 total de filas estimadas
+ANALYZE
+=== 4. Estado DESPUES ===
+ pg_stat_clear_snapshot 
+------------------------
+ 
+(1 fila)
+
+     tabla      | filas_estimadas | n_live_tup | n_dead_tup | n_mod_since_analyze |         last_analyze          
+----------------+-----------------+------------+------------+---------------------+-------------------------------
+ detalle_pedido |          499263 |     499263 |          0 |                   0 | 2026-10-29 20:15:14.792816-03
+ pedido         |          200005 |     200005 |          0 |                   0 | 2026-10-29 20:15:14.742545-03
+ producto       |           50011 |      50011 |          0 |                   0 | 2026-10-29 20:15:14.711489-03
+ cliente        |           20005 |      20005 |          0 |                   0 | 2026-10-29 20:15:14.537948-03
+ categoria      |               5 |          5 |          0 |                   0 | 2026-10-29 20:15:14.27847-03
+ usuario        |               3 |          3 |          0 |                   0 | 2026-10-29 20:15:14.794989-03
+(6 filas)
+

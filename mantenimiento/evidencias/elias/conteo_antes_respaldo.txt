@@ -1,0 +1,14 @@
+ current_database |              now              
+------------------+-------------------------------
+ foodstore        | 2026-10-29 20:15:00.896338-03
+(1 fila)
+
+     tabla      | filas  
+----------------+--------
+ categoria      |      5
+ cliente        |  20005
+ producto       |  50011
+ pedido         | 200005
+ detalle_pedido | 499263
+(5 filas)
+
