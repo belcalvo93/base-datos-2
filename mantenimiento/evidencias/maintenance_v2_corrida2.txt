@@ -1,0 +1,50 @@
+=== 1. Configuracion de autovacuum ===
+              name               | setting | unit 
+---------------------------------+---------+------
+ autovacuum                      | on      | 
+ autovacuum_analyze_scale_factor | 0.1     | 
+ autovacuum_analyze_threshold    | 50      | 
+ autovacuum_naptime              | 60      | s
+ autovacuum_vacuum_scale_factor  | 0.2     | 
+ autovacuum_vacuum_threshold     | 50      | 
+(6 filas)
+
+=== 2. Estado ANTES: tuplas, cambios desde el ultimo analyze y fechas ===
+     tabla      | filas_estimadas | n_live_tup | n_dead_tup | n_mod_since_analyze | last_vacuum | last_autovacuum |         last_analyze          | last_autoanalyze 
+----------------+-----------------+------------+------------+---------------------+-------------+-----------------+-------------------------------+------------------
+ detalle_pedido |          499263 |     499263 |          1 |                   0 |             |                 | 2026-10-28 21:11:31.064105-03 | 
+ pedido         |          200005 |     200005 |          2 |                   0 |             |                 | 2026-10-28 21:11:31.011828-03 | 
+ producto       |           50011 |      50011 |          1 |                   0 |             |                 | 2026-10-28 21:11:30.980661-03 | 
+ cliente        |           20005 |      20005 |          0 |                   0 |             |                 | 2026-10-28 21:11:30.816618-03 | 
+ categoria      |               5 |          5 |          0 |                   0 |             |                 | 2026-10-28 21:11:30.566318-03 | 
+ usuario        |               3 |          3 |          0 |                   0 |             |                 | 2026-10-28 21:11:31.065235-03 | 
+(6 filas)
+
+=== 3. Diagnostico: estado de estadisticas por tabla ===
+     tabla      | filas_estimadas | n_mod_since_analyze |        ultimo_analyze         | umbral_analyze | estado 
+----------------+-----------------+---------------------+-------------------------------+----------------+--------
+ detalle_pedido |          499263 |                   0 | 2026-10-28 21:11:31.064105-03 |        49976.3 | OK
+ pedido         |          200005 |                   0 | 2026-10-28 21:11:31.011828-03 |        20050.5 | OK
+ producto       |           50011 |                   0 | 2026-10-28 21:11:30.980661-03 |         5051.1 | OK
+ cliente        |           20005 |                   0 | 2026-10-28 21:11:30.816618-03 |         2050.5 | OK
+ categoria      |               5 |                   0 | 2026-10-28 21:11:30.566318-03 |           50.5 | OK
+ usuario        |               3 |                   0 | 2026-10-28 21:11:31.065235-03 |           50.3 | OK
+(6 filas)
+
+Decision: sin accion, estadisticas al dia
+=== 4. Estado DESPUES ===
+ pg_stat_clear_snapshot 
+------------------------
+ 
+(1 fila)
+
+     tabla      | filas_estimadas | n_live_tup | n_dead_tup | n_mod_since_analyze |         last_analyze          
+----------------+-----------------+------------+------------+---------------------+-------------------------------
+ detalle_pedido |          499263 |     499263 |          1 |                   0 | 2026-10-28 21:11:31.064105-03
+ pedido         |          200005 |     200005 |          2 |                   0 | 2026-10-28 21:11:31.011828-03
+ producto       |           50011 |      50011 |          1 |                   0 | 2026-10-28 21:11:30.980661-03
+ cliente        |           20005 |      20005 |          0 |                   0 | 2026-10-28 21:11:30.816618-03
+ categoria      |               5 |          5 |          0 |                   0 | 2026-10-28 21:11:30.566318-03
+ usuario        |               3 |          3 |          0 |                   0 | 2026-10-28 21:11:31.065235-03
+(6 filas)
+
