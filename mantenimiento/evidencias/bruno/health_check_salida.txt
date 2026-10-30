@@ -1,0 +1,49 @@
+=== 0. Base y momento del chequeo ===
+   base    |        fecha_chequeo         | version 
+-----------+------------------------------+---------
+ foodstore | 2026-10-30 16:08:34.84613+00 | 17.11
+(1 fila)
+
+=== 1. Tamano de la base y de las tablas principales ===
+ tamano_base 
+-------------
+ 97 MB
+(1 fila)
+
+     tabla      | tamano_total 
+----------------+--------------
+ detalle_pedido | 63 MB
+ pedido         | 18 MB
+ producto       | 5800 kB
+ cliente        | 3464 kB
+ usuario        | 48 kB
+ categoria      | 40 kB
+(6 filas)
+
+=== 2. Actividad de conexiones ===
+ conexiones | xact_commit | xact_rollback | cache_hit_pct 
+------------+-------------+---------------+---------------
+          1 |         126 |             1 |         82.77
+(1 fila)
+
+ estado | cantidad 
+--------+----------
+ active |        1
+(1 fila)
+
+=== 3. Estado de las tablas (tuplas vivas/muertas, autovacuum) ===
+     tabla      | n_live_tup | n_dead_tup | pct_muertas |        last_autovacuum        |       last_autoanalyze        
+----------------+------------+------------+-------------+-------------------------------+-------------------------------
+ categoria      |          5 |          0 |        0.00 |                               | 
+ detalle_pedido |     499263 |          0 |        0.00 | 2026-10-30 16:08:25.95401+00  | 2026-10-30 16:08:26.453925+00
+ producto       |      50011 |          0 |        0.00 | 2026-10-30 16:08:26.918808+00 | 2026-10-30 16:08:27.200158+00
+ usuario        |          3 |          0 |        0.00 |                               | 
+ cliente        |      20005 |          0 |        0.00 |                               | 
+ pedido         |     200005 |          0 |        0.00 | 2026-10-30 16:08:26.685677+00 | 2026-10-30 16:08:26.840079+00
+(6 filas)
+
+=== 4. Consultas activas (excluye esta sesion) ===
+ pid | usename | state | duracion | consulta 
+-----+---------+-------+----------+----------
+(0 filas)
+
