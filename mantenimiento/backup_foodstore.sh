@@ -4,6 +4,7 @@
 #   .dump    respaldo (pg_dump -Fc)
 #   .conteo  huella de la base antes del respaldo (conteo_referencia.sql): referencia de la restauracion
 #   .sha256  hash del .dump, para comprobar que el archivo no cambio antes de restaurarlo
+#   _globals.sql roles y permisos del cluster (pg_dumpall --globals-only --no-role-passwords)
 # Cada ejecución deja UNA línea en logs/backup_foodstore.log con PASS o FAIL, tamaño y SHA256.
 # La contraseña NO va acá: se toma de %APPDATA%\postgresql\pgpass.conf
 # Uso: ./backup_foodstore.sh   (desde cualquier carpeta)
@@ -49,13 +50,14 @@ BASE="$BACKUP_DIR/${DB_NAME}_${FECHA}"
 ARCHIVO="$BASE.dump"
 CONTEO="$BASE.conteo"
 HASH="$BASE.sha256"
+GLOBALS="$BASE"'_globals.sql'
 ERR_TMP="$LOG_DIR/.backup_error_${FECHA}.tmp"
 
 # Registra FAIL, borra lo generado a medias y sale con 1
 fallar() {
     local paso="$1" codigo="$2"
     local detalle; detalle="$(tr '\n\r' '  ' < "$ERR_TMP" 2>/dev/null)"
-    rm -f "$ARCHIVO" "$CONTEO" "$HASH" "$ERR_TMP"
+    rm -f "$ARCHIVO" "$CONTEO" "$HASH" "$GLOBALS" "$ERR_TMP"
     echo "$(date '+%Y-%m-%d %H:%M:%S') | FAIL | base=$DB_NAME | origen=$ORIGEN | archivo=$(basename "$ARCHIVO") | paso=$paso | codigo=$codigo | detalle=$detalle" >> "$LOG"
     echo "FAIL en el paso '$paso' (codigo $codigo). No queda respaldo. Ver $LOG" >&2
     exit 1
@@ -170,13 +172,22 @@ FIN=$(date +%s)
 TOC=$(pg_restore -l "$ARCHIVO" 2> "$ERR_TMP" | grep -c '^[0-9]') || fallar pg_restore_l $?
 [ "$TOC" -gt 0 ] || fallar pg_restore_l_vacio 1
 
-# Paso 4: tamaño y SHA256 del .dump
+# Paso 4: roles y permisos del cluster (pg_dumpall se conecta a la base
+# "postgres", NO a $DB_NAME; --globals-only vuelca CREATE ROLE, pertenencias,
+# ALTER ROLE ... SET y tablespaces. Sin --no-role-passwords filtraría hashes.)
+pg_dumpall "${CONN[@]}" --globals-only --no-role-passwords > "$GLOBALS" 2> "$ERR_TMP" \
+    || fallar pg_dumpall $?
+[ -s "$GLOBALS" ] || fallar globals_vacio 1
+grep -q '^CREATE ROLE' "$GLOBALS" || fallar globals_sin_roles 1
+grep -q 'SCRAM-SHA-256' "$GLOBALS" && fallar globals_con_hash 1
+
+# Paso 5: tamaño y SHA256 del .dump
 TAMANO=$(stat -c %s "$ARCHIVO")
 SHA=$(sha256sum "$ARCHIVO" | cut -d' ' -f1)
 ( cd "$BACKUP_DIR" && sha256sum "$(basename "$ARCHIVO")" ) > "$HASH"
 
 rm -f "$ERR_TMP"
-echo "$(date '+%Y-%m-%d %H:%M:%S') | PASS | base=$DB_NAME | origen=$ORIGEN | archivo=$(basename "$ARCHIVO") | bytes=$TAMANO | sha256=$SHA | objetos_toc=$TOC | conteo=$(basename "$CONTEO") | segundos=$((FIN - INICIO))" >> "$LOG"
+echo "$(date '+%Y-%m-%d %H:%M:%S') | PASS | base=$DB_NAME | origen=$ORIGEN | archivo=$(basename "$ARCHIVO") | bytes=$TAMANO | sha256=$SHA | objetos_toc=$TOC | conteo=$(basename "$CONTEO") | globals=$(basename "$GLOBALS") | segundos=$((FIN - INICIO))" >> "$LOG"
 echo "PASS: $(basename "$ARCHIVO") ($TAMANO bytes, $TOC objetos en el TOC)"
 echo "SHA256: $SHA"
 echo "Huella de referencia:"
