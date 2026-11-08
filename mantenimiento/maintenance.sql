@@ -1,13 +1,16 @@
 -- maintenance.sql — Revision semanal de autovacuum/estadisticas y mantenimiento justificado (TP Unidad 6)
 -- Uso: psql -U postgres -d foodstore -X -f mantenimiento/maintenance.sql
+--      (tambien sobre foodstore_restore_test, recien restaurada y sin estadisticas)
 -- NO usa VACUUM FULL (bloquea la tabla con ACCESS EXCLUSIVE).
+-- VACUUM y ANALYZE solo se ejecutan si el diagnostico lo justifica.
 
 -- Protocolo: confirmar la base antes de ejecutar
-SELECT current_database() <> 'foodstore' AS no_es_foodstore \gset
-\if :no_es_foodstore
-  \echo 'ABORTADO: este script solo se ejecuta sobre foodstore'
+SELECT current_database() NOT IN ('foodstore', 'foodstore_restore_test') AS base_no_permitida \gset
+\if :base_no_permitida
+  \echo 'ABORTADO: este script solo se ejecuta sobre foodstore o foodstore_restore_test'
   \quit
 \endif
+\echo 'Base:' :DBNAME
 
 \echo '=== 1. Configuracion de autovacuum ==='
 SELECT name, setting, unit
@@ -79,12 +82,48 @@ FROM (
   \echo 'Decision: sin accion, estadisticas al dia'
 \endif
 
+-- 3b. Diagnostico de VACUUM: tuplas muertas contra el umbral de autovacuum
+-- (threshold + scale_factor * filas). Por debajo del umbral, autovacuum alcanza y no hace
+-- falta un VACUUM manual. VACUUM FULL nunca: reescribe la tabla y la bloquea por completo.
+\echo '=== 3b. Diagnostico: tuplas muertas vs umbral de autovacuum ==='
+SELECT s.relname AS tabla,
+       s.n_live_tup, s.n_dead_tup,
+       current_setting('autovacuum_vacuum_threshold')::numeric
+         + current_setting('autovacuum_vacuum_scale_factor')::numeric * greatest(c.reltuples, 0)
+         AS umbral_vacuum,
+       CASE WHEN s.n_dead_tup > current_setting('autovacuum_vacuum_threshold')::numeric
+                 + current_setting('autovacuum_vacuum_scale_factor')::numeric * greatest(c.reltuples, 0)
+            THEN 'VACUUM NECESARIO' ELSE 'OK' END AS estado
+FROM pg_stat_user_tables s
+JOIN pg_class c ON c.oid = s.relid
+WHERE s.relname IN ('categoria', 'cliente', 'producto', 'pedido', 'detalle_pedido', 'usuario')
+ORDER BY s.n_dead_tup DESC;
+
+SELECT count(*) FILTER (WHERE s.n_dead_tup > current_setting('autovacuum_vacuum_threshold')::numeric
+         + current_setting('autovacuum_vacuum_scale_factor')::numeric * greatest(c.reltuples, 0)) AS con_vacuum
+FROM pg_stat_user_tables s
+JOIN pg_class c ON c.oid = s.relid
+WHERE s.relname IN ('categoria', 'cliente', 'producto', 'pedido', 'detalle_pedido', 'usuario') \gset vac_
+
+SELECT :vac_con_vacuum > 0 AS hay_vacuum \gset vac_
+\if :vac_hay_vacuum
+  \echo 'Decision VACUUM: se ejecuta VACUUM (no FULL) en' :vac_con_vacuum 'tabla(s) sobre el umbral'
+  SELECT format('VACUUM (VERBOSE) %I', s.relname)
+  FROM pg_stat_user_tables s JOIN pg_class c ON c.oid = s.relid
+  WHERE s.relname IN ('categoria', 'cliente', 'producto', 'pedido', 'detalle_pedido', 'usuario')
+    AND s.n_dead_tup > current_setting('autovacuum_vacuum_threshold')::numeric
+        + current_setting('autovacuum_vacuum_scale_factor')::numeric * greatest(c.reltuples, 0) \gexec
+\else
+  \echo 'Decision VACUUM: no se ejecuta. Ninguna tabla supera el umbral de tuplas muertas; autovacuum alcanza.'
+\endif
+\echo 'VACUUM FULL: no se usa como mantenimiento periodico (bloquea la tabla con ACCESS EXCLUSIVE).'
+
 \echo '=== 4. Estado DESPUES ==='
 SELECT pg_stat_clear_snapshot();
 SELECT s.relname AS tabla,
        c.reltuples::bigint AS filas_estimadas,
        s.n_live_tup, s.n_dead_tup, s.n_mod_since_analyze,
-       s.last_analyze
+       s.last_vacuum, s.last_autovacuum, s.last_analyze, s.last_autoanalyze
 FROM pg_stat_user_tables s
 JOIN pg_class c ON c.oid = s.relid
 ORDER BY c.reltuples DESC;
