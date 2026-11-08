@@ -1,0 +1,4 @@
+=== Simulacro de restauración — 2026-11-07 22:32:33 ===
+Respaldo usado: foodstore_20261107_222858.dump (9428332 bytes)
+SHA256 verificado: a4819d08dd275ebdd65ff9e2df951b3bc1532cf685c9612ee1979a9d1d272e0d
+RESULTADO: FAIL — borrado de foodstore_restore_test no autorizado
