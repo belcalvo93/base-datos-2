@@ -87,6 +87,8 @@ OpenCode puede generar la primera versión de los scripts a partir de este SPEC 
 - `--no-role-passwords` evita guardar los hashes de contraseña. Después de restaurar los roles, las contraseñas se asignan a mano.
 - Si este paso falla, el respaldo completo se registra como FAIL (un respaldo sin roles no alcanza para recuperar el sistema).
 - No se versiona: la carpeta `backups/` está ignorada por Git.
+- **Limitación:** el `_globals.sql` recupera los roles y sus atributos, no los permisos sobre las tablas. Esos permisos están dentro del `.dump`; `restore_test.sh` restaura con `--no-privileges`, así que no los recupera. Para recuperarlos hay que restaurar los roles primero y el dump sin esa opción.
+- **Restauración:** el `_globals.sql` es SQL plano: se aplica con `psql` conectado a la base `postgres`, nunca con `pg_restore`.
 
 ### Fallas
 
