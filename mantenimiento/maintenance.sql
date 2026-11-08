@@ -4,6 +4,9 @@
 -- NO usa VACUUM FULL (bloquea la tabla con ACCESS EXCLUSIVE).
 -- VACUUM y ANALYZE solo se ejecutan si el diagnostico lo justifica.
 
+-- psql: cortar en el primer error
+\set ON_ERROR_STOP on
+
 -- Protocolo: confirmar la base antes de ejecutar
 SELECT current_database() NOT IN ('foodstore', 'foodstore_restore_test') AS base_no_permitida \gset
 \if :base_no_permitida
@@ -76,8 +79,17 @@ FROM (
   \echo 'Decision: ANALYZE justificado (tablas pendientes:' :dec_pendientes 'de' :dec_total ')'
   \echo 'Motivo: alguna tabla esta SIN ESTADISTICAS o DESACTUALIZADA (ver seccion 3).'
   \echo 'ANALYZE solo toma muestras: no bloquea lecturas ni escrituras.'
-  \echo '--- Accion: ANALYZE VERBOSE de las 6 tablas de Food Store ---'
-  ANALYZE VERBOSE categoria, cliente, producto, pedido, detalle_pedido, usuario;
+  \echo '--- Accion: ANALYZE VERBOSE solo de las tablas pendientes ---'
+  SELECT format('ANALYZE VERBOSE %I', s.relname)
+  FROM pg_stat_user_tables s
+  JOIN pg_class c ON c.oid = s.relid
+  WHERE s.relname IN ('categoria', 'cliente', 'producto', 'pedido', 'detalle_pedido', 'usuario')
+    AND (
+      (s.last_analyze IS NULL AND s.last_autoanalyze IS NULL)
+      OR s.n_mod_since_analyze > current_setting('autovacuum_analyze_threshold')::numeric
+           + current_setting('autovacuum_analyze_scale_factor')::numeric * greatest(c.reltuples, 0)
+    )
+  ORDER BY s.relname \gexec
 \else
   \echo 'Decision: sin accion, estadisticas al dia'
 \endif

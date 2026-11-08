@@ -58,23 +58,35 @@ CONTEO_RESPALDO="$(tr -d '\r' < "$CONTEO_FILE")"
 [ -n "$CONTEO_RESPALDO" ] || fallar "el .conteo esta vacio: $CONTEO_FILE"
 
 # Control humano: autorización escrita antes de borrar la base descartable
-if [ "${CONFIRMAR:-}" != "$DESTINO" ]; then
+# Origen de la autorizacion: por variable de entorno (automatizable) o tipeada a mano
+ORIGEN_CONFIRMA="interactivo"
+if [ "${CONFIRMAR:-}" = "$DESTINO" ]; then
+    ORIGEN_CONFIRMA="variable"
+else
     read -r -p "Se va a BORRAR y recrear $DESTINO. Escribí su nombre para autorizar: " CONFIRMAR
 fi
 [ "$CONFIRMAR" = "$DESTINO" ] || fallar "borrado de $DESTINO no autorizado"
-out "Borrado de $DESTINO autorizado por ${USERNAME:-${USER:-desconocido}} el $(date '+%Y-%m-%d %H:%M:%S')"
-echo "$(date '+%Y-%m-%d %H:%M:%S') | AUTORIZADO | usuario=${USERNAME:-${USER:-desconocido}} | accion=dropdb $DESTINO" >> "$LOG"
+out "Borrado de $DESTINO autorizado por ${USERNAME:-${USER:-desconocido}} (origen=$ORIGEN_CONFIRMA) el $(date '+%Y-%m-%d %H:%M:%S')"
+echo "$(date '+%Y-%m-%d %H:%M:%S') | AUTORIZADO | usuario=${USERNAME:-${USER:-desconocido}} | origen=$ORIGEN_CONFIRMA | accion=dropdb $DESTINO" >> "$LOG"
 
 # Limpieza de un ensayo anterior (solo la base descartable, fuera del cronómetro)
 dropdb "${CONN[@]}" --if-exists "$DESTINO" 2>/dev/null || fallar "no se pudo borrar $DESTINO anterior"
+
+# Antiguedad del respaldo (RPO observado) al momento del simulacro: se mide ahora,
+# antes de createdb y sin contar la espera de autorizacion.
+STAMP="$(basename "$DUMP" .dump | sed 's/^foodstore_//')"   # AAAAMMDD_HHMMSS
+F="${STAMP%_*}"; H="${STAMP#*_}"
+EPOCH_DUMP=$(date -d "$F ${H:0:2}:${H:2:2}:${H:4:2}" +%s)
+EDAD_SEG=$(( $(date +%s) - EPOCH_DUMP ))
 
 # ---- Cronómetro: arranca inmediatamente antes de crear la base de prueba ----
 T0=$(date +%s.%N)
 
 createdb "${CONN[@]}" -T template0 "$DESTINO" || fallar "createdb $DESTINO"
 # Confirmar contra el motor que la conexión va a la base descartable
-[ "$(consulta -d "$DESTINO" -c 'SELECT current_database();')" = "$DESTINO" ] \
-    || fallar "la conexión no apunta a $DESTINO"
+BASE_ACTUAL="$(consulta -d "$DESTINO" -c 'SELECT current_database();')" || fallar "no se pudo consultar $DESTINO"
+[ "$BASE_ACTUAL" = "$DESTINO" ] || fallar "la conexión no apunta a $DESTINO"
+out "Destino confirmado por el motor: current_database() = $BASE_ACTUAL"
 pg_restore "${CONN[@]}" -d "$DESTINO" --exit-on-error --no-owner --no-privileges "$DUMP" \
     || fallar "pg_restore"
 T_RESTORE=$(date +%s.%N)
@@ -83,19 +95,26 @@ T_RESTORE=$(date +%s.%N)
 HUELLA_RESTORE="$(consulta -d "$DESTINO" -f "$DIR/conteo_referencia.sql")" || fallar "huella en $DESTINO"
 
 # Validación 2: indicadores de integridad (todos deben dar 0)
+# El UNION ALL no garantiza el orden: se ordena por la columna 'orden' para que la
+# evidencia salga siempre en el mismo orden que el SQL.
 SQL_INTEGRIDAD="
-SELECT 'precio_negativo',             count(*) FROM producto WHERE precio < 0
-UNION ALL SELECT 'stock_negativo',            count(*) FROM producto WHERE stock < 0
-UNION ALL SELECT 'cantidad_no_positiva',      count(*) FROM detalle_pedido WHERE cantidad <= 0
-UNION ALL SELECT 'precio_unitario_negativo',  count(*) FROM detalle_pedido WHERE precio_unitario < 0
-UNION ALL SELECT 'detalle_sin_pedido',        count(*) FROM detalle_pedido d
-              WHERE NOT EXISTS (SELECT 1 FROM pedido p WHERE p.id_pedido = d.id_pedido)
-UNION ALL SELECT 'detalle_sin_producto',      count(*) FROM detalle_pedido d
-              WHERE NOT EXISTS (SELECT 1 FROM producto pr WHERE pr.id_producto = d.id_producto)
-UNION ALL SELECT 'pedido_sin_cliente',        count(*) FROM pedido p
-              WHERE NOT EXISTS (SELECT 1 FROM cliente c WHERE c.id_cliente = p.id_cliente)
-UNION ALL SELECT 'producto_sin_categoria',    count(*) FROM producto pr
-              WHERE NOT EXISTS (SELECT 1 FROM categoria c WHERE c.id_categoria = pr.id_categoria);"
+SELECT clave, cantidad
+FROM (
+       SELECT 1 AS orden, 'precio_negativo' AS clave, count(*) AS cantidad
+       FROM producto WHERE precio < 0
+  UNION ALL SELECT 2, 'stock_negativo', count(*) FROM producto WHERE stock < 0
+  UNION ALL SELECT 3, 'cantidad_no_positiva', count(*) FROM detalle_pedido WHERE cantidad <= 0
+  UNION ALL SELECT 4, 'precio_unitario_negativo', count(*) FROM detalle_pedido WHERE precio_unitario < 0
+  UNION ALL SELECT 5, 'detalle_sin_pedido', count(*) FROM detalle_pedido d
+                WHERE NOT EXISTS (SELECT 1 FROM pedido p WHERE p.id_pedido = d.id_pedido)
+  UNION ALL SELECT 6, 'detalle_sin_producto', count(*) FROM detalle_pedido d
+                WHERE NOT EXISTS (SELECT 1 FROM producto pr WHERE pr.id_producto = d.id_producto)
+  UNION ALL SELECT 7, 'pedido_sin_cliente', count(*) FROM pedido p
+                WHERE NOT EXISTS (SELECT 1 FROM cliente c WHERE c.id_cliente = p.id_cliente)
+  UNION ALL SELECT 8, 'producto_sin_categoria', count(*) FROM producto pr
+                WHERE NOT EXISTS (SELECT 1 FROM categoria c WHERE c.id_categoria = pr.id_categoria)
+) t
+ORDER BY orden;"
 INTEGRIDAD="$(consulta -d "$DESTINO" -c "$SQL_INTEGRIDAD")" || fallar "controles de integridad"
 
 T1=$(date +%s.%N)
@@ -114,16 +133,10 @@ INTEGRIDAD_OK=$(echo "$INTEGRIDAD" | awk '$2 != "0" {m++} END {print (m ? "no" :
 SEG_RESTORE=$(awk "BEGIN{printf \"%.2f\", $T_RESTORE - $T0}")
 RTO=$(awk "BEGIN{printf \"%.2f\", $T1 - $T0}")
 
-# Antigüedad del respaldo (RPO observado): fecha del nombre del archivo vs ahora
-STAMP="$(basename "$DUMP" .dump | sed 's/^foodstore_//')"   # AAAAMMDD_HHMMSS
-F="${STAMP%_*}"; H="${STAMP#*_}"
-EPOCH_DUMP=$(date -d "$F ${H:0:2}:${H:2:2}:${H:4:2}" +%s)
-EDAD_SEG=$(( $(date +%s) - EPOCH_DUMP ))
-
 out ""
 out "Tiempo createdb + pg_restore: ${SEG_RESTORE} s"
 out "RTO observado (createdb -> validaciones OK): ${RTO} s"
-out "Antigüedad del respaldo (RPO observado): ${EDAD_SEG} s (~$(( EDAD_SEG / 60 )) min). Incluye el tiempo de autorización."
+out "Antigüedad del respaldo (RPO observado): ${EDAD_SEG} s (~$(( EDAD_SEG / 60 )) min). Medida antes de createdb; no incluye la espera de autorizacion."
 out "Alcance: se restauran datos y estructura; NO roles ni permisos (--no-owner --no-privileges)."
 
 if [ "$HUELLA_RESTORE" = "$CONTEO_RESPALDO" ] && [ "$INTEGRIDAD_OK" = "si" ]; then
