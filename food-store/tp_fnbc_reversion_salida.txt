@@ -1,0 +1,194 @@
+=====================================================================
+CORRIDA 1: Prueba en transaccion reversible (BEGIN ... ROLLBACK)
+Comando: psql -U postgres -d bd2_tp4u4 -X -v ON_ERROR_STOP=1 -f food-store/tp_fnbc_reversion.sql
+=====================================================================
+DO
+ current_database 
+------------------
+ bd2_tp4u4
+(1 fila)
+
+BEGIN
+=== PASO 1: Estado migrado a FNBC (responsable_deposito + control_lote + v_control_lote_almacen) ===
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 3
+INSERT 0 2
+INSERT 0 2
+TRUNCATE TABLE
+INSERT 0 3
+DROP VIEW
+DROP TABLE
+DROP TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 2
+INSERT 0 3
+CREATE VIEW
+--- 1.1 Conteos tras migrar a FNBC ---
+ filas_original | filas_r1_responsable_deposito | filas_r2_control_lote | filas_vista_reconstruida 
+----------------+-------------------------------+-----------------------+--------------------------
+              3 |                             2 |                     3 |                        3
+(1 fila)
+
+--- 1.2 EXCEPT migración: original EXCEPT vista (esperado: 0 filas) ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+--- 1.3 EXCEPT migración: vista EXCEPT original (esperado: 0 filas) ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+=== PASO 2: Reconstrucción de control_lote_almacen desde las tablas en FNBC ===
+SELECT 3
+TRUNCATE TABLE
+INSERT 0 3
+--- 2.1 Verificación previa al DROP: control_lote_almacen EXCEPT v_control_lote_almacen (esperado: 0 filas) ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+--- 2.2 Verificación previa al DROP: v_control_lote_almacen EXCEPT control_lote_almacen (esperado: 0 filas) ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+=== PASO 3: DROP en orden estricto de dependencias (vista -> R2 hija -> R1 padre, sin CASCADE) ===
+DROP VIEW
+DROP TABLE
+DROP TABLE
+=== PASO 4: Verificación de estado, restricciones, conteos y equivalencia post-reversión ===
+--- 4.1 Existencia de objetos (esperado: vista=f, r2=f, r1=f, original=t, filas_iguales=t) ---
+ vista_fnbc_existe | r2_control_lote_existe | r1_responsable_deposito_existe | tabla_original_existe | filas_iguales 
+-------------------+------------------------+--------------------------------+-----------------------+---------------
+ f                 | f                      | f                              | t                     | t
+(1 fila)
+
+--- 4.2 Contenido restaurado en control_lote_almacen ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+     501 |          30 |                    801
+     502 |          30 |                    801
+     503 |          31 |                    802
+(3 filas)
+
+--- 4.3 Restricciones activas en control_lote_almacen (PK + 3 FK) ---
+                    restriccion_declarada                    
+-------------------------------------------------------------
+ PRIMARY KEY (lote_id, deposito_id)
+ FOREIGN KEY (deposito_id) REFERENCES deposito(id)
+ FOREIGN KEY (lote_id) REFERENCES lote(id)
+ FOREIGN KEY (responsable_control_id) REFERENCES usuario(id)
+(4 filas)
+
+--- 4.4 EXCEPT post-reversión Dirección 1: control_lote_almacen EXCEPT temp_pre_reversion (esperado: 0 filas) ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+--- 4.5 EXCEPT post-reversión Dirección 2: temp_pre_reversion EXCEPT control_lote_almacen (esperado: 0 filas) ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+ROLLBACK
+
+=====================================================================
+CORRIDA 2: Confirmacion sobre la copia bd2_tp4u4 (BEGIN ... COMMIT)
+=====================================================================
+DO
+ current_database 
+------------------
+ bd2_tp4u4
+(1 fila)
+
+BEGIN
+=== PASO 1: Estado migrado a FNBC (responsable_deposito + control_lote + v_control_lote_almacen) ===
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 3
+INSERT 0 2
+INSERT 0 2
+TRUNCATE TABLE
+INSERT 0 3
+DROP VIEW
+DROP TABLE
+DROP TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 2
+INSERT 0 3
+CREATE VIEW
+--- 1.1 Conteos tras migrar a FNBC ---
+ filas_original | filas_r1_responsable_deposito | filas_r2_control_lote | filas_vista_reconstruida 
+----------------+-------------------------------+-----------------------+--------------------------
+              3 |                             2 |                     3 |                        3
+(1 fila)
+
+--- 1.2 EXCEPT migración: original EXCEPT vista (esperado: 0 filas) ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+--- 1.3 EXCEPT migración: vista EXCEPT original (esperado: 0 filas) ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+=== PASO 2: Reconstrucción de control_lote_almacen desde las tablas en FNBC ===
+SELECT 3
+TRUNCATE TABLE
+INSERT 0 3
+--- 2.1 Verificación previa al DROP: control_lote_almacen EXCEPT v_control_lote_almacen (esperado: 0 filas) ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+--- 2.2 Verificación previa al DROP: v_control_lote_almacen EXCEPT control_lote_almacen (esperado: 0 filas) ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+=== PASO 3: DROP en orden estricto de dependencias (vista -> R2 hija -> R1 padre, sin CASCADE) ===
+DROP VIEW
+DROP TABLE
+DROP TABLE
+=== PASO 4: Verificación de estado, restricciones, conteos y equivalencia post-reversión ===
+--- 4.1 Existencia de objetos (esperado: vista=f, r2=f, r1=f, original=t, filas_iguales=t) ---
+ vista_fnbc_existe | r2_control_lote_existe | r1_responsable_deposito_existe | tabla_original_existe | filas_iguales 
+-------------------+------------------------+--------------------------------+-----------------------+---------------
+ f                 | f                      | f                              | t                     | t
+(1 fila)
+
+--- 4.2 Contenido restaurado en control_lote_almacen ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+     501 |          30 |                    801
+     502 |          30 |                    801
+     503 |          31 |                    802
+(3 filas)
+
+--- 4.3 Restricciones activas en control_lote_almacen (PK + 3 FK) ---
+                    restriccion_declarada                    
+-------------------------------------------------------------
+ PRIMARY KEY (lote_id, deposito_id)
+ FOREIGN KEY (deposito_id) REFERENCES deposito(id)
+ FOREIGN KEY (lote_id) REFERENCES lote(id)
+ FOREIGN KEY (responsable_control_id) REFERENCES usuario(id)
+(4 filas)
+
+--- 4.4 EXCEPT post-reversión Dirección 1: control_lote_almacen EXCEPT temp_pre_reversion (esperado: 0 filas) ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+--- 4.5 EXCEPT post-reversión Dirección 2: temp_pre_reversion EXCEPT control_lote_almacen (esperado: 0 filas) ---
+ lote_id | deposito_id | responsable_control_id 
+---------+-------------+------------------------
+(0 filas)
+
+COMMIT

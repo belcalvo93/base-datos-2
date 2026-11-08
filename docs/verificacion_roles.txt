@@ -1,8 +1,9 @@
-=== Verificación de roles y permisos — TP U5, Parte A.3 ===
+=== Verificación de roles y permisos — TP U5, Parte A.3 / TPI Objetivo 6 ===
 Base: bd2_tp5u5, después de aplicar funciones_auth.sql, mv_ventas_categoria_mes.sql y roles.sql.
 Nota: information_schema.role_table_grants no lista vistas materializadas (mv_ventas_categoria_mes)
 ni permisos por columna (usuario para rol_soporte). Por eso se complementa con role_column_grants,
-\dp, routine_privileges y \ddp. Se compara contra la matriz de docs/kiro_roles_spec/design.md.
+\dp, routine_privileges y \ddp. Se compara contra la matriz de docs/kiro_roles_spec/design.md
+y contra las decisiones de docs/decisiones_auditoria_roles.md.
 
 --- 1. Roles y atributos (\du) ---
                                   List of roles
@@ -16,6 +17,7 @@ ni permisos por columna (usuario para rol_soporte). Por eso se complementa con r
  rol_reportes       | Cannot login
  rol_reportes_login | 
  rol_soporte        | Cannot login
+ taller             | Superuser, Create DB
 
 --- 2. Membresías ---
         rol         |    miembro_de     
@@ -74,6 +76,7 @@ ni permisos por columna (usuario para rol_soporte). Por eso se complementa con r
 --- 8. Dueño de los objetos ---
             objeto             | tipo |    dueno    
 -------------------------------+------+-------------
+ mv_facturacion_cat_mes        | m    | postgres
  mv_ventas_categoria_mes       | m    | admin_datos
  categoria                     | r    | admin_datos
  cliente                       | r    | admin_datos
@@ -86,7 +89,7 @@ ni permisos por columna (usuario para rol_soporte). Por eso se complementa con r
  vista_pedidos_cliente         | v    | admin_datos
  vista_productos_vigentes      | v    | admin_datos
  vista_usuario_reportes        | v    | admin_datos
-(12 rows)
+(13 rows)
 
 --- 9. Pruebas funcionales con SET ROLE (los ERROR son esperados) ---
 (Todo dentro de BEGIN … ROLLBACK: si una prueba que debe fallar no falla, no deja cambios.
@@ -99,12 +102,21 @@ SET
 (0 rows)
 
 app_web: leer usuario debe fallar
-psql:sql/verificacion_roles.sql:63: ERROR:  permiso denegado a la tabla usuario
+psql:sql/verificacion_roles.sql:64: ERROR:  permiso denegado a la tabla usuario
 app_web: otorgar admin_datos a un rol de bajo privilegio debe fallar
-psql:sql/verificacion_roles.sql:65: ERROR:  se ha denegado el permiso para otorgar el rol «admin_datos»
+psql:sql/verificacion_roles.sql:66: ERROR:  se ha denegado el permiso para otorgar el rol «admin_datos»
 DETAIL:  Sólo los roles con la opción ADMIN en el rol «admin_datos» pueden otorgar este rol.
-app_web: INSERT directo en pedido debe fallar (solo vía registrar_pedido, Parte A.4)
-psql:sql/verificacion_roles.sql:67: ERROR:  permiso denegado a la tabla pedido
+app_web: INSERT directo en pedido debe fallar (solo vía registrar_pedido, H1)
+psql:sql/verificacion_roles.sql:68: ERROR:  permiso denegado a la tabla pedido
+app_web: UPDATE directo en pedido debe fallar (H1)
+psql:sql/verificacion_roles.sql:70: ERROR:  permiso denegado a la tabla pedido
+app_web: CALL registrar_pedido debe funcionar (SECURITY DEFINER, H1 / F1)
+psql:sql/verificacion_roles.sql:72: NOTICE:  Pedido 245008 registrado con 1 linea(s)
+CALL
+app_web: CREATE TABLE en public debe fallar (R3)
+psql:sql/verificacion_roles.sql:74: ERROR:  permiso denegado al esquema public
+LINE 1: CREATE TABLE intento_hijack (id int);
+                     ^
 RESET
 rol_soporte: columnas permitidas deben funcionar
 SET
@@ -114,18 +126,40 @@ SET
 (1 row)
 
 rol_soporte: contrasena debe fallar
-psql:sql/verificacion_roles.sql:73: ERROR:  permiso denegado a la tabla usuario
-rol_soporte: resetear la contraseña de un ADMIN debe fallar (Parte A.4)
+psql:sql/verificacion_roles.sql:80: ERROR:  permiso denegado a la tabla usuario
+rol_soporte: columna eliminado no autorizada debe fallar (F3)
+psql:sql/verificacion_roles.sql:82: ERROR:  permiso denegado a la tabla usuario
+rol_soporte: resetear la contraseña de un ADMIN debe fallar (H4)
 (Si el mensaje dice "Usuario <NULL>", no hay ningún ADMIN cargado y la prueba no es concluyente.)
-psql:sql/verificacion_roles.sql:77: ERROR:  Usuario 1 inexistente, eliminado o ADMIN: no se resetea
+psql:sql/verificacion_roles.sql:86: ERROR:  Usuario 1 inexistente, eliminado o ADMIN: no se resetea
 CONTEXT:  función PL/pgSQL fn_resetear_password(bigint,text) en la línea 12 en RAISE
+rol_soporte: contraseña menor a 8 caracteres debe fallar (H4)
+psql:sql/verificacion_roles.sql:89: ERROR:  La nueva contraseña debe tener al menos 8 caracteres
+CONTEXT:  función PL/pgSQL fn_resetear_password(bigint,text) en la línea 4 en RAISE
+rol_soporte: resetear contraseña de USUARIO activo con clave válida debe funcionar (H4)
+ fn_resetear_password 
+----------------------
+ 
+(1 row)
+
 RESET
-rol_reportes_login: la vista materializada debe funcionar
+rol_reportes_login: la vista materializada debe funcionar (F4)
 SET
  count 
 -------
    125
 (1 row)
 
+rol_reportes_login: leer cliente o vista_usuario_reportes debe fallar (H2 / H3 / R2)
+psql:sql/verificacion_roles.sql:98: ERROR:  permiso denegado a la tabla cliente
+psql:sql/verificacion_roles.sql:99: ERROR:  permiso denegado a la vista vista_usuario_reportes
+rol_reportes_login: ejecutar fn_autenticar debe fallar (R1)
+psql:sql/verificacion_roles.sql:101: ERROR:  permiso denegado a la función fn_autenticar
+rol_reportes_login: REFRESH de la vista materializada debe fallar (solo el dueño admin_datos, F2)
+psql:sql/verificacion_roles.sql:103: ERROR:  permiso denegado a la vista materializada mv_ventas_categoria_mes
+RESET
+admin_datos: REFRESH de la vista materializada debe funcionar (F2)
+SET
+REFRESH MATERIALIZED VIEW
 RESET
 ROLLBACK
