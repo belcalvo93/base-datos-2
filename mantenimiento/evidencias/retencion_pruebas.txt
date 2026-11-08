@@ -1,0 +1,14 @@
+=== Prueba 1 (retención): líneas del log de la corrida anterior
+2026-11-08 03:28:14 | PASS | base=foodstore | origen=prueba | archivo=foodstore_20261108_032811.dump | bytes=9428332 | sha256=11474fecfb8d3cdf598b23f75409303219c78c6e975e5c11e82fea4c869e7373 | objetos_toc=54 | conteo=foodstore_20261108_032811.conteo | segundos=2
+2026-11-08 03:28:15 | RETENCION | resultado=ok | origen=prueba | dias=7 | min_juegos=3 | antes=6 | despues=3 | motivo=juegos_borrados=3 | eliminados=20261030_210000;20261025_210000;20261020_210000; | quedan=20261108_032811;20261107_231151;20261104_210000; | ignorados=20261028_200259:incompleto;
+
+=== Prueba 2: RETENCION_DIAS inválido (esperado: salida 2, nada se borra)
+archivos antes: 11
+CONFIG INVALIDA: RETENCION_DIAS='abc' (entero >= 1). No se hizo nada.
+salida: 2
+archivos después: 11
+
+=== Prueba 3: base inexistente (esperado: FAIL, salida 1, nada se borra)
+FAIL en el paso 'conteo' (codigo 2). No queda respaldo. Ver /c/Users/beluu/Desktop/base-datos-2/mantenimiento/logs/backup_foodstore.log
+salida: 1
+archivos después: 11
