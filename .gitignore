@@ -17,3 +17,4 @@ node_modules/
 # TP6: los logs de mantenimiento SI se versionan (son evidencia)
 !mantenimiento/logs/*.log
 mantenimiento/backups/*.sha256
+mantenimiento/backups/*_globals.sql

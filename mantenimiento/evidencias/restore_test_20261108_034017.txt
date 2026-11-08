@@ -1,0 +1,33 @@
+=== Simulacro de restauración — 2026-11-08 03:40:17 ===
+Respaldo usado: foodstore_20261108_033819.dump (9428332 bytes)
+SHA256 verificado: d2878c44345da7bec9441bc0881e0d86e2a7224d31e23cb6c51243a756e4ad02
+Borrado de foodstore_restore_test autorizado por beluu (origen=interactivo) el 2026-11-08 03:40:34
+Destino confirmado por el motor: current_database() = foodstore_restore_test
+
+Validación 1 — huella restaurada vs respaldo (filas, total facturado y estructura):
+  categoria        restaurada=5              respaldo=5              OK
+  cliente          restaurada=20005          respaldo=20005          OK
+  producto         restaurada=50011          respaldo=50011          OK
+  pedido           restaurada=200005         respaldo=200005         OK
+  detalle_pedido   restaurada=499263         respaldo=499263         OK
+  usuario          restaurada=3              respaldo=3              OK
+  total_facturado  restaurada=629621805.75   respaldo=629621805.75   OK
+  tablas           restaurada=6              respaldo=6              OK
+  vistas           restaurada=5              respaldo=5              OK
+  restricciones    restaurada=18             respaldo=18             OK
+  indices          restaurada=13             respaldo=13             OK
+Validación 2 — indicadores de integridad (esperado 0):
+  precio_negativo            0      OK
+  stock_negativo             0      OK
+  cantidad_no_positiva       0      OK
+  precio_unitario_negativo   0      OK
+  detalle_sin_pedido         0      OK
+  detalle_sin_producto       0      OK
+  pedido_sin_cliente         0      OK
+  producto_sin_categoria     0      OK
+
+Tiempo createdb + pg_restore: 3.49 s
+RTO observado (createdb -> validaciones OK): 4.22 s
+Antigüedad del respaldo (RPO observado): 135 s (~2 min). Medida antes de createdb; no incluye la espera de autorizacion.
+Alcance: se restauran datos y estructura; NO roles ni permisos (--no-owner --no-privileges).
+RESULTADO: PASS

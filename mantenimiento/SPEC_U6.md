@@ -45,7 +45,7 @@
 ## Alcance de la restauración
 
 - **No recupera roles ni permisos**: usa `--no-owner --no-privileges`.
-- **Mejora propuesta**: usar `pg_dumpall --globals-only` para roles y aplicarlos por separado.
+- **Roles y permisos**: se respaldan aparte con `pg_dumpall --globals-only --no-role-passwords` (ver "Programación y retención").
 
 ## Objetivos de recuperación (laboratorio)
 
@@ -56,3 +56,59 @@
 ## Uso de OpenCode
 
 OpenCode puede generar la primera versión de los scripts a partir de este SPEC y de `AGENTS.md`. Cada comando se lee, se entiende y se prueba a mano antes de aceptarlo. Las correcciones se anotan en el informe.
+
+## Programación y retención (TPI Parcial II)
+
+**Objetivo:** que el respaldo corra solo todos los días, sin que nadie lo dispare a mano, y que no llene el disco. Cumple el objetivo 7 de la consigna (respaldo programado).
+
+### Programación
+
+- **Herramienta:** Programador de tareas de Windows. La tarea se llama `FoodStore_Backup_Diario`. La crea `programar_respaldo.ps1` y la borra `quitar_respaldo.ps1`.
+- **Frecuencia y hora:** diaria, 21:00 hora local. Coincide con el RPO previsto de 24 h.
+- **PC apagada a esa hora:** la tarea corre apenas se pueda (`StartWhenAvailable`), para que un día perdido no deje un hueco de más de 24 h.
+- **Cuenta:** el usuario actual, solo con la sesión iniciada. No se guarda ninguna contraseña en la tarea. La clave de PostgreSQL sigue en `pgpass.conf`.
+- **Comando:** `bash.exe` de Git for Windows ejecutando `backup_foodstore.sh` con ruta absoluta, porque el Programador no hereda el PATH de Git Bash. La tarea define `ORIGEN=programada`.
+- **Una sola instancia a la vez** (`MultipleInstances = IgnoreNew`): si un respaldo sigue corriendo, no se lanza otro encima.
+- **Por qué `.ps1`:** `schtasks` por sí solo no permite `StartWhenAvailable`. Con los cmdlets de PowerShell (`New-ScheduledTaskSettingsSet`, `Register-ScheduledTask`) sí.
+
+### Retención
+
+- Se conservan **7 días** (`RETENCION_DIAS`, por defecto 7).
+- Un **juego** es `.dump` + `.conteo` + `.sha256` + `_globals.sql` con el mismo sello de fecha. Se borra el juego completo, nunca archivos sueltos.
+- La limpieza corre **solo después de un PASS**. Si el respaldo de hoy falló, no se borra nada.
+- **Nunca deja menos de 3 juegos** (`RETENCION_MIN_JUEGOS`, por defecto 3), aunque sean viejos. Una racha de fallas no puede dejar la carpeta vacía.
+- Cada limpieza deja una línea `RETENCION` en `logs/backup_foodstore.log` con los juegos eliminados y los que quedan.
+- `BACKUP_DIR` se puede pisar con una variable de entorno para probar en otra carpeta sin tocar los respaldos reales.
+
+### Roles y permisos
+
+- Paso nuevo del script: `pg_dumpall --globals-only --no-role-passwords` guarda `foodstore_AAAAMMDD_HHMMSS_globals.sql`.
+- **Contiene:** `CREATE ROLE`, pertenencias entre roles, `ALTER ROLE … SET` y tablespaces. **No contiene datos de tablas.**
+- `--no-role-passwords` evita guardar los hashes de contraseña. Después de restaurar los roles, las contraseñas se asignan a mano.
+- Si este paso falla, el respaldo completo se registra como FAIL (un respaldo sin roles no alcanza para recuperar el sistema).
+- No se versiona: la carpeta `backups/` está ignorada por Git.
+- **Limitación:** el `_globals.sql` recupera los roles y sus atributos, no los permisos sobre las tablas. Esos permisos están dentro del `.dump`; `restore_test.sh` restaura con `--no-privileges`, así que no los recupera. Para recuperarlos hay que restaurar los roles primero y el dump sin esa opción.
+- **Restauración:** el `_globals.sql` es SQL plano: se aplica con `psql` conectado a la base `postgres`, nunca con `pg_restore`.
+
+### Fallas
+
+- Cualquier falla registra FAIL en el log, borra los archivos incompletos y termina con código distinto de 0. En el Programador queda como «Último resultado» distinto de 0.
+- Cómo se detecta: `tail -n 3 mantenimiento/logs/backup_foodstore.log` y el estado de la tarea. No hay aviso por correo (limitación declarada).
+
+### Corrección pendiente del TP6
+
+- La guarda de `maintenance.sql` usa `\quit`, que sale con código 0 aunque la base no sea la esperada. Debe terminar con código distinto de 0 para que una automatización detecte el error.
+
+### Criterios de aceptación (medibles)
+
+1. `schtasks /query /tn FoodStore_Backup_Diario /v /fo list` muestra la tarea diaria, a las 21:00 y en estado Listo.
+2. Al menos 2 líneas `PASS` con `origen=programada` en `logs/backup_foodstore.log`, y al menos una disparada por el horario real, no por `schtasks /run`.
+3. Cada PASS deja `.dump`, `.conteo`, `.sha256` y `_globals.sql`.
+4. Retención, probada con `BACKUP_DIR` de prueba: se borran los juegos de más de 7 días, nunca quedan menos de 3, y si el respaldo falla no se borra nada.
+5. `_globals.sql` no contiene hashes de contraseña: `grep -c "SCRAM-SHA-256"` da 0.
+6. `maintenance.sql` contra una base equivocada termina con código distinto de 0.
+7. Lo anterior sigue funcionando: `restore_test.sh` da PASS con huella 11/11 sobre el respaldo nuevo.
+
+### Riesgo declarado
+
+- Los respaldos viven en el mismo disco que la base. Si el disco falla se pierden los dos. Mejora fuera de alcance: copiar el juego a un disco externo o a la nube.

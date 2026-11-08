@@ -6,3 +6,6 @@
 2026-11-07 22:36:14 | PASS | dump=foodstore_20261107_222858.dump | rto_s=5.97 | edad_respaldo_s=435 | evidencia=restore_test_20261107_223501.txt
 2026-11-07 23:12:10 | AUTORIZADO | usuario=beluu | origen=interactivo | accion=dropdb foodstore_restore_test
 2026-11-07 23:12:15 | PASS | dump=foodstore_20261107_231151.dump | rto_s=4.21 | edad_respaldo_s=19 | evidencia=restore_test_20261107_231154.txt
+2026-11-08 03:39:34 | FAIL | dump=foodstore_20261108_033819.dump | motivo=borrado de foodstore_restore_test no autorizado | evidencia=restore_test_20261108_033858.txt
+2026-11-08 03:40:34 | AUTORIZADO | usuario=beluu | origen=interactivo | accion=dropdb foodstore_restore_test
+2026-11-08 03:40:39 | PASS | dump=foodstore_20261108_033819.dump | rto_s=4.22 | edad_respaldo_s=135 | evidencia=restore_test_20261108_034017.txt

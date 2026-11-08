@@ -3,6 +3,7 @@
 --      (tambien sobre foodstore_restore_test, recien restaurada y sin estadisticas)
 -- NO usa VACUUM FULL (bloquea la tabla con ACCESS EXCLUSIVE).
 -- VACUUM y ANALYZE solo se ejecutan si el diagnostico lo justifica.
+-- Sale con código 3 (ON_ERROR_STOP) si la base no es foodstore ni foodstore_restore_test
 
 -- psql: cortar en el primer error
 \set ON_ERROR_STOP on
@@ -11,7 +12,7 @@
 SELECT current_database() NOT IN ('foodstore', 'foodstore_restore_test') AS base_no_permitida \gset
 \if :base_no_permitida
   \echo 'ABORTADO: este script solo se ejecuta sobre foodstore o foodstore_restore_test'
-  \quit
+  DO $$ BEGIN RAISE EXCEPTION 'ABORTADO: base % no permitida (solo foodstore o foodstore_restore_test)', current_database(); END $$;
 \endif
 \echo 'Base:' :DBNAME
 

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>TPI Parcial II - Food Store: informe técnico</title>
+<style>
+@page { size: A4; margin: 11mm 13mm 13mm 13mm;
+  @bottom-left { content: "TPI Parcial II · Food Store"; font: 7pt 'Segoe UI', Arial, sans-serif; color: #94a3b8; }
+  @bottom-right { content: "Página " counter(page) " de " counter(pages); font: 7pt 'Segoe UI', Arial, sans-serif; color: #94a3b8; } }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 8.6pt; line-height: 1.36; color: #1f2937; }
+.cover { border-bottom: 3px solid #0f4c81; padding-bottom: 6px; margin-bottom: 8px; }
+.cover .inst { font-size: 0.78em; letter-spacing: .06em; text-transform: uppercase; color: #64748b; font-weight: 600; }
+.cover h1 { font-size: 1.9em; color: #0f4c81; font-weight: 800; line-height: 1.15; margin: 2px 0; }
+.cover .sub { color: #475569; font-size: 0.95em; }
+.meta-bar { background: #f1f5f9; border-radius: 6px; padding: 6px 10px; margin-bottom: 8px; font-size: 0.9em; }
+h2 { background: #0f4c81; color: #fff; padding: 5px 10px; border-radius: 6px; margin: 12px 0 7px; font-size: 1.12em; break-after: avoid; }
+h3 { font-size: 1.02em; font-weight: 700; color: #0f4c81; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 1px; margin: 9px 0 4px; break-after: avoid; }
+p { margin-bottom: 4px; text-align: justify; }
+code { font-family: Consolas, 'Courier New', monospace; font-size: 0.9em; background: #f1f5f9; padding: 0 2px; border-radius: 2px; }
+table { width: 100%; border-collapse: collapse; margin: 4px 0 7px; font-size: 0.86em; }
+thead { display: table-header-group; }
+tr { break-inside: avoid; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: 3px 5px; text-align: left; vertical-align: top; }
+th { background: #e8eef5; color: #0f172a; font-weight: 700; border-bottom: 1.5px solid #94a3b8; }
+ul { margin: 2px 0 6px 16px; }
+li { margin-bottom: 2px; }
+.hueco { border: 2px dashed #dc2626; background: #fef2f2; border-radius: 6px; padding: 8px 10px; margin: 5px 0 8px; color: #7f1d1d; font-weight: 700; break-inside: avoid; }
+a { color: #0f4c81; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="inst">Universidad Tecnológica Nacional · Tecnicatura Universitaria en Programación</div>
+  <h1>Trabajo Práctico Integrador — Parcial II</h1>
+  <div class="sub">Food Store: capa de datos completa (PostgreSQL, MongoDB y SQLite) · Base de Datos II</div>
+</header>
+
+<div class="meta-bar">
+  <div><b>Materia:</b> Base de Datos II · <b>Profesor:</b> Neira · <b>Grupo:</b> 4</div>
+  <div><b>Integrantes:</b> Belén Calvo, Elías Tello, Hernán González, Bruno Fiouchetta</div>
+  <div><b>Fecha:</b> noviembre de 2026</div>
+  <div><b>Repositorios:</b> <a href="https://github.com/belcalvo93/base-datos-2">base-datos-2</a> y <a href="https://github.com/belcalvo93/BaseDatos2-MongoDB">BaseDatos2-MongoDB</a>, ambos con la etiqueta <code>tpi-parcial2</code></div>
+</div>
+
+<p>Organización de este informe según la consigna: los puntos 1 (qué se implementó), 3 (resultados) y 4 (decisiones de diseño) se tratan por unidad, dentro de la sección 1; el punto 2 (cómo se probó) va en la sección 2; y el punto 5 (herramientas de IA) va en la sección 3.</p>
+
+<h2>1. Qué se implementó, resultados y decisiones por unidad</h2>
+
+<h3>Unidad 4 — Normalización y redundancia</h3>
+<div class="hueco">[COMPLETAR — Hernán — ~¾ pág. — Qué se implementó: refactor a FNBC validado contra dependencias funcionales, migración sin pérdida en transacciones reversibles especificada en Kiro y desnormalización controlada documentada. Cómo se probó y resultado: descripción de las pruebas y su salida. Decisión de diseño: qué refactorizaciones y desnormalizaciones se aceptaron y por qué.]</div>
+
+<h3>Unidad 5 — Administración y seguridad</h3>
+<div class="hueco">[COMPLETAR — Hernán — ~¾ pág. — Qué se implementó: usuarios, roles y permisos con mínimo privilegio, auditoría activada, simulacro de acceso indebido reconstruido del log con contención y auditoría de permisos asistida por IA con decisión humana documentada. Cómo se probó y resultado: descripción de las pruebas y su salida. Decisión de diseño: esquema de roles y permisos adoptado y qué se descartó.]</div>
+
+<h3>Unidad 6 — Mantenimiento y simulacro de desastre</h3>
+<div class="hueco">[COMPLETAR — Elías — ~1 pág. — Qué se implementó: plan de mantenimiento completo con respaldo programado, retención, restauración probada y simulacro de desastre contra reloj con informe post-incidente. Cómo se probó y resultado: descripción del simulacro, de la restauración y de las tareas rutinarias, con sus resultados. Decisión de diseño: decisiones de respaldo, retención y restauración adoptadas.]</div>
+
+<h3>Unidad 7 — NoSQL y elección de tecnología</h3>
+<div class="hueco">[COMPLETAR — Belén — ~½ pág. — Qué se implementó: modelado documental de pedidos en MongoDB con consultas verificadas y comparación documental vs. relacional. Cómo se probó y resultado: descripción de la migración, de las consultas equivalentes y de su verificación. Decisión de diseño: justificación de la elección documental vs. relacional y qué se descartó.]</div>
+
+<h3>Unidad 8 — Móvil e integración</h3>
+<div class="hueco">[COMPLETAR — Belén — ~½ pág. — Qué se implementó: SQLite especificado en Kiro y generado con OpenCode, sincronización simulada con casos de conflicto probados y code review final asistido por IA con decisión humana por hallazgo. Cómo se probó y resultado: descripción de los casos de sincronización y de sus salidas. Decisión de diseño: decisiones de modelado en SQLite y de sincronización adoptadas.]</div>
+
+<h2>2. Cómo se probó (transversal)</h2>
+<div class="hueco">[COMPLETAR — Elías — ~½ pág. — Metodología de prueba de todo el TPI: scripts de verificación por unidad, salidas en evidencias/, planes de ejecución, huella de restauración, casos de sincronización y cómo se reproduce cada prueba desde los README de cada repositorio.]</div>
+
+<h2>3. Herramientas de IA y code review</h2>
+<div class="hueco">[COMPLETAR — Bruno — ~1 pág. — Herramienta de IA usada en cada unidad (Kiro, OpenCode o asistente de chat), con qué prompts o specs se trabajó, qué se aceptó, qué se corrigió y qué se descartó, con un ejemplo concreto por unidad y su decisión humana.]</div>
+
+<h2>Índice de objetivos → evidencia</h2>
+<table>
+  <thead><tr><th>Objetivo</th><th>Evidencia principal</th></tr></thead>
+  <tbody>
+    <tr><td>1. U4 — Refactor a FNBC validada contra dependencias funcionales</td><td>R: <code>food-store/specs/spec_fnbc_control_lote.md</code>, R: <code>food-store/tp_fnbc_control_lote.sql</code></td></tr>
+    <tr><td>2. U4 — Migración sin pérdida, en transacciones reversibles, especificada en Kiro, con plan de reversión</td><td>R: <code>food-store/specs/spec_fnbc_descomposicion.md</code>, R: <code>food-store/tp_fnbc_control_lote.sql</code></td></tr>
+    <tr><td>3. U4 — Desnormalización controlada documentada</td><td>R: <code>food-store/specs/spec_top_categorias_desnormalizacion.md</code>, R: <code>food-store/tp_desnormalizacion_top_categorias.sql</code></td></tr>
+    <tr><td>4. U5 — Usuarios, roles y permisos (mínimo privilegio)</td><td>R: <code>sql/roles.sql</code>, R: <code>sql/verificacion_roles.sql</code></td></tr>
+    <tr><td>5. U5 — Auditoría activada y simulacro de acceso indebido reconstruido del log, con contención</td><td>R: <code>sql/auditoria_test.sql</code>, R: <code>sql/simulacro_incidente.sql</code></td></tr>
+    <tr><td>6. U5 — Auditoría de permisos asistida por IA con decisión humana documentada</td><td>R: <code>docs/auditoria_roles_ia.md</code>, R: <code>docs/informe_auditoria.md</code></td></tr>
+    <tr><td>7. U6 — Plan de mantenimiento completo (respaldo programado, restauración probada, tareas rutinarias)</td><td>R: <code>mantenimiento/SPEC_U6.md</code>, R: <code>mantenimiento/backup_foodstore.sh</code></td></tr>
+    <tr><td>8. U6 — Simulacro de desastre contra reloj con informe post-incidente</td><td>R: <code>mantenimiento/restore_test.sh</code>, R: <code>mantenimiento/evidencias/restore_test_20261108_034017.txt</code></td></tr>
+    <tr><td>9. U7 — Modelado documental con consultas verificadas</td><td>M: <code>modelo_documental.md</code>, M: <code>consultas_mongodb.js</code></td></tr>
+    <tr><td>10. U7 — Comparación documental vs relacional con justificación</td><td>M: <code>consigna5_tabla_comparativa.md</code>, M: <code>consigna6_ia_contraste.md</code></td></tr>
+    <tr><td>11. U8 — SQLite especificado en Kiro y generado con OpenCode</td><td>M: <code>.kiro/specs/tp8-tablet/requirements.md</code>, M: <code>food-store/movil/schema_sqlite.sql</code></td></tr>
+    <tr><td>12. U8 — Sincronización simulada con casos de conflicto probados</td><td>M: <code>food-store/movil/semaforo.sql</code>, M: <code>food-store/movil/casos_sqlite.sql</code></td></tr>
+    <tr><td>13. U8 — Code review final asistido por IA de todos los scripts, con decisión humana por hallazgo</td><td>M: <code>food-store/docs/3c_code_review_ia.md</code>, R: <code>mantenimiento/revision_opencode.md</code></td></tr>
+    <tr><td>14. Capa de datos completa lista para la defensa</td><td>R: <code>README.md</code>, R: <code>docs/tpi_parcial2/matriz_objetivos.md</code></td></tr>
+  </tbody>
+</table>
+
+</body>
+</html>

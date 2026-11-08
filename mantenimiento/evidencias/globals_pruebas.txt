@@ -1,0 +1,51 @@
+=== Prueba A: corrida normal (esperado: PASS, salida 0, globals con roles y sin hashes)
+PASS: foodstore_20261108_033538.dump (9428332 bytes, 54 objetos en el TOC)
+SHA256: dea3d0303bf74c142d322c9834a7939c8c55ab6bc3f22046d330feef2f010f7e
+Huella de referencia:
+  categoria 5
+  cliente 20005
+  producto 50011
+  pedido 200005
+  detalle_pedido 499263
+  usuario 3
+  total_facturado 629621805.75
+  tablas 6
+  vistas 5
+  restricciones 18
+  indices 13
+salida: 0
+foodstore_20261108_033538.conteo
+foodstore_20261108_033538.dump
+foodstore_20261108_033538.sha256
+foodstore_20261108_033538_globals.sql
+roles en el globals: 9
+hashes de contraseña en el globals: 0
+foodstore_20261108_033538.dump: OK
+2026-11-08 03:35:41 | PASS | base=foodstore | origen=prueba | archivo=foodstore_20261108_033538.dump | bytes=9428332 | sha256=dea3d0303bf74c142d322c9834a7939c8c55ab6bc3f22046d330feef2f010f7e | objetos_toc=54 | conteo=foodstore_20261108_033538.conteo | globals=foodstore_20261108_033538_globals.sql | segundos=2
+.gitignore:20:mantenimiento/backups/*_globals.sql	mantenimiento/backups/foodstore_20261108_210010_globals.sql
+
+=== Prueba B: pg_dumpall falla (esperado: FAIL, salida 1, carpeta vacía)
+FAIL en el paso 'pg_dumpall' (codigo 1). No queda respaldo. Ver /c/Users/beluu/Desktop/base-datos-2/mantenimiento/logs/backup_foodstore.log
+salida: 1
+archivos en la carpeta: 0
+
+=== Prueba C: el globals trae un hash (esperado: FAIL globals_con_hash, carpeta vacía)
+FAIL en el paso 'globals_con_hash' (codigo 1). No queda respaldo. Ver /c/Users/beluu/Desktop/base-datos-2/mantenimiento/logs/backup_foodstore.log
+salida: 1
+archivos en la carpeta: 0
+
+=== Prueba D: el globals sale vacío (esperado: FAIL globals_vacio, carpeta vacía)
+FAIL en el paso 'globals_vacio' (codigo 1). No queda respaldo. Ver /c/Users/beluu/Desktop/base-datos-2/mantenimiento/logs/backup_foodstore.log
+salida: 1
+archivos en la carpeta: 0
+
+=== Prueba E: el globals no tiene roles (esperado: FAIL globals_sin_roles, carpeta vacía)
+FAIL en el paso 'globals_sin_roles' (codigo 1). No queda respaldo. Ver /c/Users/beluu/Desktop/base-datos-2/mantenimiento/logs/backup_foodstore.log
+salida: 1
+archivos en la carpeta: 0
+
+=== Líneas FAIL que dejaron B a E en el log
+2026-11-08 03:35:45 | FAIL | base=foodstore | origen=prueba | archivo=foodstore_20261108_033542.dump | paso=pg_dumpall | codigo=1 | detalle=
+2026-11-08 03:35:48 | FAIL | base=foodstore | origen=prueba | archivo=foodstore_20261108_033545.dump | paso=globals_con_hash | codigo=1 | detalle=
+2026-11-08 03:35:50 | FAIL | base=foodstore | origen=prueba | archivo=foodstore_20261108_033548.dump | paso=globals_vacio | codigo=1 | detalle=
+2026-11-08 03:35:53 | FAIL | base=foodstore | origen=prueba | archivo=foodstore_20261108_033551.dump | paso=globals_sin_roles | codigo=1 | detalle=
