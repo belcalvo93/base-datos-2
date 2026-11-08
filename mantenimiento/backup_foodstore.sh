@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # backup_foodstore.sh — Respaldo lógico de foodstore en formato custom (TP Unidad 6)
-# Genera dos archivos con el mismo sello de fecha: <base>_AAAAMMDD_HHMMSS.dump (respaldo)
-# y <base>_AAAAMMDD_HHMMSS.conteo (filas por tabla, referencia para validar la restauracion).
+# Genera, con el mismo sello de fecha <base>_AAAAMMDD_HHMMSS:
+#   .dump    respaldo (pg_dump -Fc)
+#   .conteo  huella de la base antes del respaldo (conteo_referencia.sql): referencia de la restauracion
+#   .sha256  hash del .dump, para comprobar que el archivo no cambio antes de restaurarlo
+# Cada ejecución deja UNA línea en logs/backup_foodstore.log con PASS o FAIL, tamaño y SHA256.
 # La contraseña NO va acá: se toma de %APPDATA%\postgresql\pgpass.conf
 # Uso: ./backup_foodstore.sh   (desde cualquier carpeta)
 
@@ -12,6 +15,7 @@ PGHOST="${PGHOST:-localhost}"
 PGPORT="${PGPORT:-5432}"
 PGUSER="${PGUSER:-postgres}"
 DB_NAME="${DB_NAME:-foodstore}"
+CONN=(-h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -w)
 
 # Carpetas relativas a la ubicación del script
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -21,48 +25,47 @@ LOG="$LOG_DIR/backup_foodstore.log"
 mkdir -p "$BACKUP_DIR" "$LOG_DIR"
 
 FECHA="$(date +%Y%m%d_%H%M%S)"
-ARCHIVO="$BACKUP_DIR/${DB_NAME}_${FECHA}.dump"
-CONTEO="$BACKUP_DIR/${DB_NAME}_${FECHA}.conteo"
-ERR_TMP="$LOG_DIR/.pg_dump_error.tmp"
+BASE="$BACKUP_DIR/${DB_NAME}_${FECHA}"
+ARCHIVO="$BASE.dump"
+CONTEO="$BASE.conteo"
+HASH="$BASE.sha256"
+ERR_TMP="$LOG_DIR/.backup_error_${FECHA}.tmp"
 
-SQL_CONTEO="SELECT 'categoria' AS tabla, COUNT(*) AS filas FROM categoria
-UNION ALL SELECT 'cliente', COUNT(*) FROM cliente
-UNION ALL SELECT 'producto', COUNT(*) FROM producto
-UNION ALL SELECT 'pedido', COUNT(*) FROM pedido
-UNION ALL SELECT 'detalle_pedido', COUNT(*) FROM detalle_pedido;"
-
-# Paso 1: conteo de filas por tabla ANTES del respaldo (SPEC U6: es la referencia
-# para validar la restauracion). -X sin .psqlrc | -A -t -F' ' formato "tabla filas"
-# | -w nunca pide contrasena | tr -d '\r' quita el CR de Windows para poder comparar.
-if psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$DB_NAME" -X -A -t -F' ' -w -c "$SQL_CONTEO" 2> "$ERR_TMP" \
-        | tr -d '\r' > "$CONTEO" && [ -s "$CONTEO" ]; then
-    rm -f "$ERR_TMP"
-else
-    CODIGO=$?
-    MENSAJE="$(tr '\n' ' ' < "$ERR_TMP" 2>/dev/null)"
-    rm -f "$CONTEO" "$ERR_TMP"
-    echo "$(date '+%Y-%m-%d %H:%M:%S') | ERROR | base=$DB_NAME | paso=conteo | codigo=$CODIGO | detalle=$MENSAJE" >> "$LOG"
-    echo "ERROR: no se pudo obtener el conteo de filas (codigo $CODIGO). No se genero respaldo. Ver $LOG" >&2
+# Registra FAIL, borra lo generado a medias y sale con 1
+fallar() {
+    local paso="$1" codigo="$2"
+    local detalle; detalle="$(tr '\n\r' '  ' < "$ERR_TMP" 2>/dev/null)"
+    rm -f "$ARCHIVO" "$CONTEO" "$HASH" "$ERR_TMP"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') | FAIL | base=$DB_NAME | archivo=$(basename "$ARCHIVO") | paso=$paso | codigo=$codigo | detalle=$detalle" >> "$LOG"
+    echo "FAIL en el paso '$paso' (codigo $codigo). No queda respaldo. Ver $LOG" >&2
     exit 1
-fi
+}
 
+# Paso 1: huella de la base ANTES del respaldo (referencia para validar la restauración).
+# -A -t -F' ' = formato "clave valor" | tr -d '\r' quita el CR de Windows.
+psql "${CONN[@]}" -d "$DB_NAME" -X -A -t -F' ' -v ON_ERROR_STOP=1 -f "$DIR/conteo_referencia.sql" 2> "$ERR_TMP" \
+    | tr -d '\r' > "$CONTEO" || fallar conteo $?
+[ -s "$CONTEO" ] || fallar conteo_vacio 1
+
+# Paso 2: respaldo en formato custom (-Fc, para pg_restore)
 INICIO=$(date +%s)
+pg_dump "${CONN[@]}" -d "$DB_NAME" -Fc -f "$ARCHIVO" 2> "$ERR_TMP" || fallar pg_dump $?
+FIN=$(date +%s)
 
-# Paso 2: respaldo en formato custom (-Fc para pg_restore) | -w = nunca pedir contraseña
-# (falla si no está en pgpass, en lugar de quedarse esperando en una tarea programada)
-if pg_dump -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$DB_NAME" -Fc -w -f "$ARCHIVO" 2> "$ERR_TMP"; then
-    FIN=$(date +%s)
-    TAMANO=$(stat -c %s "$ARCHIVO")
-    echo "$(date '+%Y-%m-%d %H:%M:%S') | OK | base=$DB_NAME | archivo=$(basename "$ARCHIVO") | bytes=$TAMANO | conteo=$(basename "$CONTEO") | segundos=$((FIN - INICIO))" >> "$LOG"
-    rm -f "$ERR_TMP"
-    echo "Respaldo OK: $ARCHIVO ($TAMANO bytes)"
-    echo "Conteo de referencia: $CONTEO"
-    exit 0
-else
-    CODIGO=$?
-    MENSAJE="$(tr '\n' ' ' < "$ERR_TMP")"
-    rm -f "$ARCHIVO" "$CONTEO" "$ERR_TMP"   # no dejar un .dump ni un .conteo sin respaldo
-    echo "$(date '+%Y-%m-%d %H:%M:%S') | ERROR | base=$DB_NAME | codigo=$CODIGO | detalle=$MENSAJE" >> "$LOG"
-    echo "ERROR: pg_dump falló (código $CODIGO). Ver $LOG" >&2
-    exit 1
-fi
+# Paso 3: verificar el archivo apenas se genera (no esperar a un incidente)
+[ -s "$ARCHIVO" ] || fallar dump_vacio 1
+TOC=$(pg_restore -l "$ARCHIVO" 2> "$ERR_TMP" | grep -c '^[0-9]') || fallar pg_restore_l $?
+[ "$TOC" -gt 0 ] || fallar pg_restore_l_vacio 1
+
+# Paso 4: tamaño y SHA256 del .dump
+TAMANO=$(stat -c %s "$ARCHIVO")
+SHA=$(sha256sum "$ARCHIVO" | cut -d' ' -f1)
+( cd "$BACKUP_DIR" && sha256sum "$(basename "$ARCHIVO")" ) > "$HASH"
+
+rm -f "$ERR_TMP"
+echo "$(date '+%Y-%m-%d %H:%M:%S') | PASS | base=$DB_NAME | archivo=$(basename "$ARCHIVO") | bytes=$TAMANO | sha256=$SHA | objetos_toc=$TOC | conteo=$(basename "$CONTEO") | segundos=$((FIN - INICIO))" >> "$LOG"
+echo "PASS: $(basename "$ARCHIVO") ($TAMANO bytes, $TOC objetos en el TOC)"
+echo "SHA256: $SHA"
+echo "Huella de referencia:"
+sed 's/^/  /' "$CONTEO"
+exit 0

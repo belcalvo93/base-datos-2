@@ -45,6 +45,18 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 │   ├── escenario2_lectura_fantasma_sesionB.sql
 │   ├── escenario3_espera_bloqueo_sesionA.sql
 │   └── escenario3_espera_bloqueo_sesionB.sql
+├── mantenimiento/               (TP6 — Unidad 6)
+│   ├── SPEC_U6.md
+│   ├── backup_foodstore.sh
+│   ├── conteo_referencia.sql
+│   ├── restore_test.sh
+│   ├── health_check.sql
+│   ├── maintenance.sql
+│   ├── informe_u6.pdf
+│   ├── README.md
+│   ├── logs/
+│   ├── evidencias/
+│   └── backups/                 (no versionado)
 ├── docs/
 │   ├── Diagrama ER.png
 │   ├── diagrama_er.mmd
@@ -103,6 +115,7 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 | `food-store/backups/` | Respaldos `.dump` de la base de trabajo |
 | `concurrencia/README.md` | Orquestación de los escenarios de concurrencia (TPI, objetivo 8) |
 | `concurrencia/escenario*.sql` | Escenarios reproducibles: atomicidad (0), lectura no repetible (1), fantasma (2), espera por bloqueo (3) |
+| `mantenimiento/` | TP6: respaldo verificado (SHA256, PASS/FAIL), simulacro de restauración con autorización escrita, chequeo de salud y mantenimiento justificado. Detalle en `mantenimiento/README.md` |
 | `docs/Diagrama ER.png` | Diagrama entidad-relación |
 | `docs/diagrama_er.mmd` | Diagrama ER en Mermaid (fuente editable del PNG) |
 | `docs/normalizacion_er_relacional.md` | Pasaje ER→relacional, dependencias funcionales y justificación de 3FN/FNBC de cada tabla |
@@ -167,6 +180,7 @@ Diagrama ER completo en `docs/Diagrama ER.png`; fuente editable en `docs/diagram
 | Unidad 1 | Semana 2 | `protocolo_seguridad.md`, `docs/spec_restricciones.md`, `food-store/restricciones.sql`, `food-store/pruebas_restricciones.sql`, `docs/informe_concurrencia.md`, `docs/ejercicio_lectura_critica.md`, tres DUIA |
 | Unidad 2 | Sem. 3–4 | **Parte 1 (carga masiva):** `food-store/carga_masiva.sql`, `docs/spec_carga_masiva.md`, `food-store/verificacion_carga_masiva.sql`, `food-store/carga_masiva_bloque3_B.sql` (variante descartada), `docs/duia/duia_parte4.md`. **Parte 2 (índices):** `docs/informe_parte2_indices.md`, `docs/planes_parte2_antes.txt`, `docs/planes_parte2_despues.txt`. **Parte 3 (lectura crítica):** `docs/explicacion_ia_plan_c2.md`, `docs/informe_parte3_lectura_critica.md`. **Parte 4 (consultas bajo spec):** `docs/spec_consultas_parte4.md`, `docs/informe_parte4_consultas.md`. **Informe TP4:** `docs/informe_tp4_semana4.md`. |
 | Unidad 3 | TP5 | **Parte A:** `food-store/indices.sql`, `food-store/queries.sql`, `food-store/specs/spec_indice_*.md`, `food-store/medicion_planes.sql`, `food-store/medicion_escritura.sql`, `food-store/planes_tp5_parteA.txt`, informe en `food-store/informe_mediciones.md`. **Parte B:** `food-store/specs/spec_vistas.md`, `food-store/specs/spec_usuario.md`, `food-store/views.sql`. **Parte C:** `food-store/specs/spec_vista_materializada_parteC.md`, `food-store/materializadas.sql`. **DUIA:** `food-store/duia.md` (registro detallado de las Partes A y B en `docs/duia/duia_parte5.md`). |
+| Unidad 6 | TP6 | `mantenimiento/SPEC_U6.md`, `mantenimiento/backup_foodstore.sh`, `mantenimiento/conteo_referencia.sql`, `mantenimiento/restore_test.sh`, `mantenimiento/health_check.sql`, `mantenimiento/maintenance.sql`, evidencias en `mantenimiento/evidencias/` y `mantenimiento/logs/`, revisiones en `mantenimiento/revision_opencode*.md` y `mantenimiento/decisiones_revision.md`, informe `mantenimiento/informe_u6.pdf` |
 
 ---
 
@@ -208,6 +222,13 @@ psql -U postgres -d bd2_trabajo -f food-store/indices.sql
 Las decisiones, los planes y las cifras están en `food-store/informe_mediciones.md` (la sección 9 detalla el método y cómo usar `pgbench`).
 
 Para las Partes B y C, con el mismo protocolo (`BEGIN; … ROLLBACK;` primero): `food-store/views.sql` crea las vistas y `food-store/materializadas.sql` crea la vista materializada. Las consultas `EXCEPT` de verificación están en `food-store/specs/spec_vistas.md` y al pie de `materializadas.sql`. Los pasos para levantar la base desde cero están en `food-store/README.md`.
+
+---
+
+## TP6 — Mantenimiento, respaldo y recuperación
+
+Todo está en `mantenimiento/`: https://github.com/belcalvo93/base-datos-2/tree/main/mantenimiento
+Respaldo `pg_dump -Fc` verificado con `pg_restore -l` y SHA256; simulacro de restauración en `foodstore_restore_test` (nunca sobre `foodstore`) con autorización escrita, huella de 11 claves y 8 indicadores de integridad; mantenimiento que solo actúa si el diagnóstico lo justifica. Los pasos para reproducirlo están en `mantenimiento/README.md`.
 
 ---
 
