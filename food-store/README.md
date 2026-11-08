@@ -127,7 +127,10 @@ pg_dump -U postgres -Fc -f food-store/backups/bd2_tp5u5_pre.dump bd2_tp5u5
 
 # Unidad 4 — Parte 1: descomposición a FNBC y ciclo de reversión sin pérdida (EXCEPT = 0 filas)
 psql -U postgres -d bd2_tp4u4 -X -v ON_ERROR_STOP=1 -f food-store/tp_fnbc_control_lote.sql
+# Reversión en modo prueba no destructivo (ROLLBACK por defecto):
 psql -U postgres -d bd2_tp4u4 -X -v ON_ERROR_STOP=1 -f food-store/tp_fnbc_reversion.sql
+# Para confirmar la reversión en bd2_tp4u4 sin editar el script (COMMIT explícito via variable):
+# psql -U postgres -d bd2_tp4u4 -X -v ON_ERROR_STOP=1 -v commit=1 -f food-store/tp_fnbc_reversion.sql
 
 # Unidad 4 — Parte 2: desnormalización controlada, auditoría y reversión
 psql -U postgres -d bd2_tp4u4 -X -v ON_ERROR_STOP=1 -f food-store/tp_desnormalizacion_top_categorias.sql
@@ -157,7 +160,7 @@ psql -U postgres -d bd2_tp5u5 -X -f sql/verificacion_roles.sql
 | `views.sql` | Las cinco vistas de la Parte B, incluida `vista_usuario_reportes` |
 | `materializadas.sql` | La vista materializada de la Parte C y su índice único para `REFRESH CONCURRENTLY` |
 | `tp_fnbc_control_lote.sql` | Unidad 4, Parte 1: análisis de DFs, anomalías y descomposición a FNBC con `EXCEPT` |
-| `tp_fnbc_reversion.sql` | Unidad 4, Parte 1 (TPI Obj. 2): ciclo `migrar → verificar → revertir → verificar` sin pérdida hacia `control_lote_almacen` |
+| `tp_fnbc_reversion.sql` | Unidad 4, Parte 1 (TPI Obj. 2): ciclo `migrar → verificar → revertir → verificar` sin pérdida hacia `control_lote_almacen` (soporta `-v commit=1` sin editar archivo) |
 | `tp_fnbc_reversion_salida.txt` | Salida verificada de `tp_fnbc_reversion.sql` (corridas con `ROLLBACK` y `COMMIT` en `bd2_tp4u4`) |
 | `tp_desnormalizacion_top_categorias.sql` | Unidad 4, Parte 2: tabla resumen mantenida por trigger, pruebas y auditoría |
 | `tp_desnormalizacion_reversion.sql` | Unidad 4, Parte 2: reversión de la desnormalización |

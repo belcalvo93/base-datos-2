@@ -24,10 +24,10 @@
 --      conserva sus 4 restricciones (PK + 3 FK) y que el EXCEPT en ambas direcciones
 --      contra la foto previa a la reversión devuelve 0 filas.
 --
--- Primera corrida con ROLLBACK (como queda en el repositorio).
--- Para confirmar sobre la copia bd2_tp4u4, cambiar el ROLLBACK final por COMMIT.
--- Ejecución (Git Bash):
+-- Ejecución por omisión con ROLLBACK (pruebas no destructivas).
+-- Para confirmar sobre la copia bd2_tp4u4 sin editar el script, pasar -v commit=1:
 --   psql -U postgres -d bd2_tp4u4 -X -v ON_ERROR_STOP=1 -f food-store/tp_fnbc_reversion.sql
+--   psql -U postgres -d bd2_tp4u4 -X -v ON_ERROR_STOP=1 -v commit=1 -f food-store/tp_fnbc_reversion.sql
 -- ============================================================
 
 \set ON_ERROR_STOP on
@@ -223,5 +223,13 @@ EXCEPT
 SELECT lote_id, deposito_id, responsable_control_id
 FROM control_lote_almacen;
 
--- Primera corrida: ROLLBACK. Para confirmar en la copia bd2_tp4u4, cambiar por COMMIT.
-ROLLBACK;
+-- Cierre de transacción: por omisión ROLLBACK para pruebas no destructivas.
+-- Para confirmar la reversión en la base copia bd2_tp4u4 sin editar el script:
+-- psql -U postgres -d bd2_tp4u4 -X -v ON_ERROR_STOP=1 -v commit=1 -f food-store/tp_fnbc_reversion.sql
+\if :{?commit}
+    \echo '=== Cierre: COMMIT ejecutado (variable commit=1 detectada) ==='
+    COMMIT;
+\else
+    \echo '=== Cierre: ROLLBACK ejecutado por defecto (pasar -v commit=1 para confirmar) ==='
+    ROLLBACK;
+\endif

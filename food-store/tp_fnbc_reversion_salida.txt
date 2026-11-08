@@ -1,5 +1,5 @@
 =====================================================================
-CORRIDA 1: Prueba en transaccion reversible (BEGIN ... ROLLBACK)
+CORRIDA 1: Prueba en transaccion reversible (BEGIN ... ROLLBACK por defecto)
 Comando: psql -U postgres -d bd2_tp4u4 -X -v ON_ERROR_STOP=1 -f food-store/tp_fnbc_reversion.sql
 =====================================================================
 DO
@@ -13,9 +13,9 @@ BEGIN
 CREATE TABLE
 CREATE TABLE
 CREATE TABLE
-INSERT 0 3
-INSERT 0 2
-INSERT 0 2
+INSERT 0 0
+INSERT 0 0
+INSERT 0 0
 TRUNCATE TABLE
 INSERT 0 3
 DROP VIEW
@@ -94,10 +94,12 @@ DROP TABLE
 ---------+-------------+------------------------
 (0 filas)
 
+=== Cierre: ROLLBACK ejecutado por defecto (pasar -v commit=1 para confirmar) ===
 ROLLBACK
 
 =====================================================================
-CORRIDA 2: Confirmacion sobre la copia bd2_tp4u4 (BEGIN ... COMMIT)
+CORRIDA 2: Confirmacion sobre la copia bd2_tp4u4 (BEGIN ... COMMIT via -v commit=1)
+Comando: psql -U postgres -d bd2_tp4u4 -X -v ON_ERROR_STOP=1 -v commit=1 -f food-store/tp_fnbc_reversion.sql
 =====================================================================
 DO
  current_database 
@@ -110,9 +112,9 @@ BEGIN
 CREATE TABLE
 CREATE TABLE
 CREATE TABLE
-INSERT 0 3
-INSERT 0 2
-INSERT 0 2
+INSERT 0 0
+INSERT 0 0
+INSERT 0 0
 TRUNCATE TABLE
 INSERT 0 3
 DROP VIEW
@@ -191,4 +193,5 @@ DROP TABLE
 ---------+-------------+------------------------
 (0 filas)
 
+=== Cierre: COMMIT ejecutado (variable commit=1 detectada) ===
 COMMIT
