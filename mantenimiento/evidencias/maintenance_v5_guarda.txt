@@ -1,0 +1,81 @@
+=== Prueba 1: base no permitida (esperado: ERROR ABORTADO y salida 3)
+ABORTADO: este script solo se ejecuta sobre foodstore o foodstore_restore_test
+psql:mantenimiento/maintenance.sql:15: ERROR:  ABORTADO: base postgres no permitida (solo foodstore o foodstore_restore_test)
+CONTEXTO:  función PL/pgSQL inline_code_block en la línea 1 en RAISE
+salida: 3
+
+=== Prueba 2: base permitida foodstore_restore_test (esperado: corre completo y salida 0)
+Base: foodstore_restore_test
+=== 1. Configuracion de autovacuum ===
+              name               | setting | unit 
+---------------------------------+---------+------
+ autovacuum                      | on      | 
+ autovacuum_analyze_scale_factor | 0.1     | 
+ autovacuum_analyze_threshold    | 50      | 
+ autovacuum_naptime              | 60      | s
+ autovacuum_vacuum_scale_factor  | 0.2     | 
+ autovacuum_vacuum_threshold     | 50      | 
+(6 filas)
+
+=== 2. Estado ANTES: tuplas, cambios desde el ultimo analyze y fechas ===
+     tabla      | filas_estimadas | n_live_tup | n_dead_tup | n_mod_since_analyze | last_vacuum |        last_autovacuum        | last_analyze |       last_autoanalyze        
+----------------+-----------------+------------+------------+---------------------+-------------+-------------------------------+--------------+-------------------------------
+ detalle_pedido |          499263 |     499263 |          0 |                   0 |             | 2026-11-08 03:40:44.19386-03  |              | 2026-11-08 03:40:44.66591-03
+ pedido         |          200005 |     200005 |          0 |                   0 |             | 2026-11-08 03:40:44.919372-03 |              | 2026-11-08 03:40:45.066847-03
+ producto       |           50011 |      50011 |          0 |                   0 |             | 2026-11-08 03:40:45.171044-03 |              | 2026-11-08 03:40:45.412795-03
+ cliente        |           20005 |      20005 |          0 |                   0 |             | 2026-11-08 03:40:45.473079-03 |              | 2026-11-08 03:40:45.778462-03
+ categoria      |               5 |          5 |          0 |                   5 |             |                               |              | 
+ usuario        |               3 |          3 |          0 |                   3 |             |                               |              | 
+(6 filas)
+
+=== 3. Diagnostico: estado de estadisticas por tabla ===
+     tabla      | filas_estimadas | n_mod_since_analyze |        ultimo_analyze         | umbral_analyze |      estado      
+----------------+-----------------+---------------------+-------------------------------+----------------+------------------
+ detalle_pedido |          499263 |                   0 | 2026-11-08 03:40:44.66591-03  |        49976.3 | OK
+ pedido         |          200005 |                   0 | 2026-11-08 03:40:45.066847-03 |        20050.5 | OK
+ producto       |           50011 |                   0 | 2026-11-08 03:40:45.412795-03 |         5051.1 | OK
+ cliente        |           20005 |                   0 | 2026-11-08 03:40:45.778462-03 |         2050.5 | OK
+ categoria      |               5 |                   5 |                               |           50.5 | SIN ESTADISTICAS
+ usuario        |               3 |                   3 |                               |           50.3 | SIN ESTADISTICAS
+(6 filas)
+
+Decision: ANALYZE justificado (tablas pendientes: 2 de 6 )
+Motivo: alguna tabla esta SIN ESTADISTICAS o DESACTUALIZADA (ver seccion 3).
+ANALYZE solo toma muestras: no bloquea lecturas ni escrituras.
+--- Accion: ANALYZE VERBOSE solo de las tablas pendientes ---
+psql:mantenimiento/maintenance.sql:93: INFO:  analizando «public.categoria»
+psql:mantenimiento/maintenance.sql:93: INFO:  «categoria»: se procesaron 1 de 1 páginas, que contenían 5 filas vigentes y 0 filas no vigentes; 5 filas en la muestra, 5 total de filas estimadas
+ANALYZE
+psql:mantenimiento/maintenance.sql:93: INFO:  analizando «public.usuario»
+psql:mantenimiento/maintenance.sql:93: INFO:  «usuario»: se procesaron 1 de 1 páginas, que contenían 3 filas vigentes y 0 filas no vigentes; 3 filas en la muestra, 3 total de filas estimadas
+ANALYZE
+=== 3b. Diagnostico: tuplas muertas vs umbral de autovacuum ===
+     tabla      | n_live_tup | n_dead_tup | umbral_vacuum | estado 
+----------------+------------+------------+---------------+--------
+ categoria      |          5 |          0 |            51 | OK
+ cliente        |      20005 |          0 |          4051 | OK
+ detalle_pedido |     499263 |          0 |       99902.6 | OK
+ pedido         |     200005 |          0 |         40051 | OK
+ producto       |      50011 |          0 |       10052.2 | OK
+ usuario        |          3 |          0 |          50.6 | OK
+(6 filas)
+
+Decision VACUUM: no se ejecuta. Ninguna tabla supera el umbral de tuplas muertas; autovacuum alcanza.
+VACUUM FULL: no se usa como mantenimiento periodico (bloquea la tabla con ACCESS EXCLUSIVE).
+=== 4. Estado DESPUES ===
+ pg_stat_clear_snapshot 
+------------------------
+ 
+(1 fila)
+
+     tabla      | filas_estimadas | n_live_tup | n_dead_tup | n_mod_since_analyze | last_vacuum |        last_autovacuum        |         last_analyze          |       last_autoanalyze        
+----------------+-----------------+------------+------------+---------------------+-------------+-------------------------------+-------------------------------+-------------------------------
+ detalle_pedido |          499263 |     499263 |          0 |                   0 |             | 2026-11-08 03:40:44.19386-03  |                               | 2026-11-08 03:40:44.66591-03
+ pedido         |          200005 |     200005 |          0 |                   0 |             | 2026-11-08 03:40:44.919372-03 |                               | 2026-11-08 03:40:45.066847-03
+ producto       |           50011 |      50011 |          0 |                   0 |             | 2026-11-08 03:40:45.171044-03 |                               | 2026-11-08 03:40:45.412795-03
+ cliente        |           20005 |      20005 |          0 |                   0 |             | 2026-11-08 03:40:45.473079-03 |                               | 2026-11-08 03:40:45.778462-03
+ categoria      |               5 |          5 |          0 |                   0 |             |                               | 2026-11-08 03:53:31.716001-03 | 
+ usuario        |               3 |          3 |          0 |                   0 |             |                               | 2026-11-08 03:53:31.717242-03 | 
+(6 filas)
+
+salida: 0
