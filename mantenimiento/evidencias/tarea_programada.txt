@@ -1,0 +1,59 @@
+Comando de la tarea: -c 'export PATH="$PATH:/c/Program Files/PostgreSQL/17/bin"; export ORIGEN=programada; exec bash "/c/Users/beluu/Desktop/base-datos-2/mantenimiento/backup_foodstore.sh"'
+
+TaskPath                                       TaskName                          State     
+--------                                       --------                          -----     
+\                                              FoodStore_Backup_Diario           Ready     
+
+
+
+
+Tarea registrada:
+
+
+TaskName : FoodStore_Backup_Diario
+State    : Ready
+Hora     : 2026-11-08T21:00:00-03:00
+Accion   : C:\Program Files\Git\bin\bash.exe
+
+
+
+
+
+
+LastRunTime    : 30/11/1999 00:00:00
+LastTaskResult : 267011
+
+
+
+
+=== schtasks /query
+
+Carpeta: \
+Nombre de host:                                        BELEN
+Nombre de tarea:                                       \FoodStore_Backup_Diario
+Hora pr¢xima ejecuci¢n:                                8/11/2026 21:00:00
+Estado:                                                Listo
+Modo de inicio de sesi¢n:                              Solo interactivo
+éltimo tiempo de ejecuci¢n:                            30/11/1999 00:00:00
+éltimo resultado:                                      267011
+Autor:                                                 N/A
+Tarea que se ejecutar :                                C:\Program Files\Git\bin\bash.exe -c 'export PATH="$PATH:/c/Program Files/PostgreSQL/17/bin"; export ORIGEN=programada; exec bash "/c/Users/beluu/Desktop/base-datos-2/mantenimiento/backup_foodstore.sh"'
+Iniciar en:                                            C:\Users\beluu\Desktop\base-datos-2\mantenimiento
+Comentario:                                            Respaldo diario de foodstore (backup_foodstore.sh). Corre a las 21:00 o al encender la PC.
+Estado de tarea programada:                            Habilitado
+Tiempo de inactividad:                                 Deshabilitado
+Administraci¢n de energ¡a:                             
+Ejecutar como usuario:                                 beluu
+Eliminar tarea si no se vuelve a programar:            Deshabilitado
+Eliminar tarea si ejecuta durante X horas y X minutos: 02:00:00
+Programaci¢n:                                          Datos de programaci¢n no disponibles en este formato.
+Tipo de programaci¢n:                                  Diariamente
+Hora de inicio:                                        21:00:00
+Fecha de inicio:                                       8/11/2026
+Fecha final:                                           N/A
+D¡as:                                                  Cada 1 d¡a(s)
+Meses:                                                 N/A
+Repetir: cada:                                         Deshabilitado
+Repetir: hasta: hora:                                  Deshabilitado
+Repetir: hasta: duraci¢n:                              Deshabilitado
+Repetir: detener si a£n se ejecuta:                    Deshabilitado
