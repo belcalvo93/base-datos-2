@@ -4,6 +4,11 @@
 
 Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un negocio de comidas. Un solo trabajo práctico integrado, dividido por unidades; el parcial se rinde entregando todo junto en un ZIP.
 
+**TPI Parcial II** — Integrantes: Belén Calvo, Elías Tello, Hernán González y Bruno Fiouchetta. Materia: Base de Datos II, UTN-FRM. Profesor: Sergio Neira.
+
+- Repositorio documental y móvil (U7 y U8): https://github.com/belcalvo93/BaseDatos2-MongoDB
+- Índice de los 14 objetivos del TPI Parcial II: [docs/tpi_parcial2/matriz_objetivos.md](docs/tpi_parcial2/matriz_objetivos.md)
+
 ---
 
 ## Estructura del repositorio
