@@ -8,6 +8,7 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 
 - Repositorio documental y móvil (U7 y U8): https://github.com/belcalvo93/BaseDatos2-MongoDB
 - Índice de los 14 objetivos del TPI Parcial II: [docs/tpi_parcial2/matriz_objetivos.md](docs/tpi_parcial2/matriz_objetivos.md)
+- Informe técnico del TPI Parcial II: [docs/tpi_parcial2/informe_tpi.pdf](docs/tpi_parcial2/informe_tpi.pdf)
 
 ---
 
@@ -118,9 +119,9 @@ Proyecto integrador: **Food Store**, un sistema de gestión de pedidos de un neg
 | `food-store/README.md` | Pasos para levantar la base y repetir las pruebas del TP5 |
 | `food-store/specs/` | Specs de Kiro del TP5: `spec_indice_*.md` (Parte A, con el resultado de la medición al final de cada una), `spec_usuario.md` y `spec_vistas.md` (Parte B) y `spec_vista_materializada_parteC.md` (Parte C) |
 | `food-store/backups/` | Respaldos `.dump` de la base de trabajo |
-| `concurrencia/README.md` | Orquestación de los escenarios de concurrencia (TPI, objetivo 8) |
+| `concurrencia/README.md` | Orquestación de los escenarios de concurrencia (objetivo 8 del TPI Parcial I; no confundir con el objetivo 8 del TPI Parcial II, el simulacro de desastre) |
 | `concurrencia/escenario*.sql` | Escenarios reproducibles: atomicidad (0), lectura no repetible (1), fantasma (2), espera por bloqueo (3) |
-| `mantenimiento/` | TP6: respaldo verificado (SHA256, PASS/FAIL), simulacro de restauración con autorización escrita, chequeo de salud y mantenimiento justificado. Detalle en `mantenimiento/README.md` |
+| `mantenimiento/` | TP6: respaldo verificado (SHA256, PASS/FAIL), simulacro de restauración con autorización escrita, chequeo de salud y mantenimiento justificado; simulacro de desastre contra reloj con informe post-incidente (TPI Parcial II, objetivo 8). Detalle en `mantenimiento/README.md` |
 | `docs/Diagrama ER.png` | Diagrama entidad-relación |
 | `docs/diagrama_er.mmd` | Diagrama ER en Mermaid (fuente editable del PNG) |
 | `docs/normalizacion_er_relacional.md` | Pasaje ER→relacional, dependencias funcionales y justificación de 3FN/FNBC de cada tabla |
@@ -237,7 +238,7 @@ Para las Partes B y C, con el mismo protocolo (`BEGIN; … ROLLBACK;` primero): 
 ## TP6 — Mantenimiento, respaldo y recuperación
 
 Todo está en `mantenimiento/`: https://github.com/belcalvo93/base-datos-2/tree/main/mantenimiento
-Respaldo `pg_dump -Fc` verificado con `pg_restore -l` y SHA256; simulacro de restauración en `foodstore_restore_test` (nunca sobre `foodstore`) con autorización escrita, huella de 11 claves y 8 indicadores de integridad; mantenimiento que solo actúa si el diagnóstico lo justifica. Los pasos para reproducirlo están en `mantenimiento/README.md`.
+Respaldo `pg_dump -Fc` verificado con `pg_restore -l` y SHA256; simulacro de restauración en `foodstore_restore_test` (nunca sobre `foodstore`) con autorización escrita, huella de 11 claves y 8 indicadores de integridad; mantenimiento que solo actúa si el diagnóstico lo justifica. Para el TPI Parcial II se agregaron el respaldo programado con retención (objetivo 7) y el simulacro de desastre contra reloj sobre la copia `foodstore_desastre`, con su informe post-incidente `mantenimiento/informe_post_incidente.md` (objetivo 8). Los pasos para reproducirlo están en `mantenimiento/README.md`.
 
 ---
 
