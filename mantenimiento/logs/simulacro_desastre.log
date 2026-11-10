@@ -1,0 +1,5 @@
+2026-11-08 23:56:32 | AUTORIZADO | usuario=elias | origen=variable | accion=dropdb foodstore_desastre
+2026-11-08 23:56:38 | ENSAYO_OK | dump=foodstore_20261108_234846.dump | evidencia=simulacro_desastre_20261108_235631.txt
+2026-11-08 23:57:16 | AUTORIZADO | usuario=elias | origen=variable | accion=dropdb foodstore_desastre
+2026-11-08 23:57:16 | AUTORIZADO | usuario=elias | origen=variable | accion=dropdb foodstore_restore_test
+2026-11-08 23:57:28 | PASS | dump=foodstore_20261108_234846.dump | rto_s=6.16 | rpo_s=514 | pedidos_perdidos=3 | lineas_perdidas=6 | evidencia=simulacro_desastre_20261108_235715.txt

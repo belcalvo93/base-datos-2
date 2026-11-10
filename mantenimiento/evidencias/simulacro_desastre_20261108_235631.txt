@@ -1,0 +1,25 @@
+=== Simulacro de desastre (objetivo 8) — modo ensayo — 2026-11-08 23:56:31 ===
+Respaldo usado: foodstore_20261108_234846.dump (9428157 bytes), del 2026-11-08 23:48:46, SHA256 verificado
+Origen del respaldo (log de backup_foodstore.sh): 2026-11-08 23:48:49 | PASS | base=foodstore | origen=programada | archivo=foodstore_20261108_234846.dump | bytes=9428157 | sha256=30bae55f28e886703e4c1c29959496c55148fe0b5fa9a605ced277802ea4755d | objetos_toc=53 | conteo=foodstore_20261108_234846.conteo | globals=foodstore_20261108_234846_globals.sql | segundos=2
+Borrado de foodstore_desastre autorizado por elias (origen=variable) el 2026-11-08 23:56:32
+
+--- Fase 0: preparación de foodstore_desastre ---
+foodstore_desastre creada desde el respaldo: huella igual al .conteo (11/11)
+
+--- Fase 1: actividad posterior al respaldo ---
+Clientes: 1 2 3 | productos: 1 3 5 7 8 9 | último pedido del respaldo: 245005
+NOTICE:  Pedido 245008 registrado con 2 linea(s)
+NOTICE:  Pedido 245009 registrado con 2 linea(s)
+NOTICE:  Pedido 245010 registrado con 2 linea(s)
+BEGIN
+DO
+CALL
+CALL
+CALL
+actividad 3 6
+DELETE 499269
+desastre 0 200008
+ROLLBACK
+ROLLBACK verificado: foodstore_desastre volvió a la huella del respaldo (11/11)
+foodstore sin cambios: huella antes = después (11/11)
+RESULTADO: ENSAYO OK (no se restauró nada; correr con MODO=real)

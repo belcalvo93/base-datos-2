@@ -1,7 +1,7 @@
 # TP Unidad 6 — Mantenimiento, respaldo y recuperación de Food Store
 
 Plan de mantenimiento en [`SPEC_U6.md`](SPEC_U6.md). Informe: [`informe_u6.pdf`](informe_u6.pdf).
-Este README cubre el objetivo 7 del TPI Parcial II (respaldo programado) y la restauración del objetivo 8; el simulacro de desastre con informe post-incidente se documenta en su propio informe.
+Este README cubre el objetivo 7 del TPI Parcial II (respaldo programado) y el objetivo 8 (simulacro de desastre contra reloj, sección [Simulacro de desastre](#simulacro-de-desastre-objetivo-8)), cuyo informe es [`informe_post_incidente.md`](informe_post_incidente.md).
 Motor: PostgreSQL 17.11 (cumple 16+) sobre Windows 11 con Git Bash.
 
 ## Archivos
@@ -14,6 +14,9 @@ Motor: PostgreSQL 17.11 (cumple 16+) sobre Windows 11 con Git Bash.
 | `quitar_respaldo.ps1` | Borra la tarea `FoodStore_Backup_Diario` |
 | `conteo_referencia.sql` | Huella de la base: filas de las 6 tablas, total facturado (`sum(cantidad * precio_unitario)`) y estructura (tablas, vistas, restricciones, índices). La usan el respaldo y el simulacro |
 | `restore_test.sh` | Simulacro: verifica el SHA256, pide autorización escrita, restaura en `foodstore_restore_test`, compara la huella y corre 8 indicadores de integridad. Mide RTO y RPO observados |
+| `SPEC_simulacro_desastre.md` | Especificación del simulacro de desastre (objetivo 8): escenario, reglas de seguridad, metas RTO ≤ 15 min y RPO ≤ 24 h, criterios de aceptación |
+| `simulacro_desastre.sh` | Simulacro de desastre: crea `foodstore_desastre` desde el último respaldo de la tarea, registra 3 pedidos, ejecuta `DELETE FROM detalle_pedido;`, lo detecta, restaura con `restore_test.sh` y mide RTO, RPO y datos perdidos. `MODO=ensayo` (por defecto) lo hace en `BEGIN … ROLLBACK` sin restaurar |
+| `informe_post_incidente.md` | Informe sin culpables del simulacro: línea de tiempo, impacto, RTO/RPO vs metas, datos perdidos, causa raíz y acciones correctivas |
 | `health_check.sql` | Chequeo de salud: tamaño, conexiones, estado de tablas y consultas activas |
 | `maintenance.sql` | Diagnóstico de estadísticas y tuplas muertas contra los umbrales de autovacuum; `ANALYZE`/`VACUUM` solo si se justifica, nunca `VACUUM FULL`; sale con código 3 si la base no es `foodstore` ni `foodstore_restore_test` |
 | `revision_opencode.md`, `revision_opencode_v2.md` | Revisiones de OpenCode contra el SPEC |
@@ -73,6 +76,21 @@ ls "$T"
 RETENCION_DIAS=abc BACKUP_DIR="$T" ./mantenimiento/backup_foodstore.sh; echo "salida: $?"   # configuración inválida: 2
 ```
 
+## Simulacro de desastre (objetivo 8)
+
+Requiere un respaldo de la tarea programada (paso 2b) y que `foodstore` exista. Solo borra y recrea `foodstore_desastre` y `foodstore_restore_test`; `foodstore` solo se lee para comprobar que no cambió. Pide escribir el nombre de cada base antes de borrarla.
+
+```bash
+# 1. Ensayo: actividad y desastre dentro de BEGIN … ROLLBACK, sin restaurar. Debe dar ENSAYO OK
+MODO=ensayo ./mantenimiento/simulacro_desastre.sh
+
+# 2. Simulacro real. Debe dar PASS con los 6 criterios de la spec en OK
+MODO=real ./mantenimiento/simulacro_desastre.sh
+
+# 3. Al terminar, borrar la base dañada (queda a propósito para el análisis)
+dropdb -U postgres foodstore_desastre
+```
+
 ## Evidencias
 
 | Archivo | Qué muestra |
@@ -92,10 +110,14 @@ RETENCION_DIAS=abc BACKUP_DIR="$T" ./mantenimiento/backup_foodstore.sh; echo "sa
 | `evidencias/globals_pruebas.txt` | Respaldo de roles (9 roles, 0 hashes de contraseña) y las 4 guardas de falla del `_globals.sql` |
 | `evidencias/maintenance_v5_guarda.txt` | La guarda sale con código 3 en una base no permitida y el script corre normal en `foodstore_restore_test` |
 | `evidencias/restore_test_20261108_034017.txt` | Simulacro sobre el respaldo nuevo: huella 11/11, 8 indicadores en 0, RTO 4,22 s, RPO 135 s, PASS |
+| `evidencias/simulacro_desastre_20261108_235631.txt` | Simulacro de desastre en **ensayo**: 3 pedidos y `DELETE` de 499.269 líneas dentro de `BEGIN … ROLLBACK`; la base vuelve a la huella del respaldo |
+| `evidencias/simulacro_desastre_20261108_235715.txt` | **Simulacro de desastre real:** RTO 6,16 s, RPO 514 s, 3 pedidos y 6 líneas perdidos, `foodstore` sin cambios, PASS (6/6 criterios) |
+| `evidencias/restore_test_20261108_235721.txt` | Restauración disparada por el simulacro de desastre: huella 11/11, 8 indicadores en 0, PASS |
+| `logs/simulacro_desastre.log` | Autorizaciones y resultados (ENSAYO_OK / PASS / FAIL) del simulacro de desastre |
 
 ## Reglas
 
-- `foodstore` nunca se borra ni se restaura: los destructivos solo apuntan a `foodstore_restore_test`.
+- `foodstore` nunca se borra ni se restaura: los destructivos solo apuntan a `foodstore_restore_test` y, en el simulacro de desastre, a `foodstore_desastre`.
 - Los roles se respaldan aparte en el `_globals.sql` (SQL plano, se aplica con `psql` conectado a la base `postgres`, nunca con `pg_restore`; sin contraseñas, que se asignan a mano). Los permisos sobre las tablas NO se recuperan en el simulacro porque `restore_test.sh` restaura con `--no-owner --no-privileges`.
 - No se suben `.dump` ni contraseñas. No se usa `VACUUM FULL`.
 

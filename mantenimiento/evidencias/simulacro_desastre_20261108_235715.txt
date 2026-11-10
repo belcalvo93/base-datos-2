@@ -1,0 +1,91 @@
+=== Simulacro de desastre (objetivo 8) — modo real — 2026-11-08 23:57:15 ===
+Respaldo usado: foodstore_20261108_234846.dump (9428157 bytes), del 2026-11-08 23:48:46, SHA256 verificado
+Origen del respaldo (log de backup_foodstore.sh): 2026-11-08 23:48:49 | PASS | base=foodstore | origen=programada | archivo=foodstore_20261108_234846.dump | bytes=9428157 | sha256=30bae55f28e886703e4c1c29959496c55148fe0b5fa9a605ced277802ea4755d | objetos_toc=53 | conteo=foodstore_20261108_234846.conteo | globals=foodstore_20261108_234846_globals.sql | segundos=2
+Borrado de foodstore_desastre autorizado por elias (origen=variable) el 2026-11-08 23:57:16
+Borrado de foodstore_restore_test autorizado por elias (origen=variable) el 2026-11-08 23:57:16
+
+--- Fase 0: preparación de foodstore_desastre ---
+foodstore_desastre creada desde el respaldo: huella igual al .conteo (11/11)
+
+--- Fase 1: actividad posterior al respaldo ---
+Clientes: 1 2 3 | productos: 1 3 5 7 8 9 | último pedido del respaldo: 245005
+NOTICE:  Pedido 245008 registrado con 2 linea(s)
+NOTICE:  Pedido 245009 registrado con 2 linea(s)
+NOTICE:  Pedido 245010 registrado con 2 linea(s)
+BEGIN
+DO
+CALL
+CALL
+CALL
+COMMIT
+[2026-11-08 23:57:20] Actividad registrada: 3 pedidos y 6 líneas que NO están en el respaldo
+
+--- Fase 2: desastre ---
+BEGIN
+DO
+DELETE 499269
+COMMIT
+[2026-11-08 23:57:20] Ejecutado en foodstore_desastre: DELETE FROM detalle_pedido;
+
+--- Fase 3: detección ---
+[2026-11-08 23:57:21] Detectado: detalle_pedido tiene 0 filas y hay 200008 pedidos sin líneas. Arranca el reloj.
+
+--- Fases 4 y 5: recuperación en foodstore_restore_test con restore_test.sh ---
+=== Simulacro de restauración — 2026-11-08 23:57:21 ===
+Respaldo usado: foodstore_20261108_234846.dump (9428157 bytes)
+SHA256 verificado: 30bae55f28e886703e4c1c29959496c55148fe0b5fa9a605ced277802ea4755d
+Borrado de foodstore_restore_test autorizado por elias (origen=variable) el 2026-11-08 23:57:21
+Destino confirmado por el motor: current_database() = foodstore_restore_test
+
+Validación 1 — huella restaurada vs respaldo (filas, total facturado y estructura):
+  categoria        restaurada=5              respaldo=5              OK
+  cliente          restaurada=20005          respaldo=20005          OK
+  producto         restaurada=50011          respaldo=50011          OK
+  pedido           restaurada=200005         respaldo=200005         OK
+  detalle_pedido   restaurada=499263         respaldo=499263         OK
+  usuario          restaurada=3              respaldo=3              OK
+  total_facturado  restaurada=629621805.75   respaldo=629621805.75   OK
+  tablas           restaurada=6              respaldo=6              OK
+  vistas           restaurada=5              respaldo=5              OK
+  restricciones    restaurada=18             respaldo=18             OK
+  indices          restaurada=13             respaldo=13             OK
+Validación 2 — indicadores de integridad (esperado 0):
+  precio_negativo            0      OK
+  stock_negativo             0      OK
+  cantidad_no_positiva       0      OK
+  precio_unitario_negativo   0      OK
+  detalle_sin_pedido         0      OK
+  detalle_sin_producto       0      OK
+  pedido_sin_cliente         0      OK
+  producto_sin_categoria     0      OK
+
+Tiempo createdb + pg_restore: 3.06 s
+RTO observado (createdb -> validaciones OK): 3.63 s
+Antigüedad del respaldo (RPO observado): 517 s (~8 min). Medida antes de createdb; no incluye la espera de autorizacion.
+Alcance: se restauran datos y estructura; NO roles ni permisos (--no-owner --no-privileges).
+RESULTADO: PASS
+[2026-11-08 23:57:27] restore_test.sh: PASS (huella 11/11 y 8 indicadores en 0). Para el reloj. Evidencia: restore_test_20261108_235721.txt
+
+--- Fase 6: pérdida de datos ---
+Pedidos de foodstore_desastre que no están en la base recuperada: 3 (líneas registradas en la fase 1: 6)
+
+--- Línea de tiempo ---
+  Respaldo (tarea programada)  2026-11-08 23:48:46
+  Actividad posterior          2026-11-08 23:57:20
+  Desastre                     2026-11-08 23:57:20
+  Detección (inicio del reloj) 2026-11-08 23:57:21
+  Validado (fin del reloj)     2026-11-08 23:57:27
+
+RTO observado (detección -> validado): 6.16 s   meta <= 900 s
+RPO observado (respaldo -> desastre):  514 s (~8 min)   meta <= 86400 s
+Datos perdidos: 3 pedidos y 6 líneas (registrados después del respaldo)
+
+--- Criterios de aceptación (SPEC_simulacro_desastre.md) ---
+  [OK]    1. foodstore_desastre = respaldo + 3 pedidos antes del desastre
+  [OK]    2. detalle_pedido en 0 tras el desastre y detectado
+  [OK]    3. restore_test.sh en PASS
+  [OK]    4. RTO <= 15 min y RPO <= 24 h
+  [OK]    5. pérdida = actividad de la fase 1 (3 pedidos)
+  [OK]    6. foodstore sin cambios (huella antes = después)
+RESULTADO: PASS
+La base foodstore_desastre queda dañada para el análisis. Para borrarla: dropdb -U postgres foodstore_desastre
