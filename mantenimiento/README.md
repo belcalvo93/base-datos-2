@@ -107,6 +107,7 @@ dropdb -U postgres foodstore_desastre
 | `evidencias/tarea_programada.txt` | Registro de la tarea: diaria, 21:00, estado Listo |
 | `evidencias/tarea_programada_prueba_humo.txt` | Disparo con `schtasks /run`: PASS con `origen=programada`, `LastTaskResult` 0 |
 | `evidencias/retencion_pruebas.txt` | La retención borra juegos de más de 7 días y no baja de 3; configuración inválida sale con 2; base inexistente da FAIL y no borra nada |
+| `evidencias/retencion_minimo_3.txt` | Con 4 juegos de más de 7 días, la retención borra solo 2 y deja 3: el mínimo se respeta |
 | `evidencias/globals_pruebas.txt` | Respaldo de roles (9 roles, 0 hashes de contraseña) y las 4 guardas de falla del `_globals.sql` |
 | `evidencias/maintenance_v5_guarda.txt` | La guarda sale con código 3 en una base no permitida y el script corre normal en `foodstore_restore_test` |
 | `evidencias/restore_test_20261108_034017.txt` | Simulacro sobre el respaldo nuevo: huella 11/11, 8 indicadores en 0, RTO 4,22 s, RPO 135 s, PASS |
@@ -128,3 +129,5 @@ dropdb -U postgres foodstore_desastre
 - Los respaldos viven en el mismo disco que la base: si el disco falla, se pierden los dos.
 - No hay aviso por correo: se detecta con `tail` del log o con el "Último resultado" del Programador.
 - El `_globals.sql` es del cluster completo, no solo de Food Store.
+- La retención ignora los juegos incompletos y nunca los borra: por eso `20261028_200259` y `20261028_211058` aparecen siempre como `ignorados` en el log. Se limpian a mano. La retención de 7 días rige para los juegos completos.
+- `programar_respaldo.ps1` agrega al PATH de la tarea `C:\Program Files\PostgreSQL\17\bin` (línea 53). Con otra versión de PostgreSQL hay que editar esa ruta antes de registrar la tarea.

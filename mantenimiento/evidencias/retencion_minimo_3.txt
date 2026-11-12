@@ -1,0 +1,23 @@
+=== Prueba 4 (retención): el mínimo de 3 juegos con todos los juegos vencidos
+Carpeta temporal con 4 juegos de más de 7 días (20, 15, 12 y 10 días). La corrida agrega 1 nuevo: 5 en total, 4 vencidos. La retención no puede bajar de 3.
+PASS: foodstore_20261112_083908.dump (9428332 bytes, 54 objetos en el TOC)
+SHA256: aab6357ca57180d6cf7913b013be240bdf0c19ca8d120c782b7ba65cc9b95d0c
+Huella de referencia:
+  categoria 5
+  cliente 20005
+  producto 50011
+  pedido 200005
+  detalle_pedido 499263
+  usuario 3
+  total_facturado 629621805.75
+  tablas 6
+  vistas 5
+  restricciones 18
+  indices 13
+salida: 0
+--- línea RETENCION del log
+2026-11-12 08:39:12 | RETENCION | resultado=ok | origen=prueba | dias=7 | min_juegos=3 | antes=5 | despues=3 | motivo=juegos_borrados=2 | eliminados=20261028_083907;20261023_083907; | quedan=20261112_083908;20261102_083907;20261031_083907; | ignorados=ninguno
+--- .dump que quedan
+foodstore_20261031_083907.dump
+foodstore_20261102_083907.dump
+foodstore_20261112_083908.dump
